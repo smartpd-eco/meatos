@@ -1,0 +1,17 @@
+{
+  "name": "MEATOS AI SCM",
+  "short_name": "MEATOS",
+  "description": "모든 POS를 연결하는 AI 축산물 유통 SCM 플랫폼",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f1218",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
