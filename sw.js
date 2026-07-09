@@ -4,6 +4,12 @@ const ASSETS = [
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./src/core/ai-engine.js",
+  "./src/core/event-engine.js",
+  "./src/core/inventory-engine.js",
+  "./src/core/product-engine.js",
+  "./src/data/mock-data.js",
+  "./src/plugins/pos-adapter.js",
   "./manifest.webmanifest",
   "./icons/icon.svg"
 ];

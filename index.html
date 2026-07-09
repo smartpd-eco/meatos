@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#111827" />
     <meta
       name="description"
-      content="모든 정육점 POS를 연결하는 AI 축산물 유통 SCM 플랫폼"
+      content="Core Engine 기반 AI 축산물 Universal SCM Platform"
     />
     <title>MEATOS AI SCM</title>
     <link rel="manifest" href="manifest.webmanifest" />
@@ -19,50 +19,50 @@
           <div class="brand-mark">M</div>
           <div>
             <strong>MEATOS</strong>
-            <span>AI SCM Standard</span>
+            <span>Universal SCM OS</span>
           </div>
         </div>
         <nav class="nav-list">
           <button class="nav-item active" data-view="dashboard">통합현황</button>
-          <button class="nav-item" data-view="alias">AI관리</button>
-          <button class="nav-item" data-view="pos">POS관리</button>
+          <button class="nav-item" data-view="engines">Core Engine</button>
+          <button class="nav-item" data-view="products">상품관리</button>
           <button class="nav-item" data-view="inventory">재고관리</button>
-          <button class="nav-item" data-view="sales">판매관리</button>
-          <button class="nav-item" data-view="orders">발주관리</button>
-          <button class="nav-item" data-view="analytics">분석관리</button>
+          <button class="nav-item" data-view="events">Event Log</button>
+          <button class="nav-item" data-view="pos">POS Plugin</button>
+          <button class="nav-item" data-view="ai">AI 추천</button>
         </nav>
       </aside>
 
       <main class="main">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Universal POS Adapter & AI Inventory Platform</p>
-            <h1 id="view-title">AI 축산물 유통 SCM 플랫폼</h1>
+            <p class="eyebrow">AI 기반 축산물 Universal SCM Platform</p>
+            <h1 id="view-title">MEATOS Core Engine Dashboard</h1>
           </div>
           <div class="top-actions">
             <span class="status-dot"></span>
-            <span>Adapter 정상</span>
+            <span>Core Engine 정상</span>
             <button class="primary-button" id="run-health-check">POS Health Check</button>
           </div>
         </header>
 
         <section class="hero-band" aria-labelledby="hero-title">
           <div>
-            <p class="eyebrow">대한민국 정육점 표준 SCM</p>
-            <h2 id="hero-title">POS는 그대로, 재고와 발주는 하나의 표준으로.</h2>
+            <p class="eyebrow">Engine First, Feature Later</p>
+            <h2 id="hero-title">모든 기능은 Core Engine 위에서 동작합니다.</h2>
             <p>
-              OKPOS, POSMASTER, POPS, CSV, DB, 수기 판매까지 모든 판매 데이터를
-              표준 상품과 재고 Ledger로 변환합니다.
+              Product, Inventory, Event, AI Engine을 먼저 만들고 POS, OCR,
+              Dashboard, Mobile은 Plugin 또는 Application Layer로 연결합니다.
             </p>
           </div>
-          <div class="adapter-map" aria-label="Adapter 연결 흐름">
-            <span>OKPOS</span>
-            <span>CSV</span>
-            <span>DB</span>
-            <strong>Universal Adapter</strong>
-            <span>Alias Engine</span>
-            <span>Inventory</span>
-            <span>AI 발주</span>
+          <div class="adapter-map" aria-label="Core Engine 구조">
+            <span>Product Engine</span>
+            <span>Inventory Engine</span>
+            <span>Event Engine</span>
+            <strong>Universal Inventory Engine</strong>
+            <span>AI Engine</span>
+            <span>POS Plugin</span>
+            <span>Mobile App</span>
           </div>
         </section>
 
@@ -72,10 +72,10 @@
 
     <div class="mobile-tabbar" aria-label="모바일 빠른 메뉴">
       <button class="mobile-tab active" data-view="dashboard">현황</button>
-      <button class="mobile-tab" data-view="alias">AI</button>
-      <button class="mobile-tab" data-view="pos">POS</button>
+      <button class="mobile-tab" data-view="engines">엔진</button>
+      <button class="mobile-tab" data-view="products">상품</button>
       <button class="mobile-tab" data-view="inventory">재고</button>
-      <button class="mobile-tab" data-view="orders">발주</button>
+      <button class="mobile-tab" data-view="pos">POS</button>
     </div>
 
     <template id="toast-template">

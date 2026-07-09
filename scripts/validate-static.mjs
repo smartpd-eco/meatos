@@ -6,7 +6,14 @@ const requiredFiles = [
   "app.js",
   "manifest.webmanifest",
   "sw.js",
-  "icons/icon.svg"
+  "icons/icon.svg",
+  "IMPLEMENTATION_DIRECTION_V1.md",
+  "src/core/product-engine.js",
+  "src/core/inventory-engine.js",
+  "src/core/event-engine.js",
+  "src/core/ai-engine.js",
+  "src/plugins/pos-adapter.js",
+  "src/data/mock-data.js"
 ];
 
 for (const file of requiredFiles) {
@@ -19,10 +26,11 @@ for (const file of requiredFiles) {
 const html = await readFile("index.html", "utf8");
 const js = await readFile("app.js", "utf8");
 const manifest = JSON.parse(await readFile("manifest.webmanifest", "utf8"));
+const direction = await readFile("IMPLEMENTATION_DIRECTION_V1.md", "utf8");
 
 const htmlChecks = [
-  "AI 축산물 유통 SCM 플랫폼",
-  "app.js",
+  "Core Engine 기반 AI 축산물 Universal SCM Platform",
+  "Core Engine",
   "manifest.webmanifest",
   "mobile-tabbar"
 ];
@@ -34,19 +42,38 @@ for (const check of htmlChecks) {
 }
 
 const jsChecks = [
+  "ProductEngine",
+  "InventoryEngine",
+  "EventEngine",
+  "AiEngine",
+  "PosAdapterPlugin",
   "renderDashboard",
-  "renderAlias",
-  "renderPos",
+  "renderEngines",
+  "renderProducts",
   "renderInventory",
-  "renderSales",
-  "renderOrders",
-  "renderAnalytics",
+  "renderEvents",
+  "renderPos",
+  "renderAi",
   "serviceWorker"
 ];
 
 for (const check of jsChecks) {
   if (!js.includes(check)) {
     throw new Error(`app.js missing ${check}`);
+  }
+}
+
+const directionChecks = [
+  "Product Engine",
+  "Universal Inventory Engine",
+  "Event Engine",
+  "AI Engine",
+  "POS는 Core가 아니다. Plugin이다."
+];
+
+for (const check of directionChecks) {
+  if (!direction.includes(check)) {
+    throw new Error(`IMPLEMENTATION_DIRECTION_V1.md missing ${check}`);
   }
 }
 
