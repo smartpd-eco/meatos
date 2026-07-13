@@ -1252,6 +1252,7 @@ function renderOcr() {
 
 function renderRealWorldOcrPanel(selectedDocument = null) {
   const capture = state.ocrRealWorld;
+  const isProcessing = String(capture.status ?? "").toUpperCase() === "OCR_PENDING";
   const analysis = capture.imageAnalysis;
   const intakeDecision = capture.intakeDecision ?? (analysis ? evaluateOcrIntakeQuality(analysis) : null);
   const providerHealth = state.ocrProviderHealth ?? ocrProviderHealthLogStore.summary().latest ?? null;
@@ -1297,7 +1298,7 @@ function renderRealWorldOcrPanel(selectedDocument = null) {
       </div>
       ${renderOcrUxFlowTrack(uxStage)}
       <div class="row-actions" style="margin-top:12px">
-        <button class="primary-button" id="ocr-realworld-analyze">사진 찍고 확인</button>
+        <button class="primary-button" id="ocr-realworld-analyze" ${isProcessing ? "disabled" : ""}>${isProcessing ? "거래명세서 분석중" : "사진 찍고 확인"}</button>
         ${summaryButtonTarget ? `<button class="secondary-button" data-ocr-post="${summaryButtonTarget}">재고 반영</button>` : `<button class="secondary-button" disabled>재고 반영</button>`}
         <button class="secondary-button" id="ocr-realworld-clear">초기화</button>
       </div>
@@ -1845,7 +1846,7 @@ function ocrUxStageLabel(capture = {}, document = null) {
 
   if (documentStatus === "APPROVED" || documentStatus === "POSTED") return "재고 반영 준비중";
   if (documentStatus === "REVIEW_REQUIRED" || captureStatus === "RECAPTURE_RECOMMENDED") return "품목 정리중";
-  if (documentStatus === "OCR_PENDING" || documentStatus === "OCR_COMPLETED") return "거래명세서 분석중";
+  if (documentStatus === "OCR_PENDING" || documentStatus === "OCR_COMPLETED" || captureStatus === "OCR_PENDING") return "거래명세서 분석중";
   if (documentStatus === "PARSE_COMPLETED") return "품목 정리중";
   if (captureStatus === "ANALYZED" || captureStatus === "UPLOADED" || captureStatus === "CAPTURED") return "사진 확인중";
   if (capture?.file) return "사진 확인중";
@@ -2410,25 +2411,6 @@ function buildStandbyProviderHealth(adapter, configured) {
   };
 }
 
-async function prewarmPrimaryOcrProvider() {
-  try {
-    const adapter = createOcrProviderAdapter("paddleocr", {
-      modelAssetBaseUrl: OCR_RUNTIME_CONFIG.paddleModelBaseUrl
-    });
-    const health = await adapter.healthCheck();
-    eventEngine.record("ocr.provider.prewarmed", {
-      providerId: adapter.getProviderId(),
-      ready: Boolean(health.ok),
-      latencyMs: Number(health.latencyMs ?? 0)
-    });
-  } catch (error) {
-    eventEngine.record("ocr.provider.prewarm_failed", {
-      providerId: "paddleocr",
-      reason: String(error?.message ?? "PREWARM_FAILED")
-    });
-  }
-}
-
 function recordOcrOperationLog(input) {
   return ocrOperationLogStore.record({
     documentId: input.documentId,
@@ -2851,6 +2833,39 @@ async function runRealWorldOcrPipeline() {
   state.ocrSelectedLineNo = 1;
   state.lastOcrRun = matchedDocument;
   return matchedDocument;
+}
+
+async function runRealWorldOcrPipelineFromUi(successMessage) {
+  if (!state.ocrRealWorld.file) {
+    showToast("먼저 사진 찍기 또는 파일 불러오기를 선택하세요.");
+    return null;
+  }
+
+  state.ocrRealWorld.status = "OCR_PENDING";
+  state.ocrRealWorld.error = "";
+  render();
+  await waitForBrowserPaint();
+
+  try {
+    const document = await runRealWorldOcrPipeline();
+    state.ocrDocumentId = document.documentId;
+    state.ocrSelectedLineNo = 1;
+    showToast(successMessage);
+    return document;
+  } catch (error) {
+    state.ocrRealWorld.status = "REVIEW_REQUIRED";
+    state.ocrRealWorld.error = error.message;
+    showToast(error.message);
+    return null;
+  } finally {
+    render();
+  }
+}
+
+async function waitForBrowserPaint() {
+  await new Promise((resolve) => {
+    window.requestAnimationFrame(() => window.setTimeout(resolve, 0));
+  });
 }
 
 async function runProviderRecognitionAttempt(adapter, input) {
@@ -3362,33 +3377,11 @@ function bindViewEvents() {
   });
 
   document.querySelector("#ocr-realworld-analyze")?.addEventListener("click", async () => {
-    if (!state.ocrRealWorld.file) {
-      showToast("먼저 사진 찍기 또는 파일 불러오기를 선택하세요.");
-      return;
-    }
-    try {
-      const document = await runRealWorldOcrPipeline();
-      state.ocrDocumentId = document.documentId;
-      state.ocrSelectedLineNo = 1;
-      showToast("실제 OCR 파이프라인을 실행했습니다.");
-    } catch (error) {
-      state.ocrRealWorld.error = error.message;
-      showToast(error.message);
-    }
-    render();
+    await runRealWorldOcrPipelineFromUi("실제 OCR 파이프라인을 실행했습니다.");
   });
 
   document.querySelector("#ocr-realworld-run")?.addEventListener("click", async () => {
-    try {
-      const document = await runRealWorldOcrPipeline();
-      state.ocrDocumentId = document.documentId;
-      state.ocrSelectedLineNo = 1;
-      showToast("실제 문서 파이프라인을 실행했습니다.");
-    } catch (error) {
-      state.ocrRealWorld.error = error.message;
-      showToast(error.message);
-    }
-    render();
+    await runRealWorldOcrPipelineFromUi("실제 문서 파이프라인을 실행했습니다.");
   });
 
   document.querySelector("#ocr-realworld-health-check")?.addEventListener("click", async () => {
@@ -4674,15 +4667,6 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   });
 }
-
-window.addEventListener("load", () => {
-  const warmup = () => prewarmPrimaryOcrProvider();
-  if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(warmup, { timeout: 2500 });
-  } else {
-    window.setTimeout(warmup, 1200);
-  }
-});
 
 eventEngine.record("app.started", { task: "TASK-001", architecture: "product-engine-first" });
 render();

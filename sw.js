@@ -1,5 +1,5 @@
-const CACHE_NAME = "meatos-ai-scm-v3";
-const RUNTIME_CACHE_NAME = "meatos-ai-scm-runtime-v3";
+const CACHE_NAME = "meatos-ai-scm-v4";
+const RUNTIME_CACHE_NAME = "meatos-ai-scm-runtime-v4";
 const ASSETS = [
   "./",
   "./index.html",
