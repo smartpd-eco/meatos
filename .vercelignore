@@ -1,0 +1,15 @@
+.env
+.env.*
+.git
+.git.blocked-*
+ai/ocr-training/generated
+ai/ocr-training/corpus-1000
+database
+docs
+outputs
+test-assets
+tmp
+supabase
+*.log
+server.log
+server.err.log

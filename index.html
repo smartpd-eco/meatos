@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
@@ -8,61 +8,67 @@
       name="description"
       content="Core Engine 기반 AI 축산물 Universal SCM Platform"
     />
-    <title>MEATOS AI SCM</title>
+    <title>고기장터</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@paddleocr/paddleocr-js": "/node_modules/@paddleocr/paddleocr-js/dist/index.mjs",
+          "@paddleocr/paddleocr-js/viz": "/node_modules/@paddleocr/paddleocr-js/dist/viz.mjs",
+          "@techstark/opencv-js": "/src/vendor/opencv-wrapper.mjs",
+          "clipper-lib": "/src/vendor/clipper-wrapper.mjs",
+          "js-yaml": "/node_modules/js-yaml/dist/js-yaml.mjs",
+          "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.mjs"
+        }
+      }
+    </script>
   </head>
   <body>
     <div class="app-shell">
       <aside class="sidebar" aria-label="주요 메뉴">
         <div class="brand">
-          <div class="brand-mark">M</div>
+          <div class="brand-mark">고</div>
           <div>
-            <strong>MEATOS</strong>
-            <span>Universal SCM OS</span>
+            <strong>고기장터</strong>
+            <span>Powered by Eco SmartPD  MEATOS</span>
           </div>
         </div>
         <nav class="nav-list">
-          <button class="nav-item active" data-view="dashboard">통합현황</button>
-          <button class="nav-item" data-view="engines">Core Engine</button>
-          <button class="nav-item" data-view="products">상품관리</button>
-          <button class="nav-item" data-view="inventory">재고관리</button>
-          <button class="nav-item" data-view="events">Event Log</button>
-          <button class="nav-item" data-view="pos">POS Plugin</button>
-          <button class="nav-item" data-view="ai">AI 추천</button>
+          <button class="nav-item active" data-view="dashboard">입력</button>
+          <button class="nav-item" data-view="inventory">재고</button>
+          <button class="nav-item" data-view="sales">매출</button>
+          <button class="nav-item" data-view="more">더보기</button>
         </nav>
       </aside>
 
       <main class="main">
         <header class="topbar">
           <div>
-            <p class="eyebrow">AI 기반 축산물 Universal SCM Platform</p>
-            <h1 id="view-title">MEATOS Core Engine Dashboard</h1>
+            <p class="eyebrow">AI 업무비서</p>
+            <h1 id="view-title">고기장터</h1>
           </div>
           <div class="top-actions">
             <span class="status-dot"></span>
-            <span>Core Engine 정상</span>
-            <button class="primary-button" id="run-health-check">POS Health Check</button>
+            <span>사진 찍고 확인하면 끝</span>
+            <button class="secondary-button" id="run-supabase-check">연결 확인</button>
+            <button class="primary-button" id="run-health-check">업무 점검</button>
           </div>
         </header>
 
         <section class="hero-band" aria-labelledby="hero-title">
           <div>
-            <p class="eyebrow">Engine First, Feature Later</p>
-            <h2 id="hero-title">모든 기능은 Core Engine 위에서 동작합니다.</h2>
+            <p class="eyebrow">사진 찍기  확인  완료</p>
+            <h2 id="hero-title">정육점 사장님의 계산대 옆 AI 비서입니다.</h2>
             <p>
-              Product, Inventory, Event, AI Engine을 먼저 만들고 POS, OCR,
-              Dashboard, Mobile은 Plugin 또는 Application Layer로 연결합니다.
+              사용자는 복잡한 ERP를 보지 않습니다. 가장 자주 쓰는 일만 크게 보여주고, 나머지는 뒤에서 자동으로 처리합니다.
             </p>
           </div>
-          <div class="adapter-map" aria-label="Core Engine 구조">
-            <span>Product Engine</span>
-            <span>Inventory Engine</span>
-            <span>Event Engine</span>
-            <strong>Universal Inventory Engine</strong>
-            <span>AI Engine</span>
-            <span>POS Plugin</span>
-            <span>Mobile App</span>
+          <div class="adapter-map" aria-label="핵심 메뉴">
+            <span>입력</span>
+            <span>재고</span>
+            <span>매출</span>
+            <strong>더보기</strong>
           </div>
         </section>
 
@@ -71,17 +77,17 @@
     </div>
 
     <div class="mobile-tabbar" aria-label="모바일 빠른 메뉴">
-      <button class="mobile-tab active" data-view="dashboard">현황</button>
-      <button class="mobile-tab" data-view="engines">엔진</button>
-      <button class="mobile-tab" data-view="products">상품</button>
+      <button class="mobile-tab active" data-view="dashboard">입력</button>
       <button class="mobile-tab" data-view="inventory">재고</button>
-      <button class="mobile-tab" data-view="pos">POS</button>
+      <button class="mobile-tab" data-view="sales">매출</button>
+      <button class="mobile-tab" data-view="more">더보기</button>
     </div>
 
     <template id="toast-template">
       <div class="toast" role="status"></div>
     </template>
 
+    <script src="runtime-config.js"></script>
     <script src="app.js" type="module"></script>
   </body>
 </html>

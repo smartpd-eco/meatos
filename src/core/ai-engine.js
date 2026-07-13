@@ -6,7 +6,11 @@ export class AiEngine {
   }
 
   recommendAlias(rawName) {
-    const recommendation = this.productEngine.matchAlias(rawName);
+    const recommendation = this.productEngine.matchAlias(rawName, {
+      sourceDomain: "organization",
+      sourceType: "ocr",
+      persistUsage: false
+    });
     this.eventEngine.record("ai.alias_recommended", {
       rawName,
       productId: recommendation.product?.id,

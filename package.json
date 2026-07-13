@@ -6,8 +6,32 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/validate-static.mjs",
+    "build:vercel": "node scripts/build-vercel-static.mjs",
     "lint": "node scripts/validate-static.mjs",
     "test": "node scripts/validate-static.mjs",
-    "dev": "node scripts/dev-server.mjs"
+    "dev": "node scripts/dev-server.mjs",
+    "ocr:easy": "node scripts/run-easyocr-service.mjs",
+    "ocr:data:generate": "node scripts/generate-ocr-synthetic-dataset.mjs",
+    "ocr:data:validate": "node scripts/validate-ocr-training-dataset.mjs",
+    "ocr:evaluate": "node scripts/test-ocr-evaluation.mjs",
+    "ocr:trace:test": "node scripts/test-ocr-trace-number-extractor.mjs",
+    "ocr:raster:generate": "python scripts/render-ocr-synthetic-raster.py",
+    "ocr:benchmark:easy": "python scripts/benchmark-easyocr-products.py",
+    "ocr:benchmark:tesseract": "node scripts/benchmark-tesseract-numeric.mjs",
+    "ocr:benchmark:report": "node scripts/create-ocr-benchmark-report.mjs",
+    "ocr:cloud:test": "node scripts/test-cloud-ocr-challengers.mjs",
+    "ocr:evidence:test": "node scripts/test-ocr-evidence-validator.mjs",
+    "ocr:tax:test": "node scripts/test-meat-tax-and-completeness.mjs",
+    "ocr:table:test": "node scripts/test-ocr-table-header-coverage.mjs",
+    "ocr:research:report": "node scripts/create-ocr-research-analysis-report.mjs",
+    "ocr:corpus:plan": "node scripts/plan-ocr-corpus-1000.mjs",
+    "ocr:corpus:validate": "node scripts/validate-ocr-corpus-1000.mjs",
+    "ocr:corpus:report": "node scripts/report-ocr-corpus-1000.mjs",
+    "db:apply": "node scripts/apply-supabase-migrations.mjs"
+  },
+  "dependencies": {
+    "@paddleocr/paddleocr-js": "^0.4.2",
+    "pg": "^8.22.0",
+    "tesseract.js": "^7.0.0"
   }
 }

@@ -7,7 +7,11 @@ export class PosAdapterPlugin {
 
   importCsvRows(rows) {
     const results = rows.map((row) => {
-      const match = this.productEngine.matchAlias(row.productName);
+      const match = this.productEngine.matchAlias(row.productName, {
+        sourceDomain: row.sourceDomain ?? "distributor",
+        sourceType: "pos",
+        persistUsage: true
+      });
       if (!match.product) {
         this.eventEngine.record("pos.sale_unmatched", row);
         return {
@@ -46,7 +50,11 @@ export class PosAdapterPlugin {
   }
 
   createManualSale({ productName, quantity }) {
-    const match = this.productEngine.matchAlias(productName);
+    const match = this.productEngine.matchAlias(productName, {
+      sourceDomain: "butcher_shop",
+      sourceType: "manual",
+      persistUsage: true
+    });
     const product = match.product ?? this.productEngine.listProducts().find((item) => item.name === productName);
 
     if (!product) {

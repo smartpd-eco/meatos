@@ -194,6 +194,25 @@ h3 {
   color: var(--text);
 }
 
+.text-button {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.text-button:hover {
+  background: #232b38;
+}
+
+.text-button.danger {
+  color: #ffb5b5;
+}
+
 .hero-band {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.8fr);
@@ -217,7 +236,7 @@ h3 {
 
 .adapter-map {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -237,6 +256,176 @@ h3 {
   border-color: #457b61;
   background: #173021;
   color: #bff7d7;
+}
+
+.hero-home {
+  display: grid;
+  gap: 18px;
+}
+
+.home-main-action {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  min-height: 96px;
+  padding: 18px 20px;
+  border: 1px solid #4d7f61;
+  text-align: left;
+  font-size: 20px;
+}
+
+.home-main-action small {
+  color: #173021;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.home-flow {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-flow span,
+.home-flow strong {
+  display: grid;
+  min-height: 52px;
+  place-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #101720;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.home-flow strong {
+  border-color: #457b61;
+  background: #173021;
+  color: #bff7d7;
+}
+
+.home-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.home-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.home-card {
+  display: grid;
+  gap: 8px;
+  min-height: 140px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #121820;
+  color: var(--text);
+  text-align: left;
+}
+
+.home-card strong {
+  font-size: 22px;
+}
+
+.home-card span,
+.home-task,
+.home-info {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.home-task,
+.home-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #101720;
+}
+
+.home-info strong {
+  color: var(--text);
+}
+
+.ocr-input-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ocr-input-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(6 9 13 / 72%);
+  backdrop-filter: blur(6px);
+}
+
+.ocr-input-sheet {
+  width: min(720px, 100%);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--panel);
+  padding: 20px;
+  box-shadow: 0 26px 70px rgb(0 0 0 / 40%);
+}
+
+.ocr-input-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.choice-button {
+  display: grid;
+  gap: 8px;
+  min-height: 120px;
+  padding: 18px;
+  border: 1px solid #3a4758;
+  border-radius: var(--radius);
+  background: #101720;
+  color: var(--text);
+  text-align: left;
+}
+
+.choice-button strong {
+  font-size: 20px;
+}
+
+.choice-button span {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
 }
 
 .content-grid {
@@ -292,8 +481,20 @@ h3 {
   font-size: 15px;
 }
 
+.label.danger {
+  color: #ffb2b2;
+}
+
 .table-wrap {
   overflow-x: auto;
+}
+
+.code-block {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 table {
@@ -372,9 +573,119 @@ td {
   gap: 12px;
 }
 
+.textarea {
+  width: 100%;
+  min-height: 132px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #101720;
+  color: var(--text);
+  resize: vertical;
+}
+
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.kpi-tile,
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #121820;
+}
+
+.kpi-tile {
+  display: grid;
+  gap: 6px;
+  min-height: 100px;
+  padding: 14px;
+}
+
+.kpi-value {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.kpi-label {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.kpi-hint {
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.panel {
+  padding: 12px;
+}
+
+.panel h4 {
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.ocr-preview-image {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: #0c1118;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.status-panel {
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #101720;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
 .progress-list {
   display: grid;
   gap: 12px;
+}
+
+.stack-list {
+  display: grid;
+  gap: 14px;
+}
+
+.stack-list strong {
+  display: block;
+  margin-bottom: 6px;
 }
 
 .progress-row {
@@ -445,7 +756,7 @@ td {
     left: 0;
     z-index: 9;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 6px;
     padding: 10px;
     border-top: 1px solid var(--line);
@@ -485,8 +796,26 @@ td {
     grid-template-columns: 1fr 1fr;
   }
 
+  .home-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-status-grid,
+  .home-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .content-grid,
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-status-grid,
+  .home-flow {
     grid-template-columns: 1fr;
   }
 
