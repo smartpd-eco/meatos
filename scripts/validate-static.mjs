@@ -46,11 +46,11 @@ const runtimeRequiredFiles = [
   "src/data/source-registry.js",
   "src/data/good-chuksan-seed.js",
   "src/data/good-chuksan-source-store.js",
-  "src/data/mock-data.js",
-  ".env.example"
+  "src/data/mock-data.js"
 ];
 
 const developmentRequiredFiles = [
+  ".env.example",
   "database/GOOD_CHUKSAN_SEED_DB.sql",
   "docs/03_DATABASE/SUPABASE_DB_MAPPING.md",
   "supabase/migrations/202607110001_extensions.sql",
