@@ -2279,7 +2279,7 @@ function failureTypeFromQuality(imageAnalysis, intakeDecision) {
   if (warnings.includes("LOW_CONTRAST")) return "LOW_CONTRAST";
   if (warnings.includes("SHADOW_RISK")) return "SHADOW";
   if (warnings.includes("BLUR_RISK")) return "BLUR";
-  if (warnings.includes("ROTATION_RECOMMENDED")) return "CROPPED";
+  if (warnings.includes("ROTATION_RECOMMENDED") || warnings.includes("ROTATION_REVIEW_REQUIRED")) return "CROPPED";
   if (intakeDecision?.recommendRecapture) return "UNKNOWN";
   return "UNKNOWN";
 }
@@ -2299,7 +2299,8 @@ function buildTemplateProfileSnapshot(supplierName, providerId) {
   };
 }
 
-async function resolveRealWorldOcrProvider(capture) {
+async function resolveRealWorldOcrProvider(capture, options = {}) {
+  const fullHealthCheck = Boolean(options.fullHealthCheck);
   const requestedProviderId = capture.providerId || "paddleocr";
   const primaryAdapter = createOcrProviderAdapter(requestedProviderId, {
     functionUrl: SUPABASE_PUBLIC_CONFIG.ocrFunctionUrl,
@@ -2307,18 +2308,23 @@ async function resolveRealWorldOcrProvider(capture) {
     modelAssetBaseUrl: OCR_RUNTIME_CONFIG.paddleModelBaseUrl
   });
   const primaryHealth = await primaryAdapter.healthCheck();
+  const primaryHealthy = Boolean(primaryHealth.ok) && primaryHealth.mode !== "unconfigured";
   const easyOcrAdapter = createOcrProviderAdapter("easyocr-compare", {
     serviceUrl: OCR_RUNTIME_CONFIG.easyOcrServiceUrl,
     timeoutMs: 45000
   });
-  const easyOcrHealth = await easyOcrAdapter.healthCheck();
+  const easyOcrHealth = fullHealthCheck
+    ? await easyOcrAdapter.healthCheck()
+    : buildStandbyProviderHealth(easyOcrAdapter, Boolean(OCR_RUNTIME_CONFIG.easyOcrServiceUrl));
   const comparisonAdapter = createOcrProviderAdapter("tesseract-compare", {
     workerPath: OCR_RUNTIME_CONFIG.tesseractWorkerPath,
     corePath: OCR_RUNTIME_CONFIG.tesseractCorePath,
     langPath: OCR_RUNTIME_CONFIG.tesseractLangPath,
     languages: OCR_RUNTIME_CONFIG.tesseractLanguages
   });
-  const comparisonHealth = await comparisonAdapter.healthCheck();
+  const comparisonHealth = fullHealthCheck
+    ? await comparisonAdapter.healthCheck()
+    : buildStandbyProviderHealth(comparisonAdapter, true);
   const secondaryAdapter = requestedProviderId === "clova-general"
     ? createOcrProviderAdapter("mock")
     : createOcrProviderAdapter("clova-general", {
@@ -2327,8 +2333,9 @@ async function resolveRealWorldOcrProvider(capture) {
       });
   const secondaryHealth = secondaryAdapter.getProviderId() === primaryAdapter.getProviderId()
     ? primaryHealth
-    : await secondaryAdapter.healthCheck();
-  const primaryHealthy = Boolean(primaryHealth.ok) && primaryHealth.mode !== "unconfigured";
+    : (fullHealthCheck || !primaryHealthy)
+      ? await secondaryAdapter.healthCheck()
+      : buildStandbyProviderHealth(secondaryAdapter, Boolean(SUPABASE_PUBLIC_CONFIG.ocrFunctionUrl));
   const activeAdapter = primaryHealthy ? primaryAdapter : secondaryAdapter;
   const healthEntry = ocrProviderHealthLogStore.record({
     providerName: primaryAdapter.getProviderName(),
@@ -2386,8 +2393,21 @@ async function resolveRealWorldOcrProvider(capture) {
 }
 
 async function probeRealWorldOcrProvider() {
-  const result = await resolveRealWorldOcrProvider(state.ocrRealWorld);
+  const result = await resolveRealWorldOcrProvider(state.ocrRealWorld, { fullHealthCheck: true });
   return result.providerHealth;
+}
+
+function buildStandbyProviderHealth(adapter, configured) {
+  return {
+    ok: Boolean(configured),
+    providerName: adapter.getProviderName(),
+    providerVersion: adapter.getProviderVersion(),
+    mode: configured ? "standby" : "unconfigured",
+    secretConnected: false,
+    latencyMs: 0,
+    checkedAt: new Date().toISOString(),
+    message: configured ? "필요할 때만 실행합니다." : "연결 설정이 없습니다."
+  };
 }
 
 async function prewarmPrimaryOcrProvider() {
@@ -2561,6 +2581,7 @@ async function runRealWorldOcrPipeline() {
     documentId: created.documentId,
     tenantId: "SMARTPD_DEV",
     file: capture.file,
+    imageBlob: processed.preprocessedImageBlob,
     imageDataUrl: processed.preprocessedImageDataUrl || processed.originalImageDataUrl,
     supplierName: capture.supplierName,
     qualityScore: processed.qualityScore,
@@ -4653,6 +4674,15 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   });
 }
+
+window.addEventListener("load", () => {
+  const warmup = () => prewarmPrimaryOcrProvider();
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(warmup, { timeout: 2500 });
+  } else {
+    window.setTimeout(warmup, 1200);
+  }
+});
 
 eventEngine.record("app.started", { task: "TASK-001", architecture: "product-engine-first" });
 render();

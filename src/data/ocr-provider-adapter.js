@@ -3,6 +3,8 @@ import { validateOcrInvoiceData } from "./ocr-business-validator.js";
 import { reconstructOcrTable } from "./ocr-table-reconstructor.js";
 
 const EASY_OCR_RESULT_CACHE = new Map();
+const PADDLE_INSTANCE_CACHE = new Map();
+const TESSERACT_WORKER_CACHE = new Map();
 
 export function createOcrProviderAdapter(providerId, config = {}) {
   const normalizedProviderId = String(providerId ?? "mock").trim().toLowerCase();
@@ -103,6 +105,7 @@ class PaddleOcrProvider {
         simd: config.simd ?? true
       }
     };
+    this.instanceCacheKey = JSON.stringify(this.modelConfig);
   }
 
   getProviderName() {
@@ -147,7 +150,7 @@ class PaddleOcrProvider {
   }
 
   async recognizeDocument(input = {}) {
-    const image = input.file ?? input.imageBlob ?? input.blob ?? input.image ?? null;
+    const image = input.imageBlob ?? input.file ?? input.blob ?? input.image ?? null;
     if (!image) {
       throw new Error("PaddleOCR requires a File or Blob input.");
     }
@@ -179,7 +182,15 @@ class PaddleOcrProvider {
 
   async ensureInstance() {
     if (!this.instancePromise) {
-      this.instancePromise = this.createInstance();
+      this.instancePromise = PADDLE_INSTANCE_CACHE.get(this.instanceCacheKey);
+      if (!this.instancePromise) {
+        this.instancePromise = this.createInstance().catch((error) => {
+          PADDLE_INSTANCE_CACHE.delete(this.instanceCacheKey);
+          this.instancePromise = null;
+          throw error;
+        });
+        PADDLE_INSTANCE_CACHE.set(this.instanceCacheKey, this.instancePromise);
+      }
     }
     return this.instancePromise;
   }
@@ -409,6 +420,7 @@ class TesseractCompareProvider {
     this.languages = Array.isArray(config.languages) && config.languages.length
       ? config.languages.map((value) => String(value ?? "").trim()).filter(Boolean)
       : OCR_RUNTIME_CONFIG.tesseractLanguages;
+    this.workerCacheKey = [this.workerPath, this.corePath, this.langPath, ...this.languages].join("|");
   }
 
   getProviderName() {
@@ -453,7 +465,7 @@ class TesseractCompareProvider {
   }
 
   async recognizeDocument(input = {}) {
-    const image = input.file ?? input.imageBlob ?? input.blob ?? input.image ?? null;
+    const image = input.imageBlob ?? input.file ?? input.blob ?? input.image ?? null;
     if (!image) {
       throw new Error("Tesseract compare requires a File or Blob input.");
     }
@@ -482,7 +494,15 @@ class TesseractCompareProvider {
 
   async ensureWorker() {
     if (!this.workerPromise) {
-      this.workerPromise = this.createWorker();
+      this.workerPromise = TESSERACT_WORKER_CACHE.get(this.workerCacheKey);
+      if (!this.workerPromise) {
+        this.workerPromise = this.createWorker().catch((error) => {
+          TESSERACT_WORKER_CACHE.delete(this.workerCacheKey);
+          this.workerPromise = null;
+          throw error;
+        });
+        TESSERACT_WORKER_CACHE.set(this.workerCacheKey, this.workerPromise);
+      }
     }
     return this.workerPromise;
   }

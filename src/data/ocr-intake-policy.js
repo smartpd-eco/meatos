@@ -9,7 +9,9 @@ export function evaluateOcrIntakeQuality(analysis = {}) {
   if (warnings.includes("LOW_CONTRAST")) recapture.push("LOW_CONTRAST");
   if (warnings.includes("SHADOW_RISK")) recapture.push("SHADOW_RISK");
   if (warnings.includes("BLUR_RISK")) recapture.push("BLUR_RISK");
-  if (warnings.includes("ROTATION_RECOMMENDED")) recapture.push("ROTATION_RECOMMENDED");
+  if (warnings.includes("ROTATION_RECOMMENDED") || warnings.includes("ROTATION_REVIEW_REQUIRED")) {
+    recapture.push("ROTATION_REVIEW_REQUIRED");
+  }
 
   const recommendRecapture = recapture.length > 0;
 

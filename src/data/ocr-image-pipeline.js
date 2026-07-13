@@ -24,6 +24,7 @@ export async function processUploadedOcrImage(file, options = {}) {
       capturedAt: new Date().toISOString()
     },
     preprocessedImageDataUrl: preprocessing.dataUrl,
+    preprocessedImageBlob: dataUrlToBlob(preprocessing.dataUrl),
     preprocessedImageHash,
     preprocessedImage: {
       width: preprocessing.width,
@@ -180,11 +181,10 @@ export function preprocessDocumentImage(image, analysis = {}, options = {}) {
     steps: [
       "EXIF_ROTATE",
       "AUTOROTATE",
-      "PERSPECTIVE_HINT",
+      "GRAYSCALE",
       "CONTRAST_ENHANCE",
       "SHADOW_REDUCTION",
-      "NOISE_REDUCTION",
-      "SHARPEN"
+      "JPEG_NORMALIZE"
     ]
   };
 }
@@ -219,6 +219,17 @@ async function loadImage(dataUrl) {
     image.onerror = () => reject(new Error("이미지를 불러올 수 없습니다."));
     image.src = dataUrl;
   });
+}
+
+function dataUrlToBlob(dataUrl) {
+  const [header, encoded = ""] = String(dataUrl ?? "").split(",", 2);
+  const mimeType = header.match(/^data:([^;]+)/)?.[1] ?? "image/jpeg";
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new Blob([bytes], { type: mimeType });
 }
 
 function createSampleCanvas(image, maxSize) {

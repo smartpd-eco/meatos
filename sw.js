@@ -1,4 +1,5 @@
-const CACHE_NAME = "meatos-ai-scm-v2";
+const CACHE_NAME = "meatos-ai-scm-v3";
+const RUNTIME_CACHE_NAME = "meatos-ai-scm-runtime-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -41,12 +42,13 @@ const ASSETS = [
   "./src/plugins/pos-adapter.js",
   "./services/product/product-catalog-service.js",
   "./manifest.webmanifest",
-  "./database/GOOD_CHUKSAN_SEED_DB.sql",
   "./icons/icon.svg"
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => Promise.allSettled(ASSETS.map((asset) => cache.add(asset))))
+  );
   self.skipWaiting();
 });
 
@@ -54,14 +56,29 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME && key !== RUNTIME_CACHE_NAME)
+          .map((key) => caches.delete(key))
+      ))
   );
   self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    caches.match(event.request).then(async (cached) => {
+      if (cached) return cached;
+      const response = await fetch(event.request);
+      if (response.ok) {
+        const runtimeCache = await caches.open(RUNTIME_CACHE_NAME);
+        await runtimeCache.put(event.request, response.clone());
+      }
+      return response;
+    })
   );
 });
