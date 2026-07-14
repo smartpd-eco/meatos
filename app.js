@@ -242,11 +242,13 @@ const viewTitle = document.querySelector("#view-title");
 const appView = document.querySelector("#app-view");
 const healthButton = document.querySelector("#run-health-check");
 const supabaseButton = document.querySelector("#run-supabase-check");
+const mobileBackButton = document.querySelector("#mobile-back-button");
 const menuButtons = [...document.querySelectorAll("[data-view]")];
 
 const titles = {
   dashboard: "고기장터",
   sales: "매출",
+  services: "신고/부가서비스",
   more: "더보기",
   inventory: "재고",
   engines: "Core Engine 구조",
@@ -277,7 +279,53 @@ function renderDashboard() {
   ];
 
   return `
-    <article class="card span-12 hero-home mobile-primary-section">
+    <section class="mobile-dashboard span-12" aria-label="고기장터 모바일 대시보드">
+      <header class="mobile-dashboard-brand">
+        <span class="mobile-brand-icon" aria-hidden="true">고</span>
+        <strong>고기장터</strong>
+        <span class="mobile-alert-icon" aria-label="알림 2건">2</span>
+      </header>
+
+      <nav class="mobile-primary-nav" aria-label="주요 업무">
+        <button type="button" data-ocr-input-open><span aria-hidden="true">▣</span><strong>입력</strong></button>
+        <button type="button" data-home-view="inventory"><span aria-hidden="true">□</span><strong>재고</strong></button>
+        <button type="button" data-home-view="sales"><span aria-hidden="true">₩</span><strong>매출</strong></button>
+        <button type="button" data-home-view="services"><span aria-hidden="true">✓</span><strong>신고/부가</strong></button>
+        <button type="button" data-home-view="more"><span aria-hidden="true">•••</span><strong>더보기</strong></button>
+      </nav>
+
+      <button class="mobile-receipt-action" type="button" data-ocr-input-open>
+        <span class="mobile-receipt-icon" aria-hidden="true">●</span>
+        <span><strong>고기가 들어왔어요!</strong><small>사진 찍기 · 파일 불러오기 · 자동 인식</small></span>
+      </button>
+
+      <div class="mobile-kpi-grid">
+        <button type="button" class="mobile-kpi-card sales" data-home-view="sales">
+          <span>매출현황 <small>오늘</small></span>
+          <strong>${todaySaleUnits}건</strong>
+          <small>이번 달 ${monthSaleUnits.toLocaleString("ko-KR")}건</small>
+        </button>
+        <button type="button" class="mobile-kpi-card purchase" data-home-view="ocr">
+          <span>매입현황 <small>오늘</small></span>
+          <strong>${todayImportCount}건</strong>
+          <small>공급사 ${catalog.suppliers.length}곳</small>
+        </button>
+        <button type="button" class="mobile-kpi-card inventory" data-home-view="inventory">
+          <span>재고현황 <small>전체</small></span>
+          <strong>${stockRows.length}개 품목</strong>
+          <small>부족 ${lowStockRows.length}개</small>
+        </button>
+        <button type="button" class="mobile-kpi-card review" data-home-view="ocr">
+          <span>검토 대기 <small>전체</small></span>
+          <strong>${pendingReviewCount}건</strong>
+          <small>확인이 필요합니다</small>
+        </button>
+      </div>
+
+      <footer class="mobile-dashboard-footer">© 2026 MEATOS. All rights reserved.</footer>
+    </section>
+
+    <article class="card span-12 hero-home mobile-primary-section desktop-dashboard-card">
       <div class="toolbar">
         <div>
           <p class="eyebrow">고기장터</p>
@@ -317,7 +365,7 @@ function renderDashboard() {
       </div>
     </article>
 
-    <article class="card span-12 home-briefing">
+    <article class="card span-12 home-briefing desktop-dashboard-card">
       <div class="toolbar">
         <h3>AI 오늘의 브리핑</h3>
         <span class="label">업무에 필요한 것만 간단히 보여줍니다.</span>
@@ -327,7 +375,7 @@ function renderDashboard() {
       </div>
     </article>
 
-    <article class="card span-6 home-support-section">
+    <article class="card span-6 home-support-section desktop-dashboard-card">
       <h3>오늘 할 일</h3>
       <div class="stack-list">
         <div class="home-task"><strong>1.</strong> 거래명세서 사진 찍기</div>
@@ -336,7 +384,7 @@ function renderDashboard() {
       </div>
     </article>
 
-    <article class="card span-6 home-support-section">
+    <article class="card span-6 home-support-section desktop-dashboard-card">
       <h3>바로 쓰는 정보</h3>
       <div class="stack-list">
         <div class="home-info"><span>공급사</span><strong>${catalog.suppliers.length}곳</strong></div>
@@ -2407,6 +2455,30 @@ async function resolveRealWorldOcrProvider(capture, options = {}) {
   };
 }
 
+function renderServices() {
+  const serviceItems = [
+    { view: "ocr", title: "검토 대기", hint: "인식 결과 확인" },
+    { view: "dataCollection", title: "서비스 목록", hint: "연결 서비스 확인" },
+    { view: "ocr", title: "AI 이미지 보정", hint: "촬영 이미지 품질 확인" },
+    { view: "ocr", title: "OCR 결과 확인", hint: "거래명세서 분석 결과" },
+    { view: "products", title: "상품 자동등록", hint: "표준상품 연결" },
+    { view: "inventory", title: "재고 자동등록", hint: "재고 반영 준비" }
+  ];
+
+  return `
+    <article class="card span-12 mobile-detail-card">
+      <div class="mobile-service-list">
+        ${serviceItems.map((item) => `
+          <button type="button" data-home-view="${item.view}">
+            <span><strong>${item.title}</strong><small>${item.hint}</small></span>
+            <b aria-hidden="true">›</b>
+          </button>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
 async function probeRealWorldOcrProvider() {
   const result = await resolveRealWorldOcrProvider(state.ocrRealWorld, { fullHealthCheck: true });
   return result.providerHealth;
@@ -3941,6 +4013,7 @@ function runHealthCheck() {
 }
 
 function render() {
+  document.body.dataset.view = state.view;
   viewTitle.textContent = titles[state.view];
   menuButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.view === state.view);
@@ -3949,6 +4022,7 @@ function render() {
   const views = {
     dashboard: renderDashboard,
     sales: renderSales,
+    services: renderServices,
     more: renderMore,
     engines: renderEngines,
     products: renderProductManagement,
@@ -4723,6 +4797,11 @@ menuButtons.forEach((button) => {
     state.view = button.dataset.view;
     render();
   });
+});
+
+mobileBackButton?.addEventListener("click", () => {
+  state.view = "dashboard";
+  render();
 });
 
 healthButton.addEventListener("click", runHealthCheck);
