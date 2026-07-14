@@ -277,7 +277,7 @@ function renderDashboard() {
   ];
 
   return `
-    <article class="card span-12 hero-home">
+    <article class="card span-12 hero-home mobile-primary-section">
       <div class="toolbar">
         <div>
           <p class="eyebrow">고기장터</p>
@@ -317,7 +317,7 @@ function renderDashboard() {
       </div>
     </article>
 
-    <article class="card span-12">
+    <article class="card span-12 home-briefing">
       <div class="toolbar">
         <h3>AI 오늘의 브리핑</h3>
         <span class="label">업무에 필요한 것만 간단히 보여줍니다.</span>
@@ -327,7 +327,7 @@ function renderDashboard() {
       </div>
     </article>
 
-    <article class="card span-6">
+    <article class="card span-6 home-support-section">
       <h3>오늘 할 일</h3>
       <div class="stack-list">
         <div class="home-task"><strong>1.</strong> 거래명세서 사진 찍기</div>
@@ -336,7 +336,7 @@ function renderDashboard() {
       </div>
     </article>
 
-    <article class="card span-6">
+    <article class="card span-6 home-support-section">
       <h3>바로 쓰는 정보</h3>
       <div class="stack-list">
         <div class="home-info"><span>공급사</span><strong>${catalog.suppliers.length}곳</strong></div>
@@ -1908,10 +1908,12 @@ function renderOcrInputPicker() {
           <p class="label">입력 방식만 고르고, 이후 흐름은 같습니다.</p>
           <div class="ocr-input-choice-grid">
             <button class="choice-button" data-ocr-input-camera>
+              <span class="choice-icon" aria-hidden="true">●</span>
               <strong>사진 찍기</strong>
               <span>카메라로 바로 촬영합니다.</span>
             </button>
             <button class="choice-button" data-ocr-input-file>
+              <span class="choice-icon" aria-hidden="true">▣</span>
               <strong>파일 불러오기</strong>
               <span>이미지 파일을 선택합니다.</span>
             </button>
@@ -2303,12 +2305,20 @@ function buildTemplateProfileSnapshot(supplierName, providerId) {
 async function resolveRealWorldOcrProvider(capture, options = {}) {
   const fullHealthCheck = Boolean(options.fullHealthCheck);
   const requestedProviderId = capture.providerId || "paddleocr";
-  const primaryAdapter = createOcrProviderAdapter(requestedProviderId, {
+  const mobileRuntime = isMobileOcrRuntime();
+  const mobileCloudFirst = requestedProviderId === "paddleocr"
+    && mobileRuntime
+    && navigator.onLine
+    && Boolean(SUPABASE_PUBLIC_CONFIG.ocrFunctionUrl);
+  const effectivePrimaryProviderId = mobileCloudFirst ? "clova-general" : requestedProviderId;
+  const primaryAdapter = createOcrProviderAdapter(effectivePrimaryProviderId, {
     functionUrl: SUPABASE_PUBLIC_CONFIG.ocrFunctionUrl,
     supabaseUrl: SUPABASE_PUBLIC_CONFIG.url,
     modelAssetBaseUrl: OCR_RUNTIME_CONFIG.paddleModelBaseUrl
   });
-  const primaryHealth = await primaryAdapter.healthCheck();
+  const primaryHealth = fullHealthCheck
+    ? await primaryAdapter.healthCheck()
+    : buildStandbyProviderHealth(primaryAdapter, isOcrProviderConfigured(effectivePrimaryProviderId));
   const primaryHealthy = Boolean(primaryHealth.ok) && primaryHealth.mode !== "unconfigured";
   const easyOcrAdapter = createOcrProviderAdapter("easyocr-compare", {
     serviceUrl: OCR_RUNTIME_CONFIG.easyOcrServiceUrl,
@@ -2326,7 +2336,7 @@ async function resolveRealWorldOcrProvider(capture, options = {}) {
   const comparisonHealth = fullHealthCheck
     ? await comparisonAdapter.healthCheck()
     : buildStandbyProviderHealth(comparisonAdapter, true);
-  const secondaryAdapter = requestedProviderId === "clova-general"
+  const secondaryAdapter = effectivePrimaryProviderId === "clova-general"
     ? createOcrProviderAdapter("mock")
     : createOcrProviderAdapter("clova-general", {
         functionUrl: SUPABASE_PUBLIC_CONFIG.ocrFunctionUrl,
@@ -2356,9 +2366,10 @@ async function resolveRealWorldOcrProvider(capture, options = {}) {
   state.ocrProviderHealth = {
     ...healthEntry,
     requestedProviderId,
-    requestedProviderName: primaryAdapter.getProviderName(),
-    requestedProviderVersion: primaryAdapter.getProviderVersion(),
+    requestedProviderName: requestedProviderId === effectivePrimaryProviderId ? primaryAdapter.getProviderName() : "PaddleOCR Browser",
+    requestedProviderVersion: requestedProviderId === effectivePrimaryProviderId ? primaryAdapter.getProviderVersion() : "PP-OCRv5-mobile",
     requestedProviderHealth: primaryHealth,
+    routingMode: mobileCloudFirst ? "mobile-cloud-first" : "configured-primary",
     comparisonProviderId: comparisonAdapter.getProviderId(),
     comparisonProviderName: comparisonAdapter.getProviderName(),
     comparisonProviderVersion: comparisonAdapter.getProviderVersion(),
@@ -2374,8 +2385,8 @@ async function resolveRealWorldOcrProvider(capture, options = {}) {
     activeProviderId: activeAdapter.getProviderId(),
     activeProviderName: activeAdapter.getProviderName(),
     activeProviderVersion: activeAdapter.getProviderVersion(),
-    fallbackApplied: !primaryHealthy,
-    fallbackToClova: !primaryHealthy && requestedProviderId !== "clova-general"
+    fallbackApplied: mobileCloudFirst || !primaryHealthy,
+    fallbackToClova: mobileCloudFirst || (!primaryHealthy && requestedProviderId !== "clova-general")
   };
 
   return {
@@ -2389,7 +2400,10 @@ async function resolveRealWorldOcrProvider(capture, options = {}) {
     secondaryHealth,
     activeAdapter,
     providerHealth: state.ocrProviderHealth,
-    fallbackToClova: !primaryHealthy && requestedProviderId !== "clova-general"
+    fallbackToClova: mobileCloudFirst || (!primaryHealthy && requestedProviderId !== "clova-general"),
+    mobileRuntime,
+    mobileCloudFirst,
+    skipLocalComparisons: mobileRuntime
   };
 }
 
@@ -2409,6 +2423,17 @@ function buildStandbyProviderHealth(adapter, configured) {
     checkedAt: new Date().toISOString(),
     message: configured ? "필요할 때만 실행합니다." : "연결 설정이 없습니다."
   };
+}
+
+function isMobileOcrRuntime() {
+  return window.matchMedia?.("(max-width: 720px)")?.matches
+    || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
+function isOcrProviderConfigured(providerId) {
+  if (providerId === "clova-general") return Boolean(SUPABASE_PUBLIC_CONFIG.ocrFunctionUrl);
+  if (providerId === "paddleocr") return Boolean(OCR_RUNTIME_CONFIG.paddleModelBaseUrl);
+  return true;
 }
 
 function recordOcrOperationLog(input) {
@@ -2486,7 +2511,9 @@ async function runRealWorldOcrPipeline() {
     comparisonAdapter,
     secondaryAdapter,
     activeAdapter,
-    providerHealth
+    providerHealth,
+    mobileCloudFirst,
+    skipLocalComparisons
   } = await resolveRealWorldOcrProvider(capture);
   const nowIso = new Date().toISOString();
   const fileHash = processed.originalImageHash;
@@ -2576,7 +2603,11 @@ async function runRealWorldOcrPipeline() {
     templateProfile: buildTemplateProfileSnapshot(capture.supplierName, adapter.getProviderId())
   });
 
-  const primaryAttempt = await runProviderRecognitionAttempt(primaryAdapter, buildRecognitionInput(primaryAdapter));
+  const primaryAttempt = await runProviderRecognitionAttempt(
+    primaryAdapter,
+    buildRecognitionInput(primaryAdapter),
+    mobileCloudFirst ? 15000 : 10000
+  );
   let providerResult = primaryAttempt.result;
   let activeProviderAdapter = primaryAdapter;
   let fallbackApplied = false;
@@ -2601,16 +2632,18 @@ async function runRealWorldOcrPipeline() {
       });
     }
 
-    const selectiveRegions = buildSelectiveOcrRegions(providerResult, {
+    const selectiveRegions = skipLocalComparisons ? [] : buildSelectiveOcrRegions(providerResult, {
       maxRegions: 4,
       confidenceThreshold: 88,
       templateProfile: buildTemplateProfileSnapshot(capture.supplierName, primaryAdapter.getProviderId())
     });
-    const easyOcrAttempt = await runProviderRecognitionAttempt(easyOcrAdapter, {
-      ...buildRecognitionInput(easyOcrAdapter),
-      imageDataUrl: processed.originalImageDataUrl,
-      regions: selectiveRegions
-    });
+    const easyOcrAttempt = skipLocalComparisons
+      ? { result: null, error: null }
+      : await runProviderRecognitionAttempt(easyOcrAdapter, {
+          ...buildRecognitionInput(easyOcrAdapter),
+          imageDataUrl: processed.originalImageDataUrl,
+          regions: selectiveRegions
+        }, 8000);
     const ensembleResult = easyOcrAttempt.result
       ? mergeSelectiveOcrResults(providerResult, easyOcrAttempt.result)
       : providerResult;
@@ -2623,8 +2656,12 @@ async function runRealWorldOcrPipeline() {
         : "PaddleOCR failed; EasyOCR full document comparison selected";
     }
 
-    if (shouldFallbackToSecondaryResult(providerResult)) {
-      const comparisonAttempt = await runProviderRecognitionAttempt(comparisonAdapter, buildRecognitionInput(comparisonAdapter));
+    if (!skipLocalComparisons && shouldFallbackToSecondaryResult(providerResult)) {
+      const comparisonAttempt = await runProviderRecognitionAttempt(
+        comparisonAdapter,
+        buildRecognitionInput(comparisonAdapter),
+        8000
+      );
       if (comparisonAttempt.result && (!providerResult || isBetterOcrResult(comparisonAttempt.result, providerResult))) {
         providerResult = comparisonAttempt.result;
         activeProviderAdapter = comparisonAdapter;
@@ -2634,7 +2671,11 @@ async function runRealWorldOcrPipeline() {
 
     if (!providerResult || shouldFallbackToPaidProvider(providerResult)) {
       if (secondaryAdapter.getProviderId() !== primaryAdapter.getProviderId()) {
-        const secondaryAttempt = await runProviderRecognitionAttempt(secondaryAdapter, buildRecognitionInput(secondaryAdapter));
+        const secondaryAttempt = await runProviderRecognitionAttempt(
+          secondaryAdapter,
+          buildRecognitionInput(secondaryAdapter),
+          15000
+        );
         if (secondaryAttempt.result && (!providerResult || isBetterOcrResult(secondaryAttempt.result, providerResult))) {
           providerResult = secondaryAttempt.result;
           activeProviderAdapter = secondaryAdapter;
@@ -2868,13 +2909,38 @@ async function waitForBrowserPaint() {
   });
 }
 
-async function runProviderRecognitionAttempt(adapter, input) {
+async function runProviderRecognitionAttempt(adapter, input, timeoutMs = 15000) {
   try {
-    const result = await adapter.recognizeDocument(input);
+    const result = await withOcrTimeout(
+      adapter.recognizeDocument(input),
+      timeoutMs,
+      adapter.getProviderName()
+    );
     return { result, error: null };
   } catch (error) {
     return { result: null, error };
   }
+}
+
+function withOcrTimeout(promise, timeoutMs, providerName) {
+  return new Promise((resolve, reject) => {
+    const timerId = window.setTimeout(() => {
+      const error = new Error(`${providerName} 응답 시간이 초과되었습니다.`);
+      error.code = "OCR_TIMEOUT";
+      reject(error);
+    }, timeoutMs);
+
+    Promise.resolve(promise).then(
+      (value) => {
+        window.clearTimeout(timerId);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timerId);
+        reject(error);
+      }
+    );
+  });
 }
 
 function shouldFallbackToSecondaryResult(result) {

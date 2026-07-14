@@ -280,6 +280,7 @@ class ClovaOcrProvider {
       headers: {
         "Content-Type": "application/json"
       },
+      signal: createTimeoutSignal(Number(this.config.timeoutMs ?? 15000)),
       body: JSON.stringify({
         providerId: this.getProviderVersion(),
         providerName: this.getProviderName(),
