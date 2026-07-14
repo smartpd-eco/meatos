@@ -122,6 +122,10 @@ for (const check of [
   "Review Rate",
   "Failure Rate",
   "renderOcrFlowTrack",
+  "renderMobileOcr",
+  "validateMobileOcrDocument",
+  "data-mobile-ocr-approve",
+  "세액 (면세 0)",
   "formatDuration",
   "Tenant Context"
 ]) {

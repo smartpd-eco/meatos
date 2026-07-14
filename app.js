@@ -1095,7 +1095,287 @@ function renderGoodChuksan() {
   `;
 }
 
+function renderMobileOcr() {
+  const capture = state.ocrRealWorld;
+  const document = capture.documentId
+    ? ocrDocumentQueueStore.getById(capture.documentId)
+    : null;
+  const isProcessing = String(capture.status ?? "").toUpperCase() === "OCR_PENDING";
+
+  if (isProcessing) {
+    return `
+      <section class="mobile-ocr-screen span-12" aria-live="polite">
+        <header class="mobile-ocr-header">
+          <button type="button" data-home-view="dashboard" aria-label="홈으로">‹</button>
+          <h2>거래명세서 확인</h2>
+        </header>
+        <div class="mobile-ocr-processing">
+          <span class="mobile-ocr-spinner" aria-hidden="true"></span>
+          <strong>거래명세서를 읽고 있습니다</strong>
+          <p>품목과 금액을 정리한 뒤 확인할 내용만 보여드립니다.</p>
+        </div>
+      </section>
+    `;
+  }
+
+  if (!document) {
+    return `
+      <section class="mobile-ocr-screen span-12">
+        <header class="mobile-ocr-header">
+          <button type="button" data-home-view="dashboard" aria-label="홈으로">‹</button>
+          <h2>거래명세서 확인</h2>
+        </header>
+        <div class="mobile-ocr-empty">
+          <span class="mobile-ocr-empty-icon" aria-hidden="true">▣</span>
+          <h3>${capture.file ? "사진 확인이 끝났습니다" : "거래명세서를 준비해주세요"}</h3>
+          <p>${capture.file ? "아래 버튼을 누르면 품목과 금액을 정리합니다." : "문서 전체가 보이도록 찍으면 자동으로 분석합니다."}</p>
+          ${capture.file
+            ? `<button class="mobile-ocr-primary" id="ocr-realworld-analyze">거래명세서 분석</button>`
+            : `<button class="mobile-ocr-primary" type="button" data-ocr-input-open>사진 찍기 · 파일 불러오기</button>`}
+          ${capture.error ? `<p class="mobile-ocr-error">${escapeHtml(capture.error)}</p>` : ""}
+        </div>
+        <div class="mobile-ocr-photo-tips">
+          <strong>촬영할 때 확인해주세요</strong>
+          <span>문서 네 모서리가 모두 보이게 찍기</span>
+          <span>금액과 이력번호 위의 빛 반사 피하기</span>
+          <span>글자가 흔들렸다면 다시 촬영하기</span>
+        </div>
+      </section>
+    `;
+  }
+
+  const catalog = productCatalogService.getCatalogSnapshot();
+  const historyEntries = ocrDictionaryHistoryStore.list({ documentId: document.documentId });
+  const lineItems = (document.lineItems ?? []).map((item, index) => buildMobileOcrLineViewModel({
+    document,
+    item,
+    index,
+    catalog,
+    historyEntries
+  }));
+  const documentFields = document.documentFields ?? {};
+  const validation = validateMobileOcrDocument(document, lineItems);
+  const isApproved = ["APPROVED", "POSTED"].includes(String(document.status ?? "").toUpperCase());
+  const isPosted = String(document.status ?? "").toUpperCase() === "POSTED";
+  const reviewCount = lineItems.filter((item) => item.needsReview).length;
+  const totalAmount = Number(documentFields.totalAmount ?? 0);
+  const statusLabel = isPosted
+    ? "재고 반영 완료"
+    : isApproved
+      ? "확인 완료"
+      : validation.ok && reviewCount === 0
+        ? "확인 가능"
+        : "확인 필요";
+
+  return `
+    <section class="mobile-ocr-screen span-12">
+      <header class="mobile-ocr-header">
+        <button type="button" data-home-view="dashboard" aria-label="홈으로">‹</button>
+        <h2>거래명세서 확인</h2>
+      </header>
+
+      <div class="mobile-ocr-status ${validation.ok ? "is-ok" : "needs-review"}">
+        <div>
+          <strong>${escapeHtml(statusLabel)}</strong>
+          <span>${isPosted ? "재고에 반영되었습니다." : isApproved ? "확인이 끝났습니다. 재고 반영만 남았습니다." : "주황색 항목을 확인하고 틀린 값만 고쳐주세요."}</span>
+        </div>
+        <b>${reviewCount}건</b>
+      </div>
+
+      <article class="mobile-ocr-summary">
+        <label>
+          <span>공급사</span>
+          <input data-mobile-ocr-document-field="supplierName" value="${escapeHtml(documentFields.supplierName || document.supplierName || "")}" placeholder="공급사 확인 필요" ${isApproved ? "readonly" : ""} />
+        </label>
+        <label>
+          <span>거래일</span>
+          <input data-mobile-ocr-document-field="invoiceDate" value="${escapeHtml(documentFields.invoiceDate || "")}" placeholder="거래일 확인 필요" ${isApproved ? "readonly" : ""} />
+        </label>
+        <div><span>품목 수</span><strong>${lineItems.length}건</strong></div>
+        <label class="${totalAmount > 0 ? "" : "needs-check"}">
+          <span>총 금액</span>
+          <input inputmode="numeric" data-mobile-ocr-document-field="totalAmount" value="${totalAmount > 0 ? totalAmount : ""}" placeholder="총 금액 확인 필요" ${isApproved ? "readonly" : ""} />
+        </label>
+      </article>
+
+      ${validation.messages.length ? `
+        <div class="mobile-ocr-warning" role="alert">
+          <strong>확인이 필요한 내용</strong>
+          ${validation.messages.map((message) => `<span>${escapeHtml(message)}</span>`).join("")}
+        </div>
+      ` : ""}
+
+      ${capture.originalImageDataUrl ? `
+        <details class="mobile-ocr-original">
+          <summary>원본 사진 보기</summary>
+          <img src="${escapeHtml(capture.originalImageDataUrl)}" alt="촬영한 거래명세서 원본" />
+        </details>
+      ` : ""}
+
+      <div class="mobile-ocr-items">
+        ${lineItems.map((item) => renderMobileOcrLineItem(item, isApproved)).join("") || `
+          <div class="mobile-ocr-warning"><strong>품목을 읽지 못했습니다</strong><span>문서 전체가 선명하게 보이도록 다시 촬영해주세요.</span></div>
+        `}
+      </div>
+
+      <div class="mobile-ocr-guide">
+        <strong>이 화면에서 할 일</strong>
+        <span>1. 주황색 항목의 원본 사진과 값을 비교합니다.</span>
+        <span>2. 틀린 값만 고친 뒤 검산하기를 누릅니다.</span>
+        <span>3. 확인 완료 후 재고에 반영합니다.</span>
+      </div>
+
+      <div class="mobile-ocr-actions">
+        ${!isApproved ? `<button type="button" class="mobile-ocr-secondary" data-mobile-ocr-save="${escapeHtml(document.documentId)}">검산하기</button>` : ""}
+        ${!isApproved ? `<button type="button" class="mobile-ocr-primary" data-mobile-ocr-approve="${escapeHtml(document.documentId)}" ${validation.ok ? "" : "disabled"}>확인 완료</button>` : ""}
+        ${isApproved && !isPosted ? `<button type="button" class="mobile-ocr-primary" data-ocr-post="${escapeHtml(document.documentId)}">재고 반영</button>` : ""}
+        ${isPosted ? `<button type="button" class="mobile-ocr-primary" data-home-view="inventory">재고 확인</button>` : ""}
+        <button type="button" class="mobile-ocr-link" data-ocr-input-open>다시 촬영</button>
+      </div>
+    </section>
+  `;
+}
+
+function buildMobileOcrLineViewModel({ document, item, index, catalog, historyEntries }) {
+  const candidates = buildOcrDictionaryCandidates({ document, lineItem: item, catalog, historyEntries });
+  const topCandidate = candidates[0] ?? null;
+  const selectedProductId = item.productMasterId || item.selectedProductId || topCandidate?.productId || "";
+  const product = selectedProductId ? productEngine.findProductById(selectedProductId) : null;
+  const confidence = Number(item.confidence ?? topCandidate?.confidence ?? 0);
+  const traceNumber = item.livestockTraceNo || item.importTraceNo || item.traceNumber || item.historyNumber || "";
+  const supplyAmount = Number(item.supplyAmount ?? item.amount ?? 0);
+  const taxAmount = Number(item.taxAmount ?? 0);
+  const totalAmount = Number(item.totalAmount ?? (supplyAmount + taxAmount));
+  const productName = item.selectedProductName || item.normalizedProductName || topCandidate?.standardProductName || item.rawProductName || "";
+  const species = item.species || product?.species || "";
+  const part = item.part || product?.part || product?.cutName || "";
+  const missingEvidence = !productName || !Number(item.quantity) || !Number(item.unitPrice) || !supplyAmount || !traceNumber;
+  const needsReview = confidence < 95 || missingEvidence || ["PENDING", "UNKNOWN", "REVIEW_REQUIRED"].includes(String(item.reviewStatus ?? "").toUpperCase());
+
+  return {
+    ...item,
+    rowNo: Number(item.rowNo ?? index + 1),
+    productName,
+    species,
+    part,
+    grade: item.grade || product?.grade || "",
+    storageType: item.storageType || product?.processingType || product?.storageType || "",
+    unit: item.unit || product?.baseUnit || "",
+    origin: item.origin || product?.origin || "",
+    quantity: Number(item.quantity ?? 0),
+    unitPrice: Number(item.unitPrice ?? 0),
+    supplyAmount,
+    taxAmount,
+    totalAmount,
+    traceNumber,
+    confidence,
+    needsReview
+  };
+}
+
+function renderMobileOcrLineItem(item, readonly = false) {
+  const readonlyAttribute = readonly ? "readonly" : "";
+  const field = (label, name, value, options = {}) => `
+    <label class="mobile-ocr-field ${options.needsCheck ? "needs-check" : ""}">
+      <span>${escapeHtml(label)}</span>
+      <input
+        ${options.inputMode ? `inputmode="${options.inputMode}"` : ""}
+        data-mobile-ocr-line="${item.rowNo}"
+        data-mobile-ocr-field="${escapeHtml(name)}"
+        value="${escapeHtml(String(value ?? ""))}"
+        placeholder="확인 필요"
+        ${readonlyAttribute}
+      />
+    </label>
+  `;
+
+  return `
+    <article class="mobile-ocr-item ${item.needsReview ? "needs-review" : "is-ok"}">
+      <header>
+        <span>${item.rowNo}</span>
+        <div><strong>${escapeHtml(item.productName || item.rawProductName || "상품명 확인 필요")}</strong><small>원문: ${escapeHtml(item.rawProductName || "-")}</small></div>
+        <b>${item.needsReview ? "확인" : "정상"}</b>
+      </header>
+      <div class="mobile-ocr-field-grid">
+        ${field("종류", "species", item.species, { needsCheck: !item.species })}
+        ${field("부위", "part", item.part, { needsCheck: !item.part })}
+        ${field("상품명", "normalizedProductName", item.productName, { needsCheck: !item.productName })}
+        ${field("등급", "grade", item.grade)}
+        ${field("상태", "storageType", normalizeStorageLabel(item.storageType))}
+        ${field("원산지", "origin", item.origin)}
+        ${field("단위", "unit", item.unit, { needsCheck: !item.unit })}
+        ${field("수량", "quantity", item.quantity || "", { inputMode: "decimal", needsCheck: !item.quantity })}
+        ${field("단가", "unitPrice", item.unitPrice || "", { inputMode: "numeric", needsCheck: !item.unitPrice })}
+        ${field("공급가", "amount", item.supplyAmount || "", { inputMode: "numeric", needsCheck: !item.supplyAmount })}
+        ${field("세액 (면세 0)", "taxAmount", item.taxAmount || 0, { inputMode: "numeric" })}
+        ${field("금액", "totalAmount", item.totalAmount || "", { inputMode: "numeric", needsCheck: !item.totalAmount })}
+        <label class="mobile-ocr-field trace-field ${item.traceNumber ? "" : "needs-check"}">
+          <span>이력번호 / 수입번호</span>
+          <input data-mobile-ocr-line="${item.rowNo}" data-mobile-ocr-field="traceNumber" value="${escapeHtml(item.traceNumber)}" placeholder="번호 확인 필요" ${readonlyAttribute} />
+        </label>
+      </div>
+    </article>
+  `;
+}
+
+function validateMobileOcrDocument(document, lineItems) {
+  const messages = [];
+  let lineTotal = 0;
+
+  if (!String(document.documentFields?.supplierName || document.supplierName || "").trim()) {
+    messages.push("공급사명을 확인해주세요.");
+  }
+  if (!String(document.documentFields?.invoiceDate || "").trim()) {
+    messages.push("거래일을 확인해주세요.");
+  }
+
+  if (!lineItems.length) messages.push("품목을 읽지 못했습니다. 다시 촬영해주세요.");
+  lineItems.forEach((item) => {
+    const missingLabels = [
+      [item.species, "종류"],
+      [item.part, "부위"],
+      [item.productName, "상품명"],
+      [item.grade, "등급(없으면 미표기)"],
+      [item.storageType, "상태"],
+      [item.origin, "원산지"],
+      [item.unit, "단위"]
+    ].filter(([value]) => !String(value ?? "").trim()).map(([, label]) => label);
+    if (missingLabels.length) {
+      messages.push(`${item.rowNo}번 품목의 ${missingLabels.join(", ")}을 확인해주세요.`);
+    }
+    const expectedSupply = roundCurrency(item.quantity * item.unitPrice);
+    if (!item.quantity || !item.unitPrice || !item.supplyAmount) {
+      messages.push(`${item.rowNo}번 품목의 수량·단가·공급가를 확인해주세요.`);
+    } else if (Math.abs(expectedSupply - item.supplyAmount) > 1) {
+      messages.push(`${item.rowNo}번 품목은 수량 × 단가와 공급가가 다릅니다.`);
+    }
+    if (!item.traceNumber) messages.push(`${item.rowNo}번 품목의 이력번호 또는 수입번호를 확인해주세요.`);
+    lineTotal += Number(item.totalAmount ?? item.supplyAmount + item.taxAmount);
+  });
+
+  const documentTotal = Number(document.documentFields?.totalAmount ?? 0);
+  if (!documentTotal) {
+    messages.push("문서 합계가 확인되지 않았습니다. 원본과 비교해 입력해주세요.");
+  } else if (Math.abs(roundCurrency(lineTotal) - roundCurrency(documentTotal)) > 1) {
+    messages.push("품목 금액 합계와 문서 총 금액이 다릅니다.");
+  }
+
+  return { ok: messages.length === 0, messages: [...new Set(messages)] };
+}
+
+function normalizeStorageLabel(value) {
+  const normalized = String(value ?? "").toLowerCase();
+  if (["fresh", "chilled", "냉장"].includes(normalized)) return "냉장";
+  if (["frozen", "냉동"].includes(normalized)) return "냉동";
+  return String(value ?? "");
+}
+
+function roundCurrency(value) {
+  return Math.round(Number(value ?? 0) * 100) / 100;
+}
+
 function renderOcr() {
+  if (isMobileOcrRuntime()) return renderMobileOcr();
   const catalog = productCatalogService.getCatalogSnapshot();
   const allDocuments = ocrDocumentQueueStore.list();
   const documents = ocrDocumentQueueStore.list({
@@ -2563,6 +2843,7 @@ async function loadRealWorldOcrFile(file, inputType = "file", source = "gallery"
     pipelineTrace: processed.pipelineTrace,
     qualityScore: processed.qualityScore,
     warnings: processed.warnings,
+    processedImageResult: processed,
     status: processed.qualityScore >= 85 ? "ANALYZED" : "RECAPTURE_RECOMMENDED",
     error: ""
   };
@@ -2574,7 +2855,8 @@ async function runRealWorldOcrPipeline() {
   if (!capture.file) throw new Error("먼저 이미지를 업로드하세요.");
 
   const rotationDegrees = capture.rotationDegrees === "auto" ? undefined : Number(capture.rotationDegrees);
-  const processed = await processUploadedOcrImage(capture.file, { rotationDegrees });
+  const processed = capture.processedImageResult
+    ?? await processUploadedOcrImage(capture.file, { rotationDegrees });
   const intakeDecision = evaluateOcrIntakeQuality(processed.imageAnalysis);
   const recaptureRequiredByQuality = Boolean(intakeDecision.recommendRecapture);
   const {
@@ -3464,12 +3746,13 @@ function bindViewEvents() {
     if (!file) return;
     try {
       await loadRealWorldOcrFile(file, "camera", "mobile-camera");
-      showToast("카메라 사진을 불러왔습니다.");
+      showToast("사진을 확인했습니다. 거래명세서를 분석합니다.");
+      await runRealWorldOcrPipelineFromUi("거래명세서 분석이 끝났습니다.");
     } catch (error) {
       state.ocrRealWorld.error = error.message;
       showToast(error.message);
+      render();
     }
-    render();
   });
 
   document.querySelector("#ocr-file-input")?.addEventListener("change", async (event) => {
@@ -3477,12 +3760,13 @@ function bindViewEvents() {
     if (!file) return;
     try {
       await loadRealWorldOcrFile(file, "file", "gallery");
-      showToast("파일을 불러왔습니다.");
+      showToast("파일을 확인했습니다. 거래명세서를 분석합니다.");
+      await runRealWorldOcrPipelineFromUi("거래명세서 분석이 끝났습니다.");
     } catch (error) {
       state.ocrRealWorld.error = error.message;
       showToast(error.message);
+      render();
     }
-    render();
   });
 
   document.querySelector("#ocr-realworld-supplier")?.addEventListener("input", (event) => {
@@ -3516,6 +3800,37 @@ function bindViewEvents() {
 
   document.querySelector("#ocr-realworld-analyze")?.addEventListener("click", async () => {
     await runRealWorldOcrPipelineFromUi("실제 OCR 파이프라인을 실행했습니다.");
+  });
+
+  document.querySelectorAll("[data-mobile-ocr-save]").forEach((button) => {
+    button.addEventListener("click", () => {
+      try {
+        const result = saveMobileOcrCorrections(button.dataset.mobileOcrSave);
+        showToast(result.ok ? "금액 검산이 끝났습니다." : result.messages[0]);
+      } catch (error) {
+        showToast(error.message);
+      }
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-mobile-ocr-approve]").forEach((button) => {
+    button.addEventListener("click", () => {
+      try {
+        const validation = saveMobileOcrCorrections(button.dataset.mobileOcrApprove);
+        if (!validation.ok) {
+          showToast(validation.messages[0]);
+          render();
+          return;
+        }
+        const document = ocrDocumentQueueStore.approve(button.dataset.mobileOcrApprove);
+        applyOcrDocumentLearning(document);
+        showToast("확인이 끝났습니다. 재고 반영이 가능합니다.");
+      } catch (error) {
+        showToast(error.message);
+      }
+      render();
+    });
   });
 
   document.querySelector("#ocr-realworld-run")?.addEventListener("click", async () => {
@@ -4811,6 +5126,85 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   });
+}
+
+function saveMobileOcrCorrections(documentId) {
+  const selectedDocument = ocrDocumentQueueStore.getById(documentId);
+  if (!selectedDocument) throw new Error("확인할 거래명세서를 찾지 못했습니다.");
+
+  const documentFields = { ...(selectedDocument.documentFields ?? {}) };
+  document.querySelectorAll("[data-mobile-ocr-document-field]").forEach((input) => {
+    const fieldName = input.dataset.mobileOcrDocumentField;
+    documentFields[fieldName] = fieldName === "totalAmount"
+      ? readMobileOcrNumber(input.value)
+      : String(input.value ?? "").trim();
+  });
+
+  const numericFields = new Set(["quantity", "unitPrice", "amount", "taxAmount", "totalAmount"]);
+  const valuesByLine = new Map();
+  document.querySelectorAll("[data-mobile-ocr-line][data-mobile-ocr-field]").forEach((input) => {
+    const lineNo = Number(input.dataset.mobileOcrLine ?? 0);
+    const fieldName = input.dataset.mobileOcrField;
+    const lineValues = valuesByLine.get(lineNo) ?? {};
+    lineValues[fieldName] = numericFields.has(fieldName)
+      ? readMobileOcrNumber(input.value)
+      : String(input.value ?? "").trim();
+    valuesByLine.set(lineNo, lineValues);
+  });
+
+  const lineItems = (selectedDocument.lineItems ?? []).map((item, index) => {
+    const rowNo = Number(item.rowNo ?? index + 1);
+    const edited = valuesByLine.get(rowNo) ?? {};
+    const amount = Number(edited.amount ?? item.amount ?? 0);
+    const taxAmount = Number(edited.taxAmount ?? item.taxAmount ?? 0);
+    return {
+      ...item,
+      ...edited,
+      rowNo,
+      amount,
+      taxAmount,
+      totalAmount: Number(edited.totalAmount ?? item.totalAmount ?? amount + taxAmount),
+      livestockTraceNo: String(edited.traceNumber ?? item.livestockTraceNo ?? item.traceNumber ?? "").trim(),
+      traceNumber: String(edited.traceNumber ?? item.traceNumber ?? item.livestockTraceNo ?? "").trim(),
+      reviewStatus: "SELECTED"
+    };
+  });
+
+  const catalog = productCatalogService.getCatalogSnapshot();
+  const historyEntries = ocrDictionaryHistoryStore.list({ documentId });
+  const viewModels = lineItems.map((item, index) => buildMobileOcrLineViewModel({
+    document: { ...selectedDocument, documentFields, lineItems },
+    item,
+    index,
+    catalog,
+    historyEntries
+  }));
+  const validation = validateMobileOcrDocument({ ...selectedDocument, documentFields }, viewModels);
+
+  ocrDocumentQueueStore.update(documentId, {
+    documentFields,
+    lineItems,
+    validation: {
+      ...(selectedDocument.validation ?? {}),
+      lineCount: lineItems.length,
+      calculationOk: validation.ok,
+      totalAmountMatched: validation.ok,
+      issues: validation.messages
+    },
+    reviewResult: {
+      ...(selectedDocument.reviewResult ?? {}),
+      outcome: validation.ok ? "MANUAL_VALIDATION_PASSED" : "REVIEW_REQUIRED",
+      issues: validation.messages
+    }
+  });
+
+  return validation;
+}
+
+function readMobileOcrNumber(value) {
+  const normalized = String(value ?? "").replace(/[^0-9.-]/g, "");
+  const number = Number(normalized);
+  return Number.isFinite(number) ? number : 0;
 }
 
 eventEngine.record("app.started", { task: "TASK-001", architecture: "product-engine-first" });
