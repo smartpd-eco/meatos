@@ -134,6 +134,23 @@ for (const check of [
   }
 }
 
+const realWorldPipelineStart = js.indexOf("async function runRealWorldOcrPipeline()");
+const realWorldPipelineEnd = js.indexOf("function renderOcrFlowTrack", realWorldPipelineStart);
+const realWorldPipeline = js.slice(
+  realWorldPipelineStart,
+  realWorldPipelineEnd > realWorldPipelineStart ? realWorldPipelineEnd : undefined
+);
+if (realWorldPipeline.includes('createOcrProviderAdapter("mock")')) {
+  throw new Error("Real-world OCR pipeline must not substitute Mock OCR results");
+}
+
+const emptyCaptureStart = js.indexOf("function createEmptyRealWorldCaptureState()");
+const emptyCaptureEnd = js.indexOf("function ocrInputModeLabel", emptyCaptureStart);
+const emptyCaptureState = js.slice(emptyCaptureStart, emptyCaptureEnd);
+if (/ocrText:\s*["'`]좋은축산/.test(emptyCaptureState)) {
+  throw new Error("Real-world OCR capture state must not contain sample invoice text");
+}
+
 if (!isDeployBuild) {
   const edgeFunction = await readFile("supabase/functions/analyze-ocr/index.ts", "utf8");
   for (const check of [
@@ -146,6 +163,13 @@ if (!isDeployBuild) {
     if (!edgeFunction.includes(check)) {
       throw new Error(`analyze-ocr/index.ts missing ${check}`);
     }
+  }
+}
+
+const providerAdapter = await readFile("src/data/ocr-provider-adapter.js", "utf8");
+for (const check of ["normalizeClovaFields", "attachTraceEvidenceToLineItems", "parsedClova?.lineItems"]) {
+  if (!providerAdapter.includes(check)) {
+    throw new Error(`ocr-provider-adapter.js missing ${check}`);
   }
 }
 

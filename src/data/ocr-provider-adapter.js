@@ -533,18 +533,40 @@ class TesseractCompareProvider {
   }
 }
 
-function normalizeClovaResponse(payload, input = {}) {
+export function normalizeClovaResponse(payload, input = {}) {
+  const clovaImage = Array.isArray(payload.images) ? payload.images[0] : null;
+  const clovaItems = normalizeClovaFields(clovaImage?.fields ?? []);
+  const clovaLines = collapseOcrItemsIntoLines(clovaItems);
+  const clovaText = clovaLines.map((line) => line.text).filter(Boolean).join("\n");
+  const parsedClova = clovaText ? parseRecognizedTextV2(clovaText, input) : null;
+  const clovaConfidences = clovaItems.map((item) => Number(item.score ?? 0)).filter((value) => value > 0);
+  const clovaConfidence = clovaConfidences.length
+    ? Math.round(clovaConfidences.reduce((sum, value) => sum + value, 0) / clovaConfidences.length)
+    : 0;
   const providerName = String(payload.providerName ?? payload.provider ?? "NAVER CLOVA OCR General");
   const providerVersion = String(payload.providerVersion ?? payload.providerId ?? "clova-general");
-  const providerConfidence = clamp(Number(payload.providerConfidence ?? payload.confidence ?? 0), 0, 100);
+  const providerConfidence = clamp(Number(payload.providerConfidence ?? payload.confidence ?? clovaConfidence), 0, 100);
   const qualityScore = clamp(Number(payload.qualityScore ?? input.qualityScore ?? providerConfidence), 0, 100);
   const qualityGradeValue = String(payload.qualityGrade ?? qualityGradeFromScore(qualityScore));
   const recaptureReasonCodes = toStringArray(payload.recaptureReasonCodes ?? payload.recaptureReasons ?? []);
-  const reconstructedText = String(payload.reconstructedText ?? payload.rawText ?? payload.text ?? "").trim();
+  const reconstructedText = String(payload.reconstructedText ?? payload.rawText ?? payload.text ?? clovaText).trim();
   const reconstructionBasis = toStringArray(payload.reconstructionBasis ?? payload.basis ?? []);
-  const rawJson = payload.rawJson ?? payload.ocrRawJson ?? payload;
-  const documentFields = normalizeDocumentFields(payload.documentFields ?? payload.fields ?? {});
-  const lineItems = normalizeLineItems(payload.lineItems ?? payload.items ?? payload.tables?.[0]?.rows ?? []);
+  const rawJson = payload.rawJson ?? payload.ocrRawJson ?? {
+    ...payload,
+    items: clovaItems,
+    lines: clovaLines,
+    image: {
+      width: Number(clovaImage?.convertedImageInfo?.width ?? 0),
+      height: Number(clovaImage?.convertedImageInfo?.height ?? 0)
+    },
+    tableStructure: reconstructOcrTable({ lines: clovaLines, rawText: clovaText })
+  };
+  const documentFields = normalizeDocumentFields(
+    payload.documentFields ?? (payload.fields && !Array.isArray(payload.fields) ? payload.fields : parsedClova?.documentFields) ?? {}
+  );
+  const lineItems = normalizeLineItems(
+    payload.lineItems ?? payload.items ?? payload.tables?.[0]?.rows ?? parsedClova?.lineItems ?? []
+  );
   const parsedJson = payload.parsedJson ?? {
     documentFields,
     lineItems,
@@ -576,6 +598,29 @@ function normalizeClovaResponse(payload, input = {}) {
       issues: []
     }
   };
+}
+
+function normalizeClovaFields(fields = []) {
+  return (Array.isArray(fields) ? fields : [])
+    .map((field, index) => {
+      const vertices = field?.boundingPoly?.vertices ?? field?.boundingPoly ?? [];
+      const poly = normalizePoly(vertices);
+      const rawConfidence = Number(field?.inferConfidence ?? field?.confidence ?? 0);
+      return {
+        index,
+        text: String(field?.inferText ?? field?.text ?? "").trim(),
+        score: clamp(rawConfidence <= 1 ? rawConfidence * 100 : rawConfidence, 0, 100),
+        poly,
+        bounds: polyBounds(poly)
+      };
+    })
+    .filter((item) => item.text)
+    .sort((a, b) => {
+      if (Math.abs(a.bounds.centerY - b.bounds.centerY) > Math.max(12, Math.min(a.bounds.height, b.bounds.height) * 0.75)) {
+        return a.bounds.centerY - b.bounds.centerY;
+      }
+      return a.bounds.minX - b.bounds.minX;
+    });
 }
 
 function normalizeTesseractResult(data, rawText, input = {}) {
@@ -854,7 +899,7 @@ function normalizePaddleOcrResult(result, input = {}) {
 }
 
 function parseRecognizedTextV2(rawText, context = {}) {
-  const normalizedText = normalizeUnicodeWhitespace(rawText);
+  const normalizedText = String(rawText ?? "").normalize("NFKC");
   const lines = normalizedText
     .split(/\r?\n/)
     .map((line) => normalizeUnicodeWhitespace(line))
@@ -892,6 +937,7 @@ function parseRecognizedTextV2(rawText, context = {}) {
   if (!lineItems.length) {
     lineItems = fallbackParseLineItemsV2(filteredLines);
   }
+  lineItems = attachTraceEvidenceToLineItems(lineItems, filteredLines);
 
   const normalizedFields = {
     supplierName,
@@ -926,6 +972,28 @@ function parseRecognizedTextV2(rawText, context = {}) {
   };
 }
 
+function attachTraceEvidenceToLineItems(lineItems = [], lines = []) {
+  return lineItems.map((item, index) => {
+    const currentLineIndex = Math.max(0, Number(item.rowNo ?? index + 1) - 1);
+    const nextLineIndex = index + 1 < lineItems.length
+      ? Math.max(currentLineIndex + 1, Number(lineItems[index + 1].rowNo ?? lines.length + 1) - 1)
+      : lines.length;
+    const evidenceText = lines.slice(currentLineIndex, nextLineIndex).join(" ");
+    const domesticTrace = (evidenceText.match(/\bL\s*\d{12,15}\b/i)?.[0] ?? "").replace(/\s+/g, "").toUpperCase();
+    const importTrace = domesticTrace
+      ? ""
+      : (evidenceText.match(/(?:이력번호\s*[:：]?\s*)?(\d{12})\b/i)?.[1] ?? "");
+    const blNumber = evidenceText.match(/B\s*\/\s*L\s*[:：]?\s*([A-Z0-9-]{8,})/i)?.[1] ?? "";
+    return {
+      ...item,
+      livestockTraceNo: domesticTrace,
+      importTraceNo: importTrace,
+      traceNumber: domesticTrace || importTrace,
+      blNumber
+    };
+  });
+}
+
 function fallbackParseLineItemsV2(lines = []) {
   const compactLines = lines.map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
   const candidates = [];
@@ -956,6 +1024,10 @@ function normalizeLineItemV2(item, index) {
     origin: String(item.origin ?? item.rawOrigin ?? "").trim(),
     grade: String(item.grade ?? item.rawGrade ?? "").trim(),
     storageType: String(item.storageType ?? "").trim(),
+    livestockTraceNo: String(item.livestockTraceNo ?? "").trim(),
+    importTraceNo: String(item.importTraceNo ?? "").trim(),
+    traceNumber: String(item.traceNumber ?? item.livestockTraceNo ?? item.importTraceNo ?? "").trim(),
+    blNumber: String(item.blNumber ?? "").trim(),
     dictionaryCandidateId: String(item.dictionaryCandidateId ?? "").trim(),
     productMasterId: String(item.productMasterId ?? "").trim(),
     confidence: clamp(Number(item.confidence ?? 0), 0, 100),
@@ -1370,8 +1442,13 @@ function createLineBucket(item) {
 function normalizePoly(poly) {
   if (!Array.isArray(poly)) return [];
   return poly.map((point) => {
-    if (!Array.isArray(point) || point.length < 2) return [0, 0];
-    return [Number(point[0] ?? 0), Number(point[1] ?? 0)];
+    if (Array.isArray(point) && point.length >= 2) {
+      return [Number(point[0] ?? 0), Number(point[1] ?? 0)];
+    }
+    if (point && typeof point === "object") {
+      return [Number(point.x ?? 0), Number(point.y ?? 0)];
+    }
+    return [0, 0];
   });
 }
 
@@ -1561,11 +1638,21 @@ function normalizeLineItems(items) {
     origin: String(item.origin ?? item.rawOrigin ?? "").trim(),
     grade: String(item.grade ?? item.rawGrade ?? "").trim(),
     storageType: String(item.storageType ?? "").trim(),
+    livestockTraceNo: String(item.livestockTraceNo ?? "").trim(),
+    importTraceNo: String(item.importTraceNo ?? "").trim(),
+    traceNumber: String(item.traceNumber ?? item.livestockTraceNo ?? item.importTraceNo ?? "").trim(),
+    blNumber: String(item.blNumber ?? "").trim(),
     dictionaryCandidateId: String(item.dictionaryCandidateId ?? "").trim(),
     productMasterId: String(item.productMasterId ?? "").trim(),
     confidence: clamp(Number(item.confidence ?? 0), 0, 100),
     reviewStatus: String(item.reviewStatus ?? "PENDING").trim()
   }));
+}
+
+function toStringArray(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item ?? "").trim()).filter(Boolean);
+  const normalized = String(value ?? "").trim();
+  return normalized ? [normalized] : [];
 }
 
 function analyzeTableStructure(lines = []) {

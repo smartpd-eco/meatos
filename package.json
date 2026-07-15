@@ -23,6 +23,7 @@
     "ocr:evidence:test": "node scripts/test-ocr-evidence-validator.mjs",
     "ocr:tax:test": "node scripts/test-meat-tax-and-completeness.mjs",
     "ocr:table:test": "node scripts/test-ocr-table-header-coverage.mjs",
+    "ocr:clova:test": "node scripts/test-clova-raw-normalizer.mjs",
     "ocr:research:report": "node scripts/create-ocr-research-analysis-report.mjs",
     "ocr:corpus:plan": "node scripts/plan-ocr-corpus-1000.mjs",
     "ocr:corpus:validate": "node scripts/validate-ocr-corpus-1000.mjs",
