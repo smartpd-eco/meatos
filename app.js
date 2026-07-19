@@ -3178,10 +3178,12 @@ async function runRealWorldOcrPipeline() {
         geminiConfigured: Boolean(SUPABASE_PUBLIC_CONFIG.visionFunctionUrl)
       },
       functionUrl: SUPABASE_PUBLIC_CONFIG.visionFunctionUrl,
-      timeoutMs: 15000,
+      timeoutMs: 30000,
       recognitionInput: {
         ...baseRecognitionInput,
-        imageDataUrl: processed.originalImageDataUrl || processed.preprocessedImageDataUrl,
+        // Send the downscaled/corrected image (≈1600px) rather than the full-res
+        // phone photo: much faster upload on mobile and avoids payload-size limits.
+        imageDataUrl: processed.preprocessedImageDataUrl || processed.originalImageDataUrl,
         localOcrText: providerResult?.reconstructedText ?? providerResult?.rawText ?? "",
         unresolvedFields: buildVisionUnresolvedFields(providerResult)
       },
@@ -3393,7 +3395,7 @@ async function runRealWorldOcrPipelineFromUi(successMessage) {
   try {
     const document = await withOcrTimeout(
       runRealWorldOcrPipeline(),
-      45000,
+      60000,
       "거래명세서 분석"
     );
     state.ocrDocumentId = document.documentId;
