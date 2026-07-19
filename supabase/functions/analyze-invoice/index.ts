@@ -140,9 +140,45 @@ Deno.serve(async (request: Request) => {
   }
 });
 
+let cachedGeminiModel = "";
+
+// Model names change and get retired (e.g. gemini-2.5-flash returns 404
+// "no longer available"). Discover a currently-available flash model that
+// supports generateContent instead of hard-coding one. GEMINI_VISION_MODEL
+// env var overrides this if set.
+async function resolveGeminiModel(apiKey: string): Promise<string> {
+  const override = Deno.env.get("GEMINI_VISION_MODEL");
+  if (override) return override;
+  if (cachedGeminiModel) return cachedGeminiModel;
+  try {
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models", {
+      headers: { "x-goog-api-key": apiKey }
+    });
+    const data = await res.json();
+    const models: Array<{ name?: string; supportedGenerationMethods?: string[] }> =
+      Array.isArray(data?.models) ? data.models : [];
+    const usable = models
+      .filter((m) => (m.supportedGenerationMethods ?? []).includes("generateContent"))
+      .map((m) => String(m.name ?? "").replace(/^models\//, ""))
+      .filter((name) => /flash/i.test(name)
+        && !/(vision|thinking|image|tts|audio|live|embedding|exp|lite)/i.test(name));
+    const score = (name: string) => {
+      const v = name.match(/gemini-(\d+(?:\.\d+)?)/);
+      let s = v ? parseFloat(v[1]) * 100 : 0;
+      if (/preview|latest/i.test(name)) s -= 5;
+      return s;
+    };
+    usable.sort((a, b) => score(b) - score(a));
+    cachedGeminiModel = usable[0] ?? "gemini-flash-latest";
+    return cachedGeminiModel;
+  } catch {
+    return "gemini-flash-latest";
+  }
+}
+
 async function callGemini(payload: AnalyzeInvoiceRequest, image: ImagePayload) {
   const apiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
-  const model = providerModel("gemini-2.5-flash");
+  const model = await resolveGeminiModel(apiKey);
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
