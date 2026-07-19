@@ -36,6 +36,8 @@ for (const asset of [
   "node_modules/onnxruntime-web/dist/ort.min.mjs",
   "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs",
   "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm",
+  "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.mjs",
+  "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.wasm",
   "node_modules/tesseract.js/dist/tesseract.esm.min.js",
   "node_modules/tesseract.js/dist/worker.min.js",
   "node_modules/tesseract.js-core",
