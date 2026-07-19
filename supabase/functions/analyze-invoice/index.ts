@@ -66,6 +66,29 @@ const INVOICE_SCHEMA = {
   required: ["rawText", "providerConfidence", "reviewRequired", "documentFields", "lineItems"]
 };
 
+// Gemini's responseSchema is an OpenAPI 3.0 subset: it rejects `additionalProperties`
+// and array-style `type: ["string","null"]`. Convert to the supported form
+// (drop additionalProperties, use `nullable: true`). OpenAI keeps the original schema.
+function toGeminiSchema(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(toGeminiSchema);
+  if (!node || typeof node !== "object") return node;
+  const source = node as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (key === "additionalProperties") continue;
+    if (key === "type" && Array.isArray(value)) {
+      const types = value.filter((t) => t !== "null");
+      out.type = types[0] ?? "string";
+      if (value.includes("null")) out.nullable = true;
+      continue;
+    }
+    out[key] = toGeminiSchema(value);
+  }
+  return out;
+}
+
+const GEMINI_INVOICE_SCHEMA = toGeminiSchema(INVOICE_SCHEMA);
+
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders() });
 
@@ -125,11 +148,14 @@ async function callGemini(payload: AnalyzeInvoiceRequest, image: ImagePayload) {
     headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: buildPrompt(payload) }, { inlineData: { mimeType: image.mimeType, data: image.base64 } }] }],
-      generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: INVOICE_SCHEMA }
+      generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: GEMINI_INVOICE_SCHEMA }
     })
   });
   const body = await response.json();
-  if (!response.ok) throw new Error(`GEMINI_HTTP_${response.status}`);
+  if (!response.ok) {
+    const detail = body?.error?.message ? `: ${String(body.error.message).slice(0, 200)}` : "";
+    throw new Error(`GEMINI_HTTP_${response.status}${detail}`);
+  }
   const text = body?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? "").join("") ?? "";
   return { result: parseStructuredResult(text), usage: normalizeGeminiUsage(body?.usageMetadata) };
 }

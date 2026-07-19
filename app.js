@@ -3135,11 +3135,17 @@ async function runRealWorldOcrPipeline() {
     templateProfile: buildTemplateProfileSnapshot(capture.supplierName, adapter.getProviderId())
   });
 
-  const primaryAttempt = await runProviderRecognitionAttempt(
-    primaryAdapter,
-    buildRecognitionInput(primaryAdapter),
-    12000
-  );
+  // Mobile: skip the heavy in-browser PaddleOCR (21MB model + CPU grind that
+  // freezes the phone) and let the server-side Gemini vision function run as the
+  // primary recognizer. PaddleOCR stays available as the desktop primary.
+  const preferCloudFirst = isMobileOcrRuntime() && Boolean(SUPABASE_PUBLIC_CONFIG.visionFunctionUrl);
+  const primaryAttempt = preferCloudFirst
+    ? { result: null, error: null }
+    : await runProviderRecognitionAttempt(
+        primaryAdapter,
+        buildRecognitionInput(primaryAdapter),
+        12000
+      );
   let providerResult = primaryAttempt.result;
   let activeProviderAdapter = primaryAdapter;
   let fallbackApplied = false;
@@ -3385,7 +3391,11 @@ async function runRealWorldOcrPipelineFromUi(successMessage) {
   await waitForBrowserPaint();
 
   try {
-    const document = await runRealWorldOcrPipeline();
+    const document = await withOcrTimeout(
+      runRealWorldOcrPipeline(),
+      45000,
+      "거래명세서 분석"
+    );
     state.ocrDocumentId = document.documentId;
     state.ocrSelectedLineNo = 1;
     showToast(successMessage);

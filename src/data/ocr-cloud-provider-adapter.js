@@ -1,3 +1,5 @@
+import { SUPABASE_PUBLIC_CONFIG } from "./supabase-public-config.js";
+
 const DEFAULT_TIMEOUT_MS = 8000;
 
 export function createCloudOcrProvider(providerId, config = {}) {
@@ -44,6 +46,16 @@ class ServerOcrProvider {
     this.functionUrl = String(config.functionUrl ?? "").trim();
     this.timeoutMs = Number(config.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     this.normalizer = config.normalizer;
+    this.authKey = String(config.anonKey ?? SUPABASE_PUBLIC_CONFIG.anonKey ?? "").trim();
+  }
+
+  buildHeaders(extra = {}) {
+    const headers = { ...extra };
+    if (this.authKey) {
+      headers.Authorization = `Bearer ${this.authKey}`;
+      headers.apikey = this.authKey;
+    }
+    return headers;
   }
 
   async healthCheck() {
@@ -52,7 +64,7 @@ class ServerOcrProvider {
     try {
       const healthUrl = new URL(this.functionUrl, globalThis.location?.href ?? "http://localhost");
       healthUrl.searchParams.set("providerId", this.providerId);
-      const response = await fetch(healthUrl, { method: "GET", signal: AbortSignal.timeout(this.timeoutMs) });
+      const response = await fetch(healthUrl, { method: "GET", headers: this.buildHeaders(), signal: AbortSignal.timeout(this.timeoutMs) });
       return healthResult(this, response.ok, performance.now() - startedAt, response.ok ? "READY" : `HTTP_${response.status}`);
     } catch (error) {
       return healthResult(this, false, performance.now() - startedAt, error?.name === "TimeoutError" ? "TIMEOUT" : "NETWORK_ERROR");
@@ -65,7 +77,7 @@ class ServerOcrProvider {
     const startedAt = performance.now();
     const response = await fetch(this.functionUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.buildHeaders({ "Content-Type": "application/json" }),
       signal: AbortSignal.timeout(this.timeoutMs),
       body: JSON.stringify({
         providerId: this.providerId,
