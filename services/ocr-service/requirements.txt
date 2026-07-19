@@ -1,0 +1,6 @@
+easyocr==1.7.2
+fastapi==0.115.12
+uvicorn==0.34.2
+opencv-python-headless==5.0.0.93
+python-multipart==0.0.20
+

@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "policy": {
+    "defaultEligibility": "RESEARCH_ONLY",
+    "trainingRequires": ["LICENSE_VERIFIED", "PERSONAL_DATA_CLEARED", "PM_APPROVED"]
+  },
+  "sources": [
+    {
+      "sourceId": "SRC-WEB-001",
+      "channel": "google_image",
+      "organization": "국가법령정보센터",
+      "title": "축산물거래정보통합증명서",
+      "url": "https://www.law.go.kr/LSW/lsRvsDocListP.do?chrClsCd=010102&lsId=008486",
+      "authorityLevel": "L1",
+      "layoutPattern": "livestock_integrated_certificate",
+      "eligibility": "RESEARCH_ONLY",
+      "rightsStatus": "REVIEW_REQUIRED"
+    },
+    {
+      "sourceId": "SRC-WEB-002",
+      "channel": "google_search",
+      "organization": "축산물이력제",
+      "title": "돼지고기이력제 업무편람 거래내역서 양식",
+      "url": "https://aunit.mtrace.go.kr/pdf/pork_traceability_menuList.pdf",
+      "authorityLevel": "L1",
+      "layoutPattern": "traceability_ledger",
+      "eligibility": "RESEARCH_ONLY",
+      "rightsStatus": "REVIEW_REQUIRED"
+    },
+    {
+      "sourceId": "SRC-WEB-003",
+      "channel": "google_image",
+      "organization": "HIMEAT",
+      "title": "축산물 거래내역서 예시",
+      "url": "https://liosystem.com/blog?board_name=newsletter&view_id=198",
+      "authorityLevel": "L5",
+      "layoutPattern": "meat_trace_ledger",
+      "eligibility": "RESEARCH_ONLY",
+      "rightsStatus": "COPYRIGHT_UNVERIFIED"
+    },
+    {
+      "sourceId": "SRC-WEB-004",
+      "channel": "naver_image",
+      "organization": "하우스마켓",
+      "title": "일반 거래명세표 양식",
+      "url": "https://blog.naver.com/joinjaang/223534026250",
+      "authorityLevel": "L6",
+      "layoutPattern": "general_tax_invoice",
+      "eligibility": "RESEARCH_ONLY",
+      "rightsStatus": "COPYRIGHT_UNVERIFIED"
+    },
+    {
+      "sourceId": "SRC-WEB-005",
+      "channel": "daum_shopping_image",
+      "organization": "EasyForm",
+      "title": "레이저·잉크젯 거래명세표 출력용지",
+      "url": "https://m.shoppinghow.kakao.com/m/search/q/%EA%B1%B0%EB%9E%98%EB%AA%85%EC%84%B8%EC%84%9C%20%EC%B6%9C%EB%A0%A5%20%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%A8",
+      "authorityLevel": "L4",
+      "layoutPattern": "preprinted_carbonless",
+      "eligibility": "RESEARCH_ONLY",
+      "rightsStatus": "COPYRIGHT_UNVERIFIED"
+    },
+    {
+      "sourceId": "SRC-WEB-006",
+      "channel": "google_image",
+      "organization": "니즈폼",
+      "title": "공급자 보관용 거래명세표",
+      "url": "https://www.nizform.com/kidsform/view.htm?Div=0&fid=40345",
+      "authorityLevel": "L4",
+      "layoutPattern": "supplier_copy_form",
+      "eligibility": "RESEARCH_ONLY",
+      "rightsStatus": "COPYRIGHT_UNVERIFIED"
+    },
+    {
+      "sourceId": "SRC-WEB-007",
+      "channel": "google_image",
+      "organization": "Coukey",
+      "title": "거래처별 확인증 양식",
+      "url": "https://www.coukey.co.kr/main/goods_view.php?num=1038",
+      "authorityLevel": "L4",
+      "layoutPattern": "dual_copy_confirmation",
+      "eligibility": "RESEARCH_ONLY",
+      "rightsStatus": "COPYRIGHT_UNVERIFIED"
+    },
+    {
+      "sourceId": "SRC-WEB-008",
+      "channel": "google_image",
+      "organization": "식품안전나라 관련 공개자료",
+      "title": "수입식품 신고 문서 구조",
+      "url": "https://www.foodsafetykorea.go.kr/",
+      "authorityLevel": "L1",
+      "layoutPattern": "imported_meat_declaration",
+      "eligibility": "RESEARCH_ONLY",
+      "rightsStatus": "REVIEW_REQUIRED"
+    },
+    {
+      "sourceId": "SRC-REAL-001",
+      "channel": "supplier_provided",
+      "organization": "좋은축산",
+      "title": "좋은축산 실거래명세서",
+      "localPath": "test-assets/good-meat-invoice.jpg",
+      "authorityLevel": "L5",
+      "layoutPattern": "good_chuksan_erp_print",
+      "eligibility": "APPROVED_REAL",
+      "rightsStatus": "PM_PROVIDED",
+      "personalDataStatus": "INTERNAL_ONLY"
+    },
+    {
+      "sourceId": "SRC-SYN-001",
+      "channel": "meatos_generator",
+      "organization": "MEATOS",
+      "title": "MEATOS 합성 거래명세서 세트",
+      "localPath": "ai/ocr-training/generated",
+      "authorityLevel": "INTERNAL",
+      "layoutPattern": "multi_layout_synthetic",
+      "eligibility": "SYNTHETIC_OWNED",
+      "rightsStatus": "MEATOS_OWNED"
+    }
+  ]
+}

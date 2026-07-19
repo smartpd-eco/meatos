@@ -37,11 +37,25 @@ export const OCR_PROVIDER_REGISTRY = [
     priority: 5
   },
   {
+    providerId: "gemini-2.5-flash",
+    providerName: "Gemini 2.5 Flash Vision",
+    role: "evidence_comparison",
+    supports: ["korean", "image", "table", "structured_json"],
+    priority: 6
+  },
+  {
+    providerId: "gpt-4.1",
+    providerName: "OpenAI GPT-4.1 Vision",
+    role: "final_exception_comparison",
+    supports: ["korean", "image", "table", "structured_json"],
+    priority: 7
+  },
+  {
     providerId: "clova-general",
     providerName: "NAVER CLOVA OCR General",
     role: "final_fallback",
     supports: ["korean", "camera", "gallery", "pdf", "table", "key_value"],
-    priority: 6
+    priority: 8
   },
   {
     providerId: "meatos-parser",

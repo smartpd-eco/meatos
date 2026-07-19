@@ -29,10 +29,11 @@ import { SOURCE_REGISTRY, summarizeAuthorityLevels } from "./src/data/source-reg
 import { SupabaseHealthLogStore } from "./src/data/supabase-health-log-store.js";
 import { SUPABASE_PUBLIC_CONFIG } from "./src/data/supabase-public-config.js";
 import { OCR_RUNTIME_CONFIG } from "./src/data/ocr-runtime-config.js";
-import { buildSelectiveOcrRegions, summarizeSelectiveRegions } from "./src/data/ocr-selective-crop.js";
 import { inferSupplierColumnLayout } from "./src/data/ocr-table-reconstructor.js";
 import { postApprovedOcrDocumentToInventory } from "./src/data/ocr-inventory-posting-service.js";
-import { mergeSelectiveOcrResults } from "./src/data/ocr-provider-ensemble.js";
+import { isValidTraceNumber } from "./src/data/ocr-trace-number-extractor.js";
+import { runVisionEscalation } from "./src/data/ocr-vision-escalation-service.js";
+import { validateOcrInvoiceData } from "./src/data/ocr-business-validator.js";
 import { runSupabaseHealthCheck } from "./src/data/supabase-health-check.js";
 import { createSupabaseDatabaseAdapter } from "./src/data/supabase-db-adapter.js";
 import { createSupabaseRestClient } from "./src/data/supabase-rest-client.js";
@@ -1171,6 +1172,9 @@ function renderMobileOcr() {
       : validation.ok && reviewCount === 0
         ? "확인 가능"
         : "확인 필요";
+  const operationLog = ocrOperationLogStore
+    .list(50)
+    .find((entry) => entry.documentId === document.documentId) ?? null;
 
   return `
     <section class="mobile-ocr-screen span-12">
@@ -1202,6 +1206,8 @@ function renderMobileOcr() {
           <input inputmode="numeric" data-mobile-ocr-document-field="totalAmount" value="${totalAmountIsTrusted ? totalAmount : ""}" placeholder="원본 합계 확인 필요" ${isApproved ? "readonly" : ""} />
         </label>
       </article>
+
+      ${renderMobileOcrTestReport({ document, lineItems, operationLog })}
 
       ${validation.messages.length ? `
         <div class="mobile-ocr-warning" role="alert">
@@ -1239,6 +1245,163 @@ function renderMobileOcr() {
       </div>
     </section>
   `;
+}
+
+function renderMobileOcrTestReport({ document, lineItems, operationLog }) {
+  const documentFields = document.documentFields ?? {};
+  const documentTotal = Number(documentFields.totalAmount ?? 0);
+  const lineTotal = roundCurrency(lineItems.reduce((sum, item) => sum + Number(item.totalAmount ?? 0), 0));
+  const rows = lineItems.flatMap((item) => buildMobileOcrAuditRows(item));
+  const totalMatched = documentTotal > 0 && lineTotal > 0 && Math.abs(roundCurrency(documentTotal) - lineTotal) <= 1;
+  const documentRows = buildMobileOcrDocumentAuditRows({ document, lineItems, totalMatched, operationLog });
+  const failedCount = [...documentRows, ...rows].filter((row) => row.status !== "PASS").length;
+  const durationLabel = operationLog?.durationMs > 0
+    ? `${(operationLog.durationMs / 1000).toFixed(2)}초`
+    : "측정값 없음";
+  const providerLabel = operationLog?.activeProviderName || operationLog?.providerName || document.ocrProviderId || "확인 필요";
+
+  return `
+    <details class="mobile-ocr-test-report" open>
+      <summary>
+        <span>인식 결과 검증</span>
+        <b class="${failedCount ? "has-failure" : "is-pass"}">${failedCount ? `${failedCount}개 확인 필요` : "전체 정상"}</b>
+      </summary>
+      <div class="mobile-ocr-test-meta">
+        <div><span>처리 엔진</span><strong>${escapeHtml(providerLabel)}</strong></div>
+        <div><span>처리 시간</span><strong>${escapeHtml(durationLabel)}</strong></div>
+        <div><span>행 합계</span><strong>${formatCurrency(lineTotal)}</strong></div>
+        <div class="${totalMatched ? "is-pass" : "has-failure"}"><span>문서 합계 검산</span><strong>${totalMatched ? "일치" : "불일치"}</strong></div>
+      </div>
+      <div class="mobile-ocr-audit-list">
+        <section class="mobile-ocr-audit-group">
+          <header><strong>문서 기본 정보</strong><b class="${documentRows.some((row) => row.status !== "PASS") ? "has-failure" : "is-pass"}">${documentRows.some((row) => row.status !== "PASS") ? "확인 필요" : "정상"}</b></header>
+          ${documentRows.map((row) => `
+            <div class="mobile-ocr-audit-row">
+              <span>${escapeHtml(row.label)}</span>
+              <strong>${escapeHtml(row.displayValue)}</strong>
+              <b class="${row.status === "PASS" ? "is-pass" : "has-failure"}">${row.status === "PASS" ? "정상" : "확인"}</b>
+              <small>${escapeHtml(row.reason)}</small>
+            </div>
+          `).join("")}
+        </section>
+        ${lineItems.map((item) => {
+          const itemRows = rows.filter((row) => row.rowNo === item.rowNo);
+          const itemFailures = itemRows.filter((row) => row.status !== "PASS").length;
+          return `
+            <section class="mobile-ocr-audit-group">
+              <header><strong>${item.rowNo}번 ${escapeHtml(item.productName || item.rawProductName || "상품명 미인식")}</strong><b class="${itemFailures ? "has-failure" : "is-pass"}">${itemFailures ? `${itemFailures}개 확인` : "정상"}</b></header>
+              ${itemRows.map((row) => `
+                <div class="mobile-ocr-audit-row">
+                  <span>${escapeHtml(row.label)}</span>
+                  <strong>${escapeHtml(row.displayValue)}</strong>
+                  <b class="${row.status === "PASS" ? "is-pass" : "has-failure"}">${row.status === "PASS" ? "정상" : "확인"}</b>
+                  <small>${escapeHtml(row.reason)}</small>
+                </div>
+              `).join("")}
+            </section>
+          `;
+        }).join("")}
+      </div>
+    </details>
+  `;
+}
+
+function buildMobileOcrDocumentAuditRows({ document, lineItems, totalMatched, operationLog }) {
+  const fields = document.documentFields ?? {};
+  const supplierName = String(fields.supplierName || document.supplierName || "").trim();
+  const invoiceDate = String(fields.invoiceDate || "").trim();
+  const providerConfidence = Number(operationLog?.confidence ?? document.providerConfidence ?? 0);
+  const validDate = /^\d{4}-\d{2}-\d{2}$/.test(invoiceDate) && !Number.isNaN(Date.parse(invoiceDate));
+  return [
+    {
+      label: "공급사",
+      displayValue: supplierName || "미인식",
+      status: supplierName && providerConfidence >= 95 ? "PASS" : "REVIEW",
+      reason: !supplierName ? "공급사명을 찾지 못함" : providerConfidence >= 95 ? "인식 신뢰도 통과" : `문서 인식 신뢰도 ${Math.round(providerConfidence)}%로 원본 확인 필요`
+    },
+    {
+      label: "거래일",
+      displayValue: invoiceDate || "미인식",
+      status: validDate ? "PASS" : "REVIEW",
+      reason: validDate ? "날짜 형식 검증 통과" : "날짜가 없거나 YYYY-MM-DD 형식이 아님"
+    },
+    {
+      label: "품목 수",
+      displayValue: `${lineItems.length}건`,
+      status: lineItems.length > 0 ? "PASS" : "REVIEW",
+      reason: lineItems.length > 0 ? "복원된 표 행 존재" : "품목 행을 복원하지 못함"
+    },
+    {
+      label: "문서 합계",
+      displayValue: formatCurrency(Number(fields.totalAmount ?? 0)),
+      status: totalMatched ? "PASS" : "REVIEW",
+      reason: totalMatched ? "품목 금액 합계와 일치" : "품목 금액 합계와 문서 합계가 일치하지 않음"
+    }
+  ];
+}
+
+function buildMobileOcrAuditRows(item) {
+  const expectedSupply = roundCurrency(item.quantity * item.unitPrice);
+  const expectedTotal = roundCurrency(item.supplyAmount + item.taxAmount);
+  const supplyMatches = item.quantity > 0 && item.unitPrice > 0 && item.supplyAmount > 0
+    && Math.abs(expectedSupply - roundCurrency(item.supplyAmount)) <= 1;
+  const totalMatches = item.supplyAmount > 0 && item.totalAmount > 0
+    && Math.abs(expectedTotal - roundCurrency(item.totalAmount)) <= 1;
+  const traceValid = item.traceNumber && isValidTraceNumber(item.traceNumber);
+  const textField = (label, value, required = true) => ({
+    label,
+    value,
+    status: !required || String(value ?? "").trim() ? "PASS" : "REVIEW",
+    reason: !required || String(value ?? "").trim() ? "인식값 있음" : "원문에서 값을 찾지 못함"
+  });
+  const numberField = (label, value, valid, failureReason) => ({
+    label,
+    value,
+    status: valid ? "PASS" : "REVIEW",
+    reason: valid ? "숫자 범위 및 검산 통과" : failureReason
+  });
+  const semanticField = (label, value) => ({
+    label,
+    value,
+    status: String(value ?? "").trim() && item.confidence >= 95 ? "PASS" : "REVIEW",
+    reason: !String(value ?? "").trim()
+      ? "원문 또는 Dictionary에서 값을 확정하지 못함"
+      : item.confidence >= 95
+        ? "Dictionary 후보 신뢰도 통과"
+        : `Dictionary 후보 신뢰도 ${Math.round(item.confidence)}%로 원본 확인 필요`
+  });
+  const fields = [
+    semanticField("종류", item.species),
+    semanticField("부위", item.part),
+    semanticField("상품명", item.productName),
+    textField("등급", item.grade),
+    textField("상태", normalizeStorageLabel(item.storageType)),
+    textField("단위", item.unit),
+    numberField("수량", item.quantity, item.quantity > 0 && item.quantity <= 100000, "수량이 없거나 정상 범위를 벗어남"),
+    numberField("단가", item.unitPrice, item.unitPrice > 0 && item.unitPrice <= 1000000, "단가가 없거나 정상 범위를 벗어남"),
+    numberField("공급가", item.supplyAmount, supplyMatches, supplyMatches ? "" : "수량 × 단가와 공급가가 일치하지 않음"),
+    numberField("세액", item.taxAmount, Number.isFinite(item.taxAmount) && item.taxAmount >= 0, "세액을 숫자로 확인하지 못함"),
+    numberField("금액", item.totalAmount, totalMatches, totalMatches ? "" : "공급가 + 세액과 금액이 일치하지 않음"),
+    {
+      label: "이력번호/수입번호",
+      value: item.traceNumber,
+      status: traceValid ? "PASS" : "REVIEW",
+      reason: traceValid ? "번호 형식 검증 통과" : "번호가 없거나 형식 검증에 실패함"
+    }
+  ];
+
+  return fields.map((field) => ({
+    ...field,
+    rowNo: item.rowNo,
+    displayValue: formatMobileOcrAuditValue(field.label, field.value)
+  }));
+}
+
+function formatMobileOcrAuditValue(label, value) {
+  if (["단가", "공급가", "세액", "금액"].includes(label) && Number.isFinite(Number(value))) {
+    return formatCurrency(Number(value));
+  }
+  return String(value ?? "").trim() || "미인식";
 }
 
 function buildMobileOcrLineViewModel({ document, item, index, catalog, historyEntries }) {
@@ -2659,11 +2822,8 @@ async function resolveRealWorldOcrProvider(capture, options = {}) {
   const fullHealthCheck = Boolean(options.fullHealthCheck);
   const requestedProviderId = capture.providerId || "paddleocr";
   const mobileRuntime = isMobileOcrRuntime();
-  const mobileCloudFirst = requestedProviderId === "paddleocr"
-    && mobileRuntime
-    && navigator.onLine
-    && Boolean(SUPABASE_PUBLIC_CONFIG.ocrFunctionUrl);
-  const effectivePrimaryProviderId = mobileCloudFirst ? "clova-general" : requestedProviderId;
+  const mobileCloudFirst = false;
+  const effectivePrimaryProviderId = requestedProviderId;
   const primaryAdapter = createOcrProviderAdapter(effectivePrimaryProviderId, {
     functionUrl: SUPABASE_PUBLIC_CONFIG.ocrFunctionUrl,
     supabaseUrl: SUPABASE_PUBLIC_CONFIG.url,
@@ -2695,12 +2855,8 @@ async function resolveRealWorldOcrProvider(capture, options = {}) {
         functionUrl: SUPABASE_PUBLIC_CONFIG.ocrFunctionUrl,
         supabaseUrl: SUPABASE_PUBLIC_CONFIG.url
       });
-  const secondaryHealth = secondaryAdapter.getProviderId() === primaryAdapter.getProviderId()
-    ? primaryHealth
-    : (fullHealthCheck || !primaryHealthy)
-      ? await secondaryAdapter.healthCheck()
-      : buildStandbyProviderHealth(secondaryAdapter, Boolean(SUPABASE_PUBLIC_CONFIG.ocrFunctionUrl));
-  const activeAdapter = primaryHealthy ? primaryAdapter : secondaryAdapter;
+  const secondaryHealth = buildStandbyProviderHealth(secondaryAdapter, false);
+  const activeAdapter = primaryAdapter;
   const healthEntry = ocrProviderHealthLogStore.record({
     providerName: primaryAdapter.getProviderName(),
     providerVersion: primaryAdapter.getProviderVersion(),
@@ -2711,7 +2867,7 @@ async function resolveRealWorldOcrProvider(capture, options = {}) {
     latencyMs: primaryHealth.latencyMs ?? 0,
     message: primaryHealthy
       ? primaryHealth.message || "Provider healthy"
-      : `${primaryHealth.message || "Provider unavailable"} / ${secondaryAdapter.getProviderName()} fallback`,
+      : `${primaryHealth.message || "Provider unavailable"} / Gemini review fallback`,
     errorCode: primaryHealth.errorCode ?? "",
     source: "capture"
   });
@@ -2722,7 +2878,7 @@ async function resolveRealWorldOcrProvider(capture, options = {}) {
     requestedProviderName: requestedProviderId === effectivePrimaryProviderId ? primaryAdapter.getProviderName() : "PaddleOCR Browser",
     requestedProviderVersion: requestedProviderId === effectivePrimaryProviderId ? primaryAdapter.getProviderVersion() : "PP-OCRv5-mobile",
     requestedProviderHealth: primaryHealth,
-    routingMode: mobileCloudFirst ? "mobile-cloud-first" : "configured-primary",
+    routingMode: "paddle-first-gemini-review",
     comparisonProviderId: comparisonAdapter.getProviderId(),
     comparisonProviderName: comparisonAdapter.getProviderName(),
     comparisonProviderVersion: comparisonAdapter.getProviderVersion(),
@@ -2738,8 +2894,10 @@ async function resolveRealWorldOcrProvider(capture, options = {}) {
     activeProviderId: activeAdapter.getProviderId(),
     activeProviderName: activeAdapter.getProviderName(),
     activeProviderVersion: activeAdapter.getProviderVersion(),
-    fallbackApplied: mobileCloudFirst || !primaryHealthy,
-    fallbackToClova: mobileCloudFirst || (!primaryHealthy && requestedProviderId !== "clova-general")
+    fallbackApplied: false,
+    fallbackToClova: false,
+    visionProviderId: "gemini-2.5-flash",
+    visionFunctionUrlConfigured: Boolean(SUPABASE_PUBLIC_CONFIG.visionFunctionUrl)
   };
 
   return {
@@ -2753,10 +2911,10 @@ async function resolveRealWorldOcrProvider(capture, options = {}) {
     secondaryHealth,
     activeAdapter,
     providerHealth: state.ocrProviderHealth,
-    fallbackToClova: mobileCloudFirst || (!primaryHealthy && requestedProviderId !== "clova-general"),
+    fallbackToClova: false,
     mobileRuntime,
     mobileCloudFirst,
-    skipLocalComparisons: mobileRuntime
+    skipLocalComparisons: true
   };
 }
 
@@ -2886,13 +3044,8 @@ async function runRealWorldOcrPipeline() {
   const recaptureRequiredByQuality = Boolean(intakeDecision.recommendRecapture);
   const {
     primaryAdapter,
-    easyOcrAdapter,
-    comparisonAdapter,
-    secondaryAdapter,
     activeAdapter,
-    providerHealth,
-    mobileCloudFirst,
-    skipLocalComparisons
+    providerHealth
   } = await resolveRealWorldOcrProvider(capture);
   const nowIso = new Date().toISOString();
   const fileHash = processed.originalImageHash;
@@ -2985,7 +3138,7 @@ async function runRealWorldOcrPipeline() {
   const primaryAttempt = await runProviderRecognitionAttempt(
     primaryAdapter,
     buildRecognitionInput(primaryAdapter),
-    mobileCloudFirst ? 15000 : 10000
+    12000
   );
   let providerResult = primaryAttempt.result;
   let activeProviderAdapter = primaryAdapter;
@@ -3011,56 +3164,39 @@ async function runRealWorldOcrPipeline() {
       });
     }
 
-    const selectiveRegions = skipLocalComparisons ? [] : buildSelectiveOcrRegions(providerResult, {
-      maxRegions: 4,
-      confidenceThreshold: 88,
-      templateProfile: buildTemplateProfileSnapshot(capture.supplierName, primaryAdapter.getProviderId())
+    const localSignals = buildVisionValidationSignals(providerResult);
+    const visionEscalation = await runVisionEscalation({
+      signals: localSignals,
+      providerAttempts: [],
+      policy: {
+        geminiConfigured: Boolean(SUPABASE_PUBLIC_CONFIG.visionFunctionUrl)
+      },
+      functionUrl: SUPABASE_PUBLIC_CONFIG.visionFunctionUrl,
+      timeoutMs: 15000,
+      recognitionInput: {
+        ...baseRecognitionInput,
+        imageDataUrl: processed.originalImageDataUrl || processed.preprocessedImageDataUrl,
+        localOcrText: providerResult?.reconstructedText ?? providerResult?.rawText ?? "",
+        unresolvedFields: buildVisionUnresolvedFields(providerResult)
+      },
+      validateResult: (result) => buildVisionValidationSignals(
+        normalizeVisionInvoiceResult(result, processed.qualityScore)
+      )
     });
-    const easyOcrAttempt = skipLocalComparisons
-      ? { result: null, error: null }
-      : await runProviderRecognitionAttempt(easyOcrAdapter, {
-          ...buildRecognitionInput(easyOcrAdapter),
-          imageDataUrl: processed.originalImageDataUrl,
-          regions: selectiveRegions
-        }, 8000);
-    const ensembleResult = easyOcrAttempt.result
-      ? mergeSelectiveOcrResults(providerResult, easyOcrAttempt.result)
-      : providerResult;
-    if (easyOcrAttempt.result && (!providerResult || isBetterOcrResult(ensembleResult, providerResult))) {
-      providerResult = ensembleResult;
-      activeProviderAdapter = easyOcrAdapter;
-      const selectiveSummary = summarizeSelectiveRegions(selectiveRegions);
-      fallbackReason = selectiveRegions.length
-        ? `PaddleOCR uncertain fields compared with EasyOCR (${selectiveSummary.regionCount} regions)`
-        : "PaddleOCR failed; EasyOCR full document comparison selected";
-    }
 
-    if (!skipLocalComparisons && shouldFallbackToSecondaryResult(providerResult)) {
-      const comparisonAttempt = await runProviderRecognitionAttempt(
-        comparisonAdapter,
-        buildRecognitionInput(comparisonAdapter),
-        8000
-      );
-      if (comparisonAttempt.result && (!providerResult || isBetterOcrResult(comparisonAttempt.result, providerResult))) {
-        providerResult = comparisonAttempt.result;
-        activeProviderAdapter = comparisonAdapter;
-        fallbackReason = "EasyOCR remained uncertain; Tesseract validation selected";
+    if (visionEscalation.providerResult) {
+      const visionResult = normalizeVisionInvoiceResult(visionEscalation.providerResult, processed.qualityScore);
+      if (!providerResult || isBetterOcrResult(visionResult, providerResult)) {
+        providerResult = visionResult;
+        activeProviderAdapter = createProviderResultDescriptor(visionResult);
+        fallbackReason = "PaddleOCR uncertainty was compared with Gemini 2.5 Flash";
+      } else {
+        fallbackReason = "Gemini comparison did not improve the validated PaddleOCR result";
       }
-    }
-
-    if (!providerResult || shouldFallbackToPaidProvider(providerResult)) {
-      if (secondaryAdapter.getProviderId() !== primaryAdapter.getProviderId()) {
-        const secondaryAttempt = await runProviderRecognitionAttempt(
-          secondaryAdapter,
-          buildRecognitionInput(secondaryAdapter),
-          15000
-        );
-        if (secondaryAttempt.result && (!providerResult || isBetterOcrResult(secondaryAttempt.result, providerResult))) {
-          providerResult = secondaryAttempt.result;
-          activeProviderAdapter = secondaryAdapter;
-          fallbackReason = "Comparison engine unavailable or weaker; CLOVA fallback selected";
-        }
-      }
+    } else {
+      fallbackReason = visionEscalation.error?.message
+        ? `Gemini comparison unavailable: ${visionEscalation.error.message}`
+        : visionEscalation.decision.reason;
     }
   }
 
@@ -3283,6 +3419,125 @@ async function runProviderRecognitionAttempt(adapter, input, timeoutMs = 15000) 
   }
 }
 
+function normalizeVisionInvoiceResult(result = {}, qualityScore = 0) {
+  const lineItems = (Array.isArray(result.lineItems) ? result.lineItems : []).map((item, index) => {
+    const amount = Number(item.supplyAmount ?? item.amount ?? item.rawAmount ?? 0);
+    const traceNumber = String(item.traceOrImportNo ?? item.traceNumber ?? "").trim();
+    return {
+      rowNo: Number(item.rowNo ?? index + 1),
+      rawProductName: String(item.rawProductName ?? "").trim(),
+      normalizedProductName: String(item.rawProductName ?? "").trim(),
+      rawSpecification: String(item.condition ?? "").trim(),
+      specification: String(item.condition ?? "").trim(),
+      species: String(item.species ?? "").trim(),
+      part: String(item.part ?? "").trim(),
+      storageType: String(item.condition ?? "").trim(),
+      rawOrigin: String(item.origin ?? "").trim(),
+      origin: String(item.origin ?? "").trim(),
+      rawGrade: String(item.grade ?? "").trim(),
+      grade: String(item.grade ?? "").trim(),
+      rawUnit: String(item.unit ?? "").trim(),
+      unit: String(item.unit ?? "").trim(),
+      rawQuantity: Number(item.quantity ?? 0),
+      quantity: Number(item.quantity ?? 0),
+      rawUnitPrice: Number(item.unitPrice ?? 0),
+      unitPrice: Number(item.unitPrice ?? 0),
+      rawAmount: amount,
+      amount,
+      taxAmount: Number(item.taxAmount ?? 0),
+      totalAmount: Number(item.totalAmount ?? amount),
+      traceNumber,
+      livestockTraceNo: traceNumber.startsWith("L") ? traceNumber : "",
+      importTraceNo: traceNumber && !traceNumber.startsWith("L") ? traceNumber : "",
+      confidence: Number(item.confidence ?? result.providerConfidence ?? 0),
+      evidenceText: String(item.evidenceText ?? "").trim(),
+      reviewStatus: "PENDING"
+    };
+  });
+  const documentFields = {
+    ...(result.documentFields ?? {}),
+    rawText: String(result.rawText ?? ""),
+    livestockTraceNos: lineItems.map((item) => item.traceNumber).filter(Boolean)
+  };
+  const validation = validateOcrInvoiceData({ lineItems, documentFields });
+  const recaptureReasonCodes = [...new Set(validation.issues ?? [])];
+
+  return {
+    ...result,
+    providerId: "gemini-2.5-flash",
+    providerName: result.providerName ?? "Gemini 2.5 Flash Vision",
+    providerVersion: result.providerVersion ?? "gemini-2.5-flash",
+    documentFields,
+    lineItems,
+    validation,
+    parsedJson: {
+      documentFields,
+      lineItems,
+      validation,
+      meatosScore: validation.meatosScore,
+      recognizedText: String(result.rawText ?? "")
+    },
+    rawJson: result.rawJson ?? result,
+    qualityScore: Number(qualityScore ?? 0),
+    qualityGrade: qualityGradeFromScore(Number(qualityScore ?? 0)),
+    meatosScore: validation.meatosScore,
+    recaptureRequired: lineItems.length === 0,
+    recaptureReasonCodes,
+    reconstructedText: String(result.rawText ?? ""),
+    reconstructionConfidence: Number(result.providerConfidence ?? 0),
+    reconstructionBasis: ["GEMINI_2_5_FLASH", "VISIBLE_EVIDENCE_ONLY", "DETERMINISTIC_VALIDATION"],
+    status: "REVIEW_REQUIRED"
+  };
+}
+
+function buildVisionValidationSignals(result) {
+  const lineItems = Array.isArray(result?.lineItems) ? result.lineItems : [];
+  const fields = result?.documentFields ?? {};
+  const validation = result?.validation ?? validateOcrInvoiceData({ lineItems, documentFields: fields });
+  const matchedProducts = lineItems.filter((item) => item.dictionaryCandidateId || item.productMasterId).length;
+  const traceNumbers = lineItems
+    .map((item) => String(item.traceNumber ?? item.livestockTraceNo ?? item.importTraceNo ?? "").trim())
+    .filter(Boolean);
+
+  return {
+    evidenceComplete: Boolean(fields.supplierName && fields.invoiceDate && fields.totalAmount && lineItems.length),
+    arithmeticOk: Boolean(validation.arithmeticValidation),
+    criticalNumericExact: Boolean(validation.numericIntegrity && validation.totalAmountMatched),
+    traceRequired: true,
+    traceValid: traceNumbers.length > 0 && traceNumbers.every(isValidTraceNumber),
+    productMatchRate: lineItems.length ? Math.round((matchedProducts / lineItems.length) * 100) : 0,
+    tableScore: Math.min(100, Number(result?.rawJson?.tableStructure?.confidence ?? (lineItems.length ? 70 + lineItems.length * 4 : 0)))
+  };
+}
+
+function buildVisionUnresolvedFields(result) {
+  const unresolved = new Set(result?.validation?.issues ?? []);
+  const fields = result?.documentFields ?? {};
+  if (!fields.supplierName) unresolved.add("supplierName");
+  if (!fields.invoiceDate) unresolved.add("invoiceDate");
+  if (!fields.totalAmount) unresolved.add("totalAmount");
+  if (!Array.isArray(result?.lineItems) || result.lineItems.length === 0) unresolved.add("lineItems");
+  unresolved.add("traceOrImportNo");
+  return [...unresolved];
+}
+
+function createProviderResultDescriptor(result = {}) {
+  return {
+    getProviderId: () => String(result.providerId ?? "gemini-2.5-flash"),
+    getProviderName: () => String(result.providerName ?? "Gemini 2.5 Flash Vision"),
+    getProviderVersion: () => String(result.providerVersion ?? "gemini-2.5-flash")
+  };
+}
+
+function qualityGradeFromScore(score) {
+  const value = Number(score ?? 0);
+  if (value >= 90) return "A";
+  if (value >= 80) return "B";
+  if (value >= 70) return "C";
+  if (value >= 60) return "D";
+  return "E";
+}
+
 function withOcrTimeout(promise, timeoutMs, providerName) {
   return new Promise((resolve, reject) => {
     const timerId = window.setTimeout(() => {
@@ -3311,14 +3566,6 @@ function shouldFallbackToSecondaryResult(result) {
   if (Number(result.meatosScore ?? 0) < 92) return true;
   if (result.validation?.calculationOk === false) return true;
   return Boolean(result.recaptureRequired);
-}
-
-function shouldFallbackToPaidProvider(result) {
-  if (!result) return true;
-  if (String(result.status ?? "").toUpperCase() === "OCR_FAILED") return true;
-  if (!Array.isArray(result.lineItems) || result.lineItems.length === 0) return true;
-  if (result.validation?.calculationOk === false) return true;
-  return Number(result.meatosScore ?? 0) < 92;
 }
 
 function shouldFallbackToMock(result) {

@@ -18,6 +18,22 @@ export function createCloudOcrProvider(providerId, config = {}) {
       ...config
     });
   }
+  if (id === "gemini-2.5-flash" || id === "gemini-vision" || id === "gemini") {
+    return new ServerOcrProvider({
+      providerId: "gemini-2.5-flash",
+      providerName: "Gemini 2.5 Flash Vision",
+      normalizer: normalizeMeatosVisionResponse,
+      ...config
+    });
+  }
+  if (id === "gpt-4.1" || id === "openai-vision" || id === "gpt") {
+    return new ServerOcrProvider({
+      providerId: "gpt-4.1",
+      providerName: "OpenAI GPT-4.1 Vision",
+      normalizer: normalizeMeatosVisionResponse,
+      ...config
+    });
+  }
   throw new Error(`Unsupported cloud OCR provider: ${providerId}`);
 }
 
@@ -34,7 +50,9 @@ class ServerOcrProvider {
     if (!this.functionUrl) return healthResult(this, false, 0, "SERVER_FUNCTION_URL_MISSING");
     const startedAt = performance.now();
     try {
-      const response = await fetch(this.functionUrl, { method: "GET", signal: AbortSignal.timeout(this.timeoutMs) });
+      const healthUrl = new URL(this.functionUrl, globalThis.location?.href ?? "http://localhost");
+      healthUrl.searchParams.set("providerId", this.providerId);
+      const response = await fetch(healthUrl, { method: "GET", signal: AbortSignal.timeout(this.timeoutMs) });
       return healthResult(this, response.ok, performance.now() - startedAt, response.ok ? "READY" : `HTTP_${response.status}`);
     } catch (error) {
       return healthResult(this, false, performance.now() - startedAt, error?.name === "TimeoutError" ? "TIMEOUT" : "NETWORK_ERROR");
@@ -54,13 +72,47 @@ class ServerOcrProvider {
         imageDataUrl: input.imageDataUrl ?? "",
         storagePath: input.storagePath ?? "",
         documentId: input.documentId ?? "",
-        tenantId: input.tenantId ?? ""
+        tenantId: input.tenantId ?? "",
+        supplierName: input.supplierName ?? "",
+        localOcrText: input.localOcrText ?? input.rawText ?? "",
+        unresolvedFields: Array.isArray(input.unresolvedFields) ? input.unresolvedFields : []
       })
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.message ?? `${this.providerName} HTTP ${response.status}`);
     return this.normalizer(payload, { processingMs: Math.round(performance.now() - startedAt) });
   }
+}
+
+export function normalizeMeatosVisionResponse(payload = {}, runtime = {}) {
+  const result = payload.result ?? payload;
+  const words = (Array.isArray(result.words) ? result.words : []).map((word) => normalizeWord(
+    word.text,
+    word.confidence,
+    word.bounds?.vertices ?? word.bounds ?? word.boundingBox
+  ));
+  const providerId = String(result.providerId ?? payload.providerId ?? "vision-llm");
+  const providerName = String(result.providerName ?? payload.providerName ?? providerId);
+  const normalized = buildNormalizedResult({
+    providerId,
+    providerName,
+    providerVersion: String(result.providerVersion ?? payload.providerVersion ?? providerId),
+    rawText: String(result.rawText ?? ""),
+    words,
+    elements: Array.isArray(result.elements) ? result.elements : [],
+    tables: Array.isArray(result.tables) ? result.tables : [],
+    processingMs: runtime.processingMs ?? result.processingMs ?? payload.processingMs ?? 0,
+    rawJson: payload
+  });
+  return {
+    ...normalized,
+    providerConfidence: Number(result.providerConfidence ?? normalized.providerConfidence ?? 0),
+    documentFields: result.documentFields ?? {},
+    lineItems: Array.isArray(result.lineItems) ? result.lineItems : [],
+    evidence: result.evidence ?? {},
+    usage: result.usage ?? payload.usage ?? {},
+    reviewRequired: result.reviewRequired !== false
+  };
 }
 
 export function normalizeGoogleVisionResponse(payload = {}, runtime = {}) {

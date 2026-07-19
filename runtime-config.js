@@ -2,6 +2,7 @@ window.__MEATOS_SUPABASE__ = window.__MEATOS_SUPABASE__ || {
   url: "https://pkrsiqjzllyiafwpskll.supabase.co",
   anonKey: "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh",
   schema: "public",
+  visionFunctionUrl: "https://pkrsiqjzllyiafwpskll.functions.supabase.co/analyze-invoice",
   paddleModelBaseUrl: "/ocr-models/paddle"
 };
 

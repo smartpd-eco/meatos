@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "patterns": [
+    {
+      "id": "general_tax_invoice",
+      "features": ["supplier_and_buyer_header", "item_spec_quantity_price", "supply_tax_total", "signature"]
+    },
+    {
+      "id": "traceability_ledger",
+      "features": ["transaction_date", "meat_type", "weight", "origin", "part", "grade", "slaughterhouse", "trace_no", "supplier"]
+    },
+    {
+      "id": "meat_trace_ledger",
+      "features": ["dense_rows", "wrapped_trace_number", "optional_grade", "domestic_imported_origin"]
+    },
+    {
+      "id": "preprinted_carbonless",
+      "features": ["red_or_blue_grid", "dot_matrix_text", "faint_lines", "duplicate_copy"]
+    },
+    {
+      "id": "supplier_copy_form",
+      "features": ["supplier_copy_label", "fixed_blank_rows", "subtotal_footer", "receiver_signature"]
+    },
+    {
+      "id": "dual_copy_confirmation",
+      "features": ["two_forms_on_page", "supplier_copy", "recipient_copy", "small_font"]
+    },
+    {
+      "id": "imported_meat_declaration",
+      "features": ["country_of_origin", "bl_number", "net_weight", "cold_chain_state", "inspection_fields"]
+    },
+    {
+      "id": "good_chuksan_erp_print",
+      "features": ["blue_grid", "receivable_sidebar", "trace_number_under_product", "box_and_weight", "tax_exempt_total"]
+    }
+  ]
+}

@@ -73,7 +73,8 @@ function loadRuntimeConfig() {
     tesseractCorePath: env.TESSERACT_CORE_PATH || "/node_modules/tesseract.js-core",
     tesseractLangPath: env.TESSERACT_LANG_PATH || "/ocr-models/tesseract/lang-data",
     tesseractLanguages: (env.TESSERACT_LANGS || "kor,eng").split(",").map((value) => value.trim()).filter(Boolean),
-    ocrFunctionUrl: env.CLOVA_OCR_FUNCTION_URL || buildEdgeFunctionUrl(env.NEXT_PUBLIC_SUPABASE_URL || "https://pkrsiqjzllyiafwpskll.supabase.co", "analyze-ocr")
+    ocrFunctionUrl: env.CLOVA_OCR_FUNCTION_URL || buildEdgeFunctionUrl(env.NEXT_PUBLIC_SUPABASE_URL || "https://pkrsiqjzllyiafwpskll.supabase.co", "analyze-ocr"),
+    visionFunctionUrl: env.VISION_INVOICE_FUNCTION_URL || buildEdgeFunctionUrl(env.NEXT_PUBLIC_SUPABASE_URL || "https://pkrsiqjzllyiafwpskll.supabase.co", "analyze-invoice")
   };
 }
 

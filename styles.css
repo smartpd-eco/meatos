@@ -1604,6 +1604,135 @@ body[data-view="dashboard"] .content-grid {
     background: #fffaeb;
   }
 
+  .mobile-ocr-test-report {
+    margin: 12px 0;
+    overflow: hidden;
+    border: 1px solid #d0d5dd;
+    border-radius: 14px;
+    background: #ffffff;
+  }
+
+  .mobile-ocr-test-report > summary {
+    display: flex;
+    min-height: 54px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 15px;
+    color: #0f172a;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .mobile-ocr-test-report > summary b,
+  .mobile-ocr-audit-group header b {
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
+
+  .mobile-ocr-test-report .is-pass {
+    color: #15803d;
+  }
+
+  .mobile-ocr-test-report b.is-pass {
+    background: #ecfdf3;
+  }
+
+  .mobile-ocr-test-report .has-failure {
+    color: #b54708;
+  }
+
+  .mobile-ocr-test-report b.has-failure {
+    background: #fffaeb;
+  }
+
+  .mobile-ocr-test-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    border-top: 1px solid #e4e7eb;
+    background: #e4e7eb;
+  }
+
+  .mobile-ocr-test-meta > div {
+    display: grid;
+    min-height: 72px;
+    align-content: center;
+    gap: 5px;
+    padding: 11px 13px;
+    background: #f8fafc;
+  }
+
+  .mobile-ocr-test-meta span,
+  .mobile-ocr-audit-row span {
+    color: #667085;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .mobile-ocr-test-meta strong {
+    overflow-wrap: anywhere;
+    color: #0f172a;
+    font-size: 15px;
+  }
+
+  .mobile-ocr-audit-list {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+    border-top: 1px solid #e4e7eb;
+  }
+
+  .mobile-ocr-audit-group {
+    overflow: hidden;
+    border: 1px solid #e4e7eb;
+    border-radius: 12px;
+  }
+
+  .mobile-ocr-audit-group > header {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #f8fafc;
+  }
+
+  .mobile-ocr-audit-group > header strong {
+    overflow-wrap: anywhere;
+    color: #0f172a;
+    font-size: 14px;
+  }
+
+  .mobile-ocr-audit-row {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    gap: 4px 8px;
+    align-items: center;
+    padding: 10px 12px;
+    border-top: 1px solid #eaecf0;
+  }
+
+  .mobile-ocr-audit-row strong {
+    overflow-wrap: anywhere;
+    color: #0f172a;
+    font-size: 14px;
+  }
+
+  .mobile-ocr-audit-row > b {
+    font-size: 12px;
+  }
+
+  .mobile-ocr-audit-row small {
+    grid-column: 2 / -1;
+    color: #667085;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
   .mobile-ocr-status {
     display: flex;
     align-items: center;

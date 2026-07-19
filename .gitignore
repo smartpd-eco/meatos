@@ -21,6 +21,9 @@ ai/ocr-training/generated/
 ai/ocr-training/corpus-1000/
 test-assets/
 ocr-models/easyocr/
+.venv-ppstructure/
+ocr-models/paddlex-cache/
+artifacts/ocr/ppstructure-*/
 /eng.traineddata
 /kor.traineddata
 

@@ -20,6 +20,8 @@
     "ocr:benchmark:tesseract": "node scripts/benchmark-tesseract-numeric.mjs",
     "ocr:benchmark:report": "node scripts/create-ocr-benchmark-report.mjs",
     "ocr:cloud:test": "node scripts/test-cloud-ocr-challengers.mjs",
+    "ocr:vision:routing:test": "node scripts/test-vision-routing-policy.mjs",
+    "ocr:vision:service:test": "node scripts/test-vision-escalation-service.mjs",
     "ocr:evidence:test": "node scripts/test-ocr-evidence-validator.mjs",
     "ocr:tax:test": "node scripts/test-meat-tax-and-completeness.mjs",
     "ocr:table:test": "node scripts/test-ocr-table-header-coverage.mjs",

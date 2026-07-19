@@ -23,6 +23,7 @@ const runtimeRequiredFiles = [
   "src/data/ocr-provider-adapter.js",
   "src/data/ocr-cloud-provider-adapter.js",
   "src/data/ocr-provider-routing-policy.js",
+  "src/data/ocr-vision-escalation-service.js",
   "src/data/ocr-structural-learning.js",
   "src/data/meatos-standard-invoice.js",
   "src/data/ocr-evidence-validator.js",
@@ -75,6 +76,7 @@ const developmentRequiredFiles = [
   "supabase/migrations/202607120020_tenant_rls_draft.sql",
   "supabase/migrations/202607120021_ocr_failure_learning.sql",
   "supabase/functions/analyze-ocr/index.ts",
+  "supabase/functions/analyze-invoice/index.ts",
   "docs/07_PRD/SPRINT_001_PRODUCT_ENGINE_PRD.md"
 ];
 
@@ -128,6 +130,8 @@ for (const check of [
   "세액 (면세 0)",
   "formatDuration",
   "Tenant Context"
+  ,"runVisionEscalation"
+  ,"gemini-2.5-flash"
 ]) {
   if (!js.includes(check)) {
     throw new Error(`app.js missing ${check}`);
@@ -153,6 +157,9 @@ if (/ocrText:\s*["'`]좋은축산/.test(emptyCaptureState)) {
 
 if (!isDeployBuild) {
   const edgeFunction = await readFile("supabase/functions/analyze-ocr/index.ts", "utf8");
+  if (!edgeFunction.includes('return new Response(null, {')) {
+    throw new Error("analyze-ocr OPTIONS response must use a null body for HTTP 204");
+  }
   for (const check of [
     "CLOVA_OCR_API_URL",
     "CLOVA_OCR_SECRET_KEY",

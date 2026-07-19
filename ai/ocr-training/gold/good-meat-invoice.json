@@ -1,0 +1,22 @@
+{
+  "documentId": "GOLD-GOOD-CHUKSAN-001",
+  "sourceImage": "test-assets/good-meat-invoice.jpg",
+  "annotationStatus": "PARTIAL_VISUAL_GROUND_TRUTH",
+  "supplierName": "좋은축산유통",
+  "invoiceDate": "2026-07-06",
+  "documentTotal": 3105880,
+  "taxType": "EXEMPT",
+  "visibleLineItems": [
+    { "rowNo": 1, "productName": "냉장 등심(장터)", "origin": "국내산", "boxes": 3, "quantity": 43.60, "unitPrice": 7500, "amount": 327000, "traceNo": "L12607026054002", "slaughterhouse": "대전충남양돈농협" },
+    { "rowNo": 2, "productName": "냉장 사태(장터)", "origin": "국내산", "boxes": 1, "quantity": 12.90, "unitPrice": 7000, "amount": 90300, "traceNo": "L12607026054001", "slaughterhouse": "대전충남양돈농협" },
+    { "rowNo": 3, "productName": "냉장 사태(장터)", "origin": "국내산", "boxes": 1, "quantity": 12.40, "unitPrice": 7000, "amount": 86800, "traceNo": "L12607026054002", "slaughterhouse": "대전충남양돈농협" },
+    { "rowNo": 4, "productName": "냉동 등뼈", "origin": "국내산", "boxes": 5, "quantity": 82.10, "unitPrice": 1200, "amount": 98520, "traceNo": "L12504116807001", "slaughterhouse": "(주)장원식품" },
+    { "rowNo": 5, "productName": "냉동 미후지(황금)", "origin": "국내산", "boxes": 19, "quantity": 322.70, "unitPrice": 5000, "amount": 1613500, "traceNo": "140028101672", "slaughterhouse": "중앙산업" },
+    { "rowNo": 6, "productName": "냉동 미후지(황금)", "origin": "국내산", "boxes": 1, "quantity": 18.20, "unitPrice": 5000, "amount": 91000, "traceNo": "140308602929", "slaughterhouse": "(주)홍주미트" }
+  ],
+  "validation": {
+    "visibleRowsArePartial": true,
+    "doNotCompareVisibleRowSumToDocumentTotal": true,
+    "numericFieldsManuallyReviewed": true
+  }
+}

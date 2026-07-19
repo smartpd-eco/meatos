@@ -7,7 +7,10 @@ export const SUPABASE_PUBLIC_CONFIG = {
   schema: globalThis.__MEATOS_SUPABASE__?.schema ?? "public",
   ocrFunctionUrl:
     globalThis.__MEATOS_SUPABASE__?.ocrFunctionUrl
-    ?? buildEdgeFunctionUrl(globalThis.__MEATOS_SUPABASE__?.url ?? DEFAULT_SUPABASE_URL, "analyze-ocr")
+    ?? buildEdgeFunctionUrl(globalThis.__MEATOS_SUPABASE__?.url ?? DEFAULT_SUPABASE_URL, "analyze-ocr"),
+  visionFunctionUrl:
+    globalThis.__MEATOS_SUPABASE__?.visionFunctionUrl
+    ?? buildEdgeFunctionUrl(globalThis.__MEATOS_SUPABASE__?.url ?? DEFAULT_SUPABASE_URL, "analyze-invoice")
 };
 
 function buildEdgeFunctionUrl(supabaseUrl, functionName) {
