@@ -1,5 +1,5 @@
-const CACHE_NAME = "meatos-ai-scm-v10";
-const RUNTIME_CACHE_NAME = "meatos-ai-scm-runtime-v10";
+const CACHE_NAME = "meatos-ai-scm-v11";
+const RUNTIME_CACHE_NAME = "meatos-ai-scm-runtime-v11";
 const ASSETS = [
   "./",
   "./index.html",
@@ -70,15 +70,23 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Network-first: always try the live deploy, fall back to cache only when
+  // offline. Prevents stale app.js/HTML from being served after a new deploy
+  // (the old cache-first strategy froze the app on outdated code).
   event.respondWith(
-    caches.match(event.request).then(async (cached) => {
-      if (cached) return cached;
-      const response = await fetch(event.request);
-      if (response.ok) {
-        const runtimeCache = await caches.open(RUNTIME_CACHE_NAME);
-        await runtimeCache.put(event.request, response.clone());
+    (async () => {
+      try {
+        const response = await fetch(event.request);
+        if (response && response.ok) {
+          const runtimeCache = await caches.open(RUNTIME_CACHE_NAME);
+          runtimeCache.put(event.request, response.clone());
+        }
+        return response;
+      } catch (error) {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        throw error;
       }
-      return response;
-    })
+    })()
   );
 });
