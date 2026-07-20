@@ -184,7 +184,10 @@ async function callGemini(payload: AnalyzeInvoiceRequest, image: ImagePayload) {
     headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: buildPrompt(payload) }, { inlineData: { mimeType: image.mimeType, data: image.base64 } }] }],
-      generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: GEMINI_INVOICE_SCHEMA }
+      // thinkingBudget:0 disables the model's internal reasoning pass, which
+      // otherwise makes flash vision latency swing wildly (9-30s+) and blow the
+      // client timeout. Structured invoice extraction does not need it.
+      generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: GEMINI_INVOICE_SCHEMA, thinkingConfig: { thinkingBudget: 0 } }
     })
   });
   const body = await response.json();

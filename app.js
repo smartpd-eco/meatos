@@ -3209,7 +3209,7 @@ async function runRealWorldOcrPipeline() {
   }
 
   if (!providerResult) {
-    const failureMessage = primaryAttempt.error?.message || "OCR provider failed";
+    const failureMessage = primaryAttempt.error?.message || fallbackReason || "OCR provider failed";
     recordOcrRecognitionFailure({
       tenantId: "SMARTPD_DEV",
       ocrDocumentId: created.documentId,
