@@ -5268,6 +5268,10 @@ function formatMoney(value) {
   return Number(value ?? 0).toLocaleString("ko-KR");
 }
 
+function formatCurrency(value) {
+  return `${formatMoney(value)}원`;
+}
+
 function formatDuration(value) {
   const milliseconds = Number(value ?? 0);
   if (!Number.isFinite(milliseconds) || milliseconds <= 0) return "-";
