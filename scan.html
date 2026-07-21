@@ -4,167 +4,163 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Cache-Control" content="no-store" />
-<title>거래명세서 스캔 (단순)</title>
+<title>거래명세서 스캔</title>
 <style>
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, sans-serif; background: #f3f4f6; color: #111827; padding: 16px; }
-  h1 { font-size: 20px; margin: 4px 0 12px; }
-  .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-  button, label.filebtn { display: block; width: 100%; padding: 18px; font-size: 18px; font-weight: 700;
+  body { margin: 0; font-family: system-ui, sans-serif; background: #f3f4f6; color: #111827; padding: 14px; }
+  h1 { font-size: 19px; margin: 2px 0 12px; }
+  .card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  label.filebtn { display: block; width: 100%; padding: 18px; font-size: 18px; font-weight: 700;
     border: none; border-radius: 12px; background: #16a34a; color: #fff; text-align: center; cursor: pointer; }
   input[type=file] { display: none; }
-  .steps { list-style: none; padding: 0; margin: 0; }
-  .steps li { padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; background: #f9fafb; font-size: 15px; }
-  .steps li b { margin-right: 8px; }
-  .wait { color: #b45309; } .ok { color: #15803d; } .err { color: #b91c1c; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { border-bottom: 1px solid #e5e7eb; padding: 8px 6px; text-align: left; }
-  td.num, th.num { text-align: right; }
-  .total { font-size: 18px; font-weight: 800; margin-top: 10px; }
+  .steps { list-style: none; padding: 0; margin: 0; display:flex; flex-wrap:wrap; gap:6px; }
+  .steps li { padding: 6px 10px; border-radius: 999px; background: #f1f5f9; font-size: 12px; color:#475569; }
+  .steps li.wait { background:#fef3c7; color:#92400e; } .steps li.ok { background:#dcfce7; color:#166534; } .steps li.err { background:#fee2e2; color:#991b1b; }
   #preview { max-width: 100%; border-radius: 10px; margin-top: 10px; display: none; }
   .muted { color: #6b7280; font-size: 13px; }
-  pre.raw { white-space: pre-wrap; font-size: 12px; background:#111827; color:#e5e7eb; padding:10px; border-radius:8px; overflow:auto; }
+
+  /* 거래명세서 양식 */
+  .invoice { border: 2px solid #b91c1c; border-radius: 8px; overflow: hidden; }
+  .invoice-title { background:#b91c1c; color:#fff; text-align:center; font-size:18px; font-weight:800; padding:8px; letter-spacing:4px; }
+  .invoice-head { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #e5e7eb; }
+  .invoice-head > div { padding:8px 10px; font-size:13px; }
+  .invoice-head > div + div { border-left:1px solid #f1f5f9; }
+  .invoice-head b { display:block; color:#6b7280; font-weight:600; font-size:11px; margin-bottom:2px; }
+  .invoice-head .val { font-size:15px; font-weight:700; }
+  .tbl-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; min-width:640px; }
+  th, td { border:1px solid #e5e7eb; padding:7px 6px; text-align:center; white-space:nowrap; }
+  th { background:#fef2f2; color:#7f1d1d; font-weight:700; }
+  td.name { text-align:left; white-space:normal; min-width:150px; }
+  td.num { text-align:right; }
+  tr.mismatch td { background:#fff7ed; }
+  tfoot td { font-weight:800; background:#f9fafb; }
+  .foot-note { font-size:12px; color:#92400e; padding:8px 4px 0; }
+  .badge-ok { color:#166534; } .badge-warn { color:#b45309; }
 </style>
 </head>
 <body>
-  <h1>거래명세서 스캔 · 단순 테스트</h1>
+  <h1>📄 거래명세서 스캔</h1>
 
   <div class="card">
     <label class="filebtn" for="file">📷 사진 찍기 / 파일 선택</label>
     <input id="file" type="file" accept="image/*" capture="environment" />
     <img id="preview" alt="미리보기" />
-    <p class="muted" id="hint">한 장을 선택하면 자동으로 서버 인식을 시작합니다.</p>
-  </div>
-
-  <div class="card">
-    <ol class="steps" id="steps">
-      <li id="s1"><b>①</b> 사진 선택 <span></span></li>
-      <li id="s2"><b>②</b> 이미지 준비(축소) <span></span></li>
-      <li id="s3"><b>③</b> 서버 인식(Gemini) <span></span></li>
-      <li id="s4"><b>④</b> 결과 표시 <span></span></li>
-    </ol>
+    <ul class="steps" id="steps" style="margin-top:12px">
+      <li id="s1">① 사진</li><li id="s2">② 준비</li><li id="s3">③ 인식</li><li id="s4">④ 표시</li>
+    </ul>
   </div>
 
   <div class="card" id="resultCard" style="display:none">
-    <div id="docFields" class="muted"></div>
-    <table id="tbl">
-      <thead><tr><th>품목</th><th class="num">수량</th><th class="num">단가</th><th class="num">공급가액</th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <div class="total" id="totalLine"></div>
-    <details style="margin-top:10px"><summary class="muted">원본 응답(JSON) 보기</summary><pre class="raw" id="raw"></pre></details>
+    <div class="invoice">
+      <div class="invoice-title">거 래 명 세 서</div>
+      <div class="invoice-head">
+        <div><b>공급자</b><span class="val" id="f-supplier">-</span></div>
+        <div><b>거래일자</b><span class="val" id="f-date">-</span></div>
+      </div>
+      <div class="tbl-wrap">
+        <table id="tbl">
+          <thead><tr>
+            <th>No</th><th>상품명 및 등급</th><th>원산지</th><th>단위</th>
+            <th>중량(kg)</th><th>단가</th><th>공급가액</th><th>이력번호</th>
+          </tr></thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr><td colspan="6">품목 공급가 합계</td><td class="num" id="f-linesum">-</td><td></td></tr>
+            <tr><td colspan="6">문서 표기 합계</td><td class="num" id="f-total">-</td><td></td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="foot-note" id="f-note"></div>
+    <details style="margin-top:10px"><summary class="muted">원본 응답(JSON)</summary><pre style="white-space:pre-wrap;font-size:11px" id="raw"></pre></details>
   </div>
 
 <script>
-// ---- 설정 (공개 값) ----
 const FUNCTION_URL = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/analyze-invoice";
 const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
-const MAX_DIM = 1600;
-const TIMEOUT_MS = 60000;
+const MAX_DIM = 1600, TIMEOUT_MS = 60000;
 
-// ---- 옛 서비스워커/캐시 제거 (이 페이지는 캐시 안 씀) ----
-(async () => {
-  try {
-    if (navigator.serviceWorker) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map((r) => r.unregister()));
-    }
-    if (window.caches) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
-    }
-  } catch (e) { /* ignore */ }
-})();
+(async () => { try {
+  if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
+  if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
+} catch(e){} })();
 
-const won = (v) => Number(v ?? 0).toLocaleString("ko-KR") + "원";
-function setStep(id, text, cls) {
-  const el = document.querySelector("#" + id + " span");
-  el.textContent = text ? " — " + text : "";
-  el.className = cls || "";
-}
+const won = (v) => v == null || v === "" ? "-" : Number(v).toLocaleString("ko-KR");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+function step(id, cls){ const el=document.getElementById(id); el.className = cls||""; }
 
 document.getElementById("file").addEventListener("change", async (ev) => {
   const file = ev.target.files && ev.target.files[0];
   if (!file) return;
-  ["s2","s3","s4"].forEach((s) => setStep(s, "", ""));
+  ["s2","s3","s4"].forEach(s=>step(s,""));
   document.getElementById("resultCard").style.display = "none";
-  setStep("s1", file.name + " (" + Math.round(file.size/1024) + "KB)", "ok");
+  step("s1","ok");
 
-  // 미리보기 + 축소
-  setStep("s2", "축소 중...", "wait");
+  step("s2","wait");
   let dataUrl;
-  try {
-    dataUrl = await downscale(file);
-    const img = document.getElementById("preview");
-    img.src = dataUrl; img.style.display = "block";
-    setStep("s2", "완료 (" + Math.round(dataUrl.length/1024) + "KB 전송)", "ok");
-  } catch (e) {
-    setStep("s2", "실패: " + e.message, "err"); return;
-  }
+  try { dataUrl = await downscale(file);
+    const img=document.getElementById("preview"); img.src=dataUrl; img.style.display="block"; step("s2","ok");
+  } catch(e){ step("s2","err"); alert("이미지 준비 실패: "+e.message); return; }
 
-  // 서버 인식
-  setStep("s3", "인식 중... (최대 60초)", "wait");
-  const t0 = performance.now();
-  const timer = setInterval(() => setStep("s3", "인식 중... " + Math.round((performance.now()-t0)/1000) + "초", "wait"), 1000);
+  step("s3","wait");
   try {
-    const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-    const res = await fetch(FUNCTION_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + ANON_KEY, "apikey": ANON_KEY },
-      signal: ctrl.signal,
-      body: JSON.stringify({ providerId: "gemini-2.5-flash", imageDataUrl: dataUrl, documentId: "scan", tenantId: "SMARTPD_DEV", supplierName: "", localOcrText: "", unresolvedFields: [] })
-    });
-    clearTimeout(to); clearInterval(timer);
-    const bodyText = await res.text();
-    let body; try { body = JSON.parse(bodyText); } catch { body = { raw: bodyText }; }
-    if (!res.ok || body.ok === false) {
-      setStep("s3", "서버 오류 " + res.status + ": " + (body.message || bodyText).slice(0,180), "err");
-      document.getElementById("raw").textContent = bodyText;
-      document.getElementById("resultCard").style.display = "block";
-      document.querySelector("#tbl tbody").innerHTML = "";
-      return;
-    }
-    setStep("s3", "완료 (" + Math.round((performance.now()-t0)/1000) + "초)", "ok");
-    render(body.result || body);
-  } catch (e) {
-    clearInterval(timer);
-    setStep("s3", (e.name === "AbortError" ? "시간 초과(60초)" : "실패: " + e.message), "err");
-  }
+    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), TIMEOUT_MS);
+    const res=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ANON_KEY,"apikey":ANON_KEY},signal:ctrl.signal,
+      body:JSON.stringify({providerId:"gemini-2.5-flash",imageDataUrl:dataUrl,documentId:"scan",tenantId:"SMARTPD_DEV",supplierName:"",localOcrText:"",unresolvedFields:[]})});
+    clearTimeout(to);
+    const t=await res.text(); let b; try{b=JSON.parse(t);}catch{b={raw:t};}
+    if(!res.ok || b.ok===false){ step("s3","err"); document.getElementById("raw").textContent=t; document.getElementById("resultCard").style.display="block"; alert("서버 오류 "+res.status+": "+(b.message||t).slice(0,150)); return; }
+    step("s3","ok"); render(b.result||b);
+  } catch(e){ step("s3","err"); alert(e.name==="AbortError"?"시간 초과":"실패: "+e.message); }
 });
 
-async function downscale(file) {
-  const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_DIM / Math.max(bmp.width, bmp.height));
-  const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
-  const c = document.createElement("canvas"); c.width = w; c.height = h;
-  c.getContext("2d").drawImage(bmp, 0, 0, w, h);
-  return c.toDataURL("image/jpeg", 0.85);
+async function downscale(file){
+  const bmp=await createImageBitmap(file);
+  const scale=Math.min(1, MAX_DIM/Math.max(bmp.width,bmp.height));
+  const w=Math.round(bmp.width*scale), h=Math.round(bmp.height*scale);
+  const c=document.createElement("canvas"); c.width=w; c.height=h;
+  c.getContext("2d").drawImage(bmp,0,0,w,h);
+  return c.toDataURL("image/jpeg",0.85);
 }
 
-function render(result) {
-  const items = Array.isArray(result.lineItems) ? result.lineItems : [];
-  const f = result.documentFields || {};
-  const tbody = document.querySelector("#tbl tbody");
-  tbody.innerHTML = "";
-  items.forEach((it) => {
-    const tr = document.createElement("tr");
-    const name = [it.rawProductName, it.origin].filter(Boolean).join(" · ");
-    tr.innerHTML = "<td>" + esc(name || "-") + "</td>"
-      + "<td class='num'>" + esc((it.quantity ?? "") + " " + (it.unit ?? "")) + "</td>"
-      + "<td class='num'>" + (it.unitPrice != null ? won(it.unitPrice) : "-") + "</td>"
-      + "<td class='num'>" + (it.supplyAmount != null ? won(it.supplyAmount) : "-") + "</td>";
+function render(result){
+  const items = Array.isArray(result.lineItems)?result.lineItems:[];
+  const f = result.documentFields||{};
+  document.getElementById("f-supplier").textContent = f.supplierName || "-";
+  document.getElementById("f-date").textContent = f.invoiceDate || "-";
+  const tbody = document.querySelector("#tbl tbody"); tbody.innerHTML="";
+  let lineSum = 0;
+  items.forEach((it,i) => {
+    const supply = Number(it.supplyAmount)||0; lineSum += supply;
+    const calc = (Number(it.quantity)||0)*(Number(it.unitPrice)||0);
+    const mism = supply>0 && Math.abs(calc-supply)>1;
+    const nameGrade = [it.rawProductName, it.grade].filter(Boolean).join(" ");
+    const tr=document.createElement("tr"); if(mism) tr.className="mismatch";
+    tr.innerHTML =
+      "<td>"+(i+1)+"</td>"+
+      "<td class='name'>"+esc(nameGrade||"-")+"</td>"+
+      "<td>"+esc(it.origin||"-")+"</td>"+
+      "<td>"+esc(it.unit||"-")+"</td>"+
+      "<td class='num'>"+(it.quantity!=null?esc(it.quantity):"-")+"</td>"+
+      "<td class='num'>"+won(it.unitPrice)+"</td>"+
+      "<td class='num'>"+won(it.supplyAmount)+(mism?" ⚠":"")+"</td>"+
+      "<td>"+esc(it.traceOrImportNo||"-")+"</td>";
     tbody.appendChild(tr);
   });
-  document.getElementById("docFields").textContent =
-    "공급자: " + (f.supplierName || "-") + " | 일자: " + (f.invoiceDate || "-");
-  document.getElementById("totalLine").textContent = "문서 합계: " + won(f.totalAmount);
+  const total = Number(f.totalAmount)||0;
+  document.getElementById("f-linesum").textContent = won(lineSum);
+  document.getElementById("f-total").textContent = won(total);
+  const note = document.getElementById("f-note");
+  if (total>0 && Math.abs(total-lineSum)>1) {
+    note.innerHTML = "<span class='badge-warn'>참고:</span> 문서 표기 합계("+won(total)+")와 품목 합계("+won(lineSum)+")가 다릅니다. 여러 페이지·전잔액 포함 시 정상입니다.";
+  } else if (total>0) {
+    note.innerHTML = "<span class='badge-ok'>✓</span> 품목 합계와 문서 합계가 일치합니다.";
+  } else { note.textContent=""; }
   document.getElementById("raw").textContent = JSON.stringify(result, null, 2);
   document.getElementById("resultCard").style.display = "block";
-  setStep("s4", items.length + "개 품목 표시", items.length ? "ok" : "err");
+  step("s4","ok");
 }
-
-function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[m])); }
 </script>
 </body>
 </html>
