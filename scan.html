@@ -66,8 +66,7 @@
           </tr></thead>
           <tbody></tbody>
           <tfoot>
-            <tr><td colspan="6">품목 공급가 합계</td><td class="num" id="f-linesum">-</td><td></td></tr>
-            <tr><td colspan="6">문서 표기 합계</td><td class="num" id="f-total">-</td><td></td></tr>
+            <tr><td colspan="6">합계금액</td><td class="num" id="f-total">-</td><td></td></tr>
           </tfoot>
         </table>
       </div>
@@ -130,9 +129,8 @@ function render(result){
   document.getElementById("f-supplier").textContent = f.supplierName || "-";
   document.getElementById("f-date").textContent = f.invoiceDate || "-";
   const tbody = document.querySelector("#tbl tbody"); tbody.innerHTML="";
-  let lineSum = 0;
   items.forEach((it,i) => {
-    const supply = Number(it.supplyAmount)||0; lineSum += supply;
+    const supply = Number(it.supplyAmount)||0;
     const calc = (Number(it.quantity)||0)*(Number(it.unitPrice)||0);
     const mism = supply>0 && Math.abs(calc-supply)>1;
     const nameGrade = [it.rawProductName, it.grade].filter(Boolean).join(" ");
@@ -149,14 +147,8 @@ function render(result){
     tbody.appendChild(tr);
   });
   const total = Number(f.totalAmount)||0;
-  document.getElementById("f-linesum").textContent = won(lineSum);
   document.getElementById("f-total").textContent = won(total);
-  const note = document.getElementById("f-note");
-  if (total>0 && Math.abs(total-lineSum)>1) {
-    note.innerHTML = "<span class='badge-warn'>참고:</span> 문서 표기 합계("+won(total)+")와 품목 합계("+won(lineSum)+")가 다릅니다. 여러 페이지·전잔액 포함 시 정상입니다.";
-  } else if (total>0) {
-    note.innerHTML = "<span class='badge-ok'>✓</span> 품목 합계와 문서 합계가 일치합니다.";
-  } else { note.textContent=""; }
+  document.getElementById("f-note").textContent = "";
   document.getElementById("raw").textContent = JSON.stringify(result, null, 2);
   document.getElementById("resultCard").style.display = "block";
   step("s4","ok");
