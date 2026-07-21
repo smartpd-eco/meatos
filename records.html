@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>저장된 거래명세서</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  h1 { font-size:19px; margin:2px 0 12px; }
+  .bar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .bar a { flex:1; text-align:center; padding:12px; border-radius:10px; background:#16a34a; color:#fff; text-decoration:none; font-weight:700; }
+  .bar a.alt { background:#e5e7eb; color:#111827; }
+  input#q { width:100%; padding:12px; border:1px solid #d1d5db; border-radius:10px; font-size:15px; margin-bottom:12px; }
+  .card { background:#fff; border-radius:12px; padding:14px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); cursor:pointer; }
+  .row1 { display:flex; justify-content:space-between; align-items:baseline; }
+  .sup { font-size:16px; font-weight:800; }
+  .amt { font-size:16px; font-weight:800; color:#166534; }
+  .meta { color:#6b7280; font-size:13px; margin-top:4px; }
+  .muted { color:#6b7280; font-size:14px; }
+  /* 명세서 상세 */
+  .invoice { border:2px solid #b91c1c; border-radius:8px; overflow:hidden; margin-top:10px; }
+  .invoice-title { background:#b91c1c; color:#fff; text-align:center; font-size:16px; font-weight:800; padding:6px; letter-spacing:3px; }
+  .ihead { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #e5e7eb; }
+  .ihead > div { padding:8px 10px; font-size:13px; } .ihead > div + div { border-left:1px solid #f1f5f9; }
+  .ihead b { display:block; color:#6b7280; font-weight:600; font-size:11px; }
+  .twrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; min-width:620px; }
+  th,td { border:1px solid #e5e7eb; padding:6px; text-align:center; white-space:nowrap; }
+  th { background:#fef2f2; color:#7f1d1d; }
+  td.name { text-align:left; white-space:normal; min-width:140px; } td.num { text-align:right; }
+  tfoot td { font-weight:800; background:#f9fafb; }
+  .back { margin:8px 0; display:inline-block; color:#2563eb; cursor:pointer; }
+</style>
+</head>
+<body>
+  <h1>📋 저장된 거래명세서</h1>
+  <div class="bar">
+    <a href="scan.html">📷 새로 스캔</a>
+    <a href="/" class="alt">🏠 홈</a>
+  </div>
+
+  <div id="listView">
+    <input id="q" type="text" placeholder="공급자 또는 날짜로 검색 (예: 좋은축산 / 2026-07)" />
+    <div id="list"><p class="muted">불러오는 중...</p></div>
+  </div>
+
+  <div id="detailView" style="display:none">
+    <span class="back" id="back">‹ 목록으로</span>
+    <div id="detail"></div>
+  </div>
+
+<script>
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const TENANT_ID = "881f6cc1-b552-468c-b9b4-152edb464e61"; // SMARTPD_DEV
+const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
+
+(async () => { try {
+  if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
+  if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
+} catch(e){} })();
+
+const won = (v) => v==null||v===""?"-":Number(v).toLocaleString("ko-KR");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+
+let ALL = [];
+
+async function load() {
+  try {
+    const url = REST + "/ocr_document?tenant_id=eq." + TENANT_ID +
+      "&select=id,document_code,invoice_date,total_amount,document_status,parsed_json,created_at&order=created_at.desc&limit=200";
+    const r = await fetch(url, { headers: H });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    ALL = await r.json();
+    renderList(ALL);
+  } catch (e) {
+    document.getElementById("list").innerHTML = "<p class='muted'>불러오기 실패: " + esc(e.message) + "</p>";
+  }
+}
+
+function supplierOf(d){ return (d.parsed_json && d.parsed_json.documentFields && d.parsed_json.documentFields.supplierName) || "-"; }
+function itemsOf(d){ return (d.parsed_json && Array.isArray(d.parsed_json.lineItems)) ? d.parsed_json.lineItems : []; }
+function dateOf(d){ return d.invoice_date || (d.created_at ? d.created_at.slice(0,10) : "-"); }
+
+function renderList(rows) {
+  const el = document.getElementById("list");
+  if (!rows.length) { el.innerHTML = "<p class='muted'>저장된 명세서가 없습니다.</p>"; return; }
+  el.innerHTML = rows.map((d) =>
+    "<div class='card' data-id='" + d.id + "'>" +
+      "<div class='row1'><span class='sup'>" + esc(supplierOf(d)) + "</span><span class='amt'>" + won(d.total_amount) + "원</span></div>" +
+      "<div class='meta'>" + esc(dateOf(d)) + " · 품목 " + itemsOf(d).length + "건 · " + esc(d.document_code) + "</div>" +
+    "</div>"
+  ).join("");
+  el.querySelectorAll(".card").forEach((c) => c.addEventListener("click", () => showDetail(c.dataset.id)));
+}
+
+function showDetail(id) {
+  const d = ALL.find((x) => x.id === id); if (!d) return;
+  const items = itemsOf(d);
+  const rowsHtml = items.map((it,i) =>
+    "<tr><td>"+(i+1)+"</td>"+
+    "<td class='name'>"+esc([it.rawProductName, it.grade].filter(Boolean).join(" ")||"-")+"</td>"+
+    "<td>"+esc(it.origin||"-")+"</td>"+
+    "<td>"+esc(it.unit||"-")+"</td>"+
+    "<td class='num'>"+(it.quantity!=null?esc(it.quantity):"-")+"</td>"+
+    "<td class='num'>"+won(it.unitPrice)+"</td>"+
+    "<td class='num'>"+won(it.supplyAmount)+"</td>"+
+    "<td>"+esc(it.traceOrImportNo||"-")+"</td></tr>"
+  ).join("");
+  document.getElementById("detail").innerHTML =
+    "<div class='invoice'><div class='invoice-title'>거 래 명 세 서</div>" +
+    "<div class='ihead'><div><b>공급자</b>"+esc(supplierOf(d))+"</div><div><b>거래일자</b>"+esc(dateOf(d))+"</div></div>" +
+    "<div class='twrap'><table><thead><tr><th>No</th><th>상품명 및 등급</th><th>원산지</th><th>단위</th><th>중량(kg)</th><th>단가</th><th>공급가액</th><th>이력번호</th></tr></thead>" +
+    "<tbody>"+rowsHtml+"</tbody>" +
+    "<tfoot><tr><td colspan='6'>합계금액</td><td class='num'>"+won(d.total_amount)+"</td><td></td></tr></tfoot></table></div></div>" +
+    "<p class='muted'>문서번호 "+esc(d.document_code)+" · 상태 "+esc(d.document_status)+"</p>";
+  document.getElementById("listView").style.display = "none";
+  document.getElementById("detailView").style.display = "block";
+  window.scrollTo(0,0);
+}
+
+document.getElementById("back").addEventListener("click", () => {
+  document.getElementById("detailView").style.display = "none";
+  document.getElementById("listView").style.display = "block";
+});
+
+document.getElementById("q").addEventListener("input", (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  if (!q) { renderList(ALL); return; }
+  renderList(ALL.filter((d) => (supplierOf(d)+" "+dateOf(d)+" "+d.document_code).toLowerCase().includes(q)));
+});
+
+load();
+</script>
+</body>
+</html>
