@@ -125,6 +125,7 @@ Deno.serve(async (request: Request) => {
       providerId,
       providerName: providerName(providerId),
       providerVersion: providerModel(providerId),
+      modelUsed: (providerResult as { model?: string }).model ?? providerModel(providerId),
       processingMs: Date.now() - startedAt,
       result: {
         ...providerResult.result,
@@ -161,11 +162,14 @@ async function resolveGeminiModel(apiKey: string): Promise<string> {
       .filter((m) => (m.supportedGenerationMethods ?? []).includes("generateContent"))
       .map((m) => String(m.name ?? "").replace(/^models\//, ""))
       .filter((name) => /flash/i.test(name)
-        && !/(vision|thinking|image|tts|audio|live|embedding|exp|lite)/i.test(name));
+        && !/(vision|thinking|image|tts|audio|live|embedding|exp)/i.test(name));
+    // Prefer flash-LITE: it is the fastest + cheapest tier and is accurate
+    // enough for reading printed invoices. Speed is the priority here.
     const score = (name: string) => {
       const v = name.match(/gemini-(\d+(?:\.\d+)?)/);
-      let s = v ? parseFloat(v[1]) * 100 : 0;
-      if (/preview|latest/i.test(name)) s -= 5;
+      let s = v ? parseFloat(v[1]) : 0; // version is only a minor tiebreaker
+      if (/lite/i.test(name)) s += 1000;
+      if (/preview|latest/i.test(name)) s -= 0.5;
       return s;
     };
     usable.sort((a, b) => score(b) - score(a));
@@ -196,7 +200,7 @@ async function callGemini(payload: AnalyzeInvoiceRequest, image: ImagePayload) {
     throw new Error(`GEMINI_HTTP_${response.status}${detail}`);
   }
   const text = body?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? "").join("") ?? "";
-  return { result: parseStructuredResult(text), usage: normalizeGeminiUsage(body?.usageMetadata) };
+  return { result: parseStructuredResult(text), usage: normalizeGeminiUsage(body?.usageMetadata), model };
 }
 
 async function callOpenAi(payload: AnalyzeInvoiceRequest, image: ImagePayload) {
