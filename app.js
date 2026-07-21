@@ -1380,6 +1380,14 @@ function buildMobileOcrAuditRows(item) {
     numberField("수량", item.quantity, item.quantity > 0 && item.quantity <= 100000, "수량이 없거나 정상 범위를 벗어남"),
     numberField("단가", item.unitPrice, item.unitPrice > 0 && item.unitPrice <= 1000000, "단가가 없거나 정상 범위를 벗어남"),
     numberField("공급가", item.supplyAmount, supplyMatches, supplyMatches ? "" : "수량 × 단가와 공급가가 일치하지 않음"),
+    {
+      label: "계산 공급가(수량×단가)",
+      value: expectedSupply,
+      status: supplyMatches ? "PASS" : "REVIEW",
+      reason: supplyMatches
+        ? "수량 × 단가 = 공급가 일치"
+        : `수량 × 단가 = ${formatCurrency(expectedSupply)} · 인식 공급가와 다르니 확인 필요`
+    },
     numberField("세액", item.taxAmount, Number.isFinite(item.taxAmount) && item.taxAmount >= 0, "세액을 숫자로 확인하지 못함"),
     numberField("금액", item.totalAmount, totalMatches, totalMatches ? "" : "공급가 + 세액과 금액이 일치하지 않음"),
     {
@@ -1398,7 +1406,7 @@ function buildMobileOcrAuditRows(item) {
 }
 
 function formatMobileOcrAuditValue(label, value) {
-  if (["단가", "공급가", "세액", "금액"].includes(label) && Number.isFinite(Number(value))) {
+  if (Number.isFinite(Number(value)) && /단가|공급가|세액|금액|계산/.test(label)) {
     return formatCurrency(Number(value));
   }
   return String(value ?? "").trim() || "미인식";
