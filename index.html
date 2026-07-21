@@ -91,21 +91,49 @@
     <script src="runtime-config.js"></script>
     <script src="app.js" type="module"></script>
     <script>
-      // 대시보드 진입점을 거래명세서 스캔/저장목록/재고 페이지로 연결 (모바일)
-      // 캡처 단계에서 먼저 가로채 앱 기본 동작보다 우선 이동.
-      document.addEventListener("click", function (e) {
-        var el = e.target && e.target.closest ? e.target : null;
-        if (!el) return;
-        var dest = null;
-        if (el.closest("[data-ocr-input-open]")) dest = "scan.html";        // "고기가 들어왔어요" · 입력
-        else if (el.closest(".mobile-kpi-card.purchase")) dest = "records.html"; // 매입현황 → 저장 목록
-        else if (el.closest(".mobile-kpi-card.inventory")) dest = "stock.html";  // 재고현황 → 재고 현황
-        if (dest) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          window.location.assign(dest);
+      // 대시보드 진입점 연결. "고기가 들어왔어요"는 카메라/파일창을 즉시 열고(한 번 탭),
+      // 선택하면 스캔 화면으로 넘어가 자동 인식한다. 카드들은 목록/재고로 이동.
+      (function () {
+        var input = document.createElement("input");
+        input.type = "file"; input.accept = "image/*"; input.setAttribute("capture", "environment");
+        input.style.display = "none";
+        document.body.appendChild(input);
+
+        async function downscale(file) {
+          var MAX = 1600;
+          var bmp = await createImageBitmap(file);
+          var scale = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+          var w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+          var c = document.createElement("canvas"); c.width = w; c.height = h;
+          c.getContext("2d").drawImage(bmp, 0, 0, w, h);
+          return c.toDataURL("image/jpeg", 0.85);
         }
-      }, true);
+
+        input.addEventListener("change", async function () {
+          var file = input.files && input.files[0];
+          if (!file) return;
+          try {
+            var dataUrl = await downscale(file);
+            sessionStorage.setItem("meatos_pending_image", dataUrl);
+            sessionStorage.setItem("meatos_pending_name", file.name || "scan.jpg");
+          } catch (e) { /* fall through to manual pick on scan page */ }
+          window.location.assign("scan.html");
+        });
+
+        document.addEventListener("click", function (e) {
+          var el = e.target;
+          if (!el || !el.closest) return;
+          if (el.closest("[data-ocr-input-open]")) {         // "고기가 들어왔어요" · 입력
+            e.preventDefault(); e.stopImmediatePropagation();
+            input.value = ""; input.click();                 // 카메라/파일창 즉시 오픈 (사용자 제스처 내)
+            return;
+          }
+          var dest = null;
+          if (el.closest(".mobile-kpi-card.purchase")) dest = "records.html";   // 매입현황 → 저장 목록
+          else if (el.closest(".mobile-kpi-card.inventory")) dest = "stock.html"; // 재고현황 → 재고 현황
+          if (dest) { e.preventDefault(); e.stopImmediatePropagation(); window.location.assign(dest); }
+        }, true);
+      })();
     </script>
   </body>
 </html>

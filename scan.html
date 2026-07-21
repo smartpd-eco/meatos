@@ -156,17 +156,19 @@ function step(id, cls){ const el=document.getElementById(id); el.className = cls
 document.getElementById("file").addEventListener("change", async (ev) => {
   const file = ev.target.files && ev.target.files[0];
   if (!file) return;
-  FILE_NAME = file.name || "scan.jpg";
-  ["s2","s3","s4"].forEach(s=>step(s,""));
   document.getElementById("resultCard").style.display = "none";
-  step("s1","ok");
-
-  step("s2","wait");
+  step("s1","ok"); step("s2","wait"); ["s3","s4"].forEach(s=>step(s,""));
   let dataUrl;
-  try { dataUrl = await downscale(file);
-    const img=document.getElementById("preview"); img.src=dataUrl; img.style.display="block"; step("s2","ok");
-  } catch(e){ step("s2","err"); alert("이미지 준비 실패: "+e.message); return; }
+  try { dataUrl = await downscale(file); step("s2","ok"); }
+  catch(e){ step("s2","err"); alert("이미지 준비 실패: "+e.message); return; }
+  recognize(dataUrl, file.name || "scan.jpg");
+});
 
+async function recognize(dataUrl, fileName) {
+  FILE_NAME = fileName || "scan.jpg";
+  document.getElementById("resultCard").style.display = "none";
+  step("s1","ok"); step("s2","ok"); step("s4","");
+  const img=document.getElementById("preview"); img.src=dataUrl; img.style.display="block";
   step("s3","wait");
   try {
     const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), TIMEOUT_MS);
@@ -177,7 +179,20 @@ document.getElementById("file").addEventListener("change", async (ev) => {
     if(!res.ok || b.ok===false){ step("s3","err"); document.getElementById("raw").textContent=t; document.getElementById("resultCard").style.display="block"; alert("서버 오류 "+res.status+": "+(b.message||t).slice(0,150)); return; }
     step("s3","ok"); render(b.result||b);
   } catch(e){ step("s3","err"); alert(e.name==="AbortError"?"시간 초과":"실패: "+e.message); }
-});
+}
+
+// 홈 "고기가 들어왔어요"에서 넘어온 이미지가 있으면 버튼 없이 바로 인식
+(function bootstrapPending(){
+  try {
+    const img = sessionStorage.getItem("meatos_pending_image");
+    if (img) {
+      const name = sessionStorage.getItem("meatos_pending_name") || "scan.jpg";
+      sessionStorage.removeItem("meatos_pending_image");
+      sessionStorage.removeItem("meatos_pending_name");
+      recognize(img, name);
+    }
+  } catch(e){}
+})();
 
 async function downscale(file){
   const bmp=await createImageBitmap(file);
