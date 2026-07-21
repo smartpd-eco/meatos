@@ -94,11 +94,6 @@
       // 대시보드 진입점 연결. "고기가 들어왔어요"는 카메라/파일창을 즉시 열고(한 번 탭),
       // 선택하면 스캔 화면으로 넘어가 자동 인식한다. 카드들은 목록/재고로 이동.
       (function () {
-        var input = document.createElement("input");
-        input.type = "file"; input.accept = "image/*";
-        input.style.display = "none";
-        document.body.appendChild(input);
-
         async function downscale(file) {
           var MAX = 1600;
           var bmp = await createImageBitmap(file);
@@ -108,24 +103,49 @@
           c.getContext("2d").drawImage(bmp, 0, 0, w, h);
           return c.toDataURL("image/jpeg", 0.85);
         }
+        function makeInput(useCamera) {
+          var i = document.createElement("input");
+          i.type = "file"; i.accept = "image/*";
+          if (useCamera) i.setAttribute("capture", "environment");
+          i.style.display = "none";
+          i.addEventListener("change", async function () {
+            var file = i.files && i.files[0]; if (!file) return;
+            try {
+              var d = await downscale(file);
+              sessionStorage.setItem("meatos_pending_image", d);
+              sessionStorage.setItem("meatos_pending_name", file.name || "scan.jpg");
+            } catch (e) {}
+            window.location.assign("scan.html");
+          });
+          document.body.appendChild(i);
+          return i;
+        }
+        var camInput = makeInput(true), fileInput = makeInput(false);
 
-        input.addEventListener("change", async function () {
-          var file = input.files && input.files[0];
-          if (!file) return;
-          try {
-            var dataUrl = await downscale(file);
-            sessionStorage.setItem("meatos_pending_image", dataUrl);
-            sessionStorage.setItem("meatos_pending_name", file.name || "scan.jpg");
-          } catch (e) { /* fall through to manual pick on scan page */ }
-          window.location.assign("scan.html");
-        });
+        // 카메라/파일 선택 오버레이
+        var ov = document.createElement("div");
+        ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px";
+        ov.innerHTML =
+          "<div style='background:#fff;border-radius:16px;padding:20px;width:100%;max-width:360px'>" +
+          "<div style='font-size:18px;font-weight:800;margin-bottom:6px'>거래명세서 입력</div>" +
+          "<div style='color:#6b7280;font-size:13px;margin-bottom:14px'>입력 방식을 선택하세요</div>" +
+          "<button id='opt-cam' style='display:block;width:100%;padding:18px;margin-bottom:10px;font-size:17px;font-weight:800;border:none;border-radius:12px;background:#16a34a;color:#fff'>📷 사진 찍기</button>" +
+          "<button id='opt-file' style='display:block;width:100%;padding:18px;margin-bottom:10px;font-size:17px;font-weight:800;border:none;border-radius:12px;background:#2563eb;color:#fff'>📁 파일 불러오기</button>" +
+          "<button id='opt-close' style='display:block;width:100%;padding:12px;font-size:15px;border:none;border-radius:12px;background:#e5e7eb;color:#111827'>닫기</button>" +
+          "</div>";
+        document.body.appendChild(ov);
+        var show = function () { ov.style.display = "flex"; }, hide = function () { ov.style.display = "none"; };
+        ov.addEventListener("click", function (e) { if (e.target === ov) hide(); });
+        ov.querySelector("#opt-cam").addEventListener("click", function () { hide(); camInput.value = ""; camInput.click(); });
+        ov.querySelector("#opt-file").addEventListener("click", function () { hide(); fileInput.value = ""; fileInput.click(); });
+        ov.querySelector("#opt-close").addEventListener("click", hide);
 
         document.addEventListener("click", function (e) {
           var el = e.target;
           if (!el || !el.closest) return;
-          if (el.closest("[data-ocr-input-open]")) {         // "고기가 들어왔어요" · 입력
+          if (el.closest("[data-ocr-input-open]")) {          // "고기가 들어왔어요" · 입력 → 선택창
             e.preventDefault(); e.stopImmediatePropagation();
-            input.value = ""; input.click();                 // 카메라/파일창 즉시 오픈 (사용자 제스처 내)
+            show();
             return;
           }
           var dest = null;
