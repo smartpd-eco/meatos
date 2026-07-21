@@ -15,7 +15,7 @@ const copy = async (source, target = source) => {
 };
 
 for (const file of [
-  "index.html", "scan.html", "records.html", "app.js", "styles.css", "runtime-config.js", "manifest.webmanifest", "sw.js",
+  "index.html", "scan.html", "records.html", "stock.html", "app.js", "styles.css", "runtime-config.js", "manifest.webmanifest", "sw.js",
 ]) await copy(file);
 
 for (const directory of [

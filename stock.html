@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>재고 현황 (매입 기준)</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  h1 { font-size:19px; margin:2px 0 4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:12px; }
+  .bar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .bar a { flex:1; text-align:center; padding:12px; border-radius:10px; background:#16a34a; color:#fff; text-decoration:none; font-weight:700; }
+  .bar a.alt { background:#e5e7eb; color:#111827; }
+  input#q { width:100%; padding:12px; border:1px solid #d1d5db; border-radius:10px; font-size:15px; margin-bottom:12px; }
+  .summary { display:flex; gap:8px; margin-bottom:12px; }
+  .kpi { flex:1; background:#fff; border-radius:12px; padding:12px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .kpi b { display:block; font-size:18px; } .kpi span { color:#6b7280; font-size:12px; }
+  .twrap { background:#fff; border-radius:12px; overflow-x:auto; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  table { width:100%; border-collapse:collapse; font-size:14px; min-width:520px; }
+  th,td { border-bottom:1px solid #eef2f7; padding:10px 8px; text-align:left; white-space:nowrap; }
+  th { background:#f8fafc; color:#374151; position:sticky; top:0; }
+  td.num,th.num { text-align:right; }
+  td.name { white-space:normal; min-width:160px; font-weight:600; }
+  .muted { color:#6b7280; font-size:14px; padding:10px; }
+</style>
+</head>
+<body>
+  <h1>📦 재고 현황 <span style="font-size:13px;color:#6b7280">(매입 기준 누계)</span></h1>
+  <div class="sub">저장된 거래명세서 품목을 합산한 누계입니다. (판매 차감 없음 · 입출고 원장 아님)</div>
+  <div class="bar"><a href="scan.html">📷 새로 스캔</a><a href="records.html" class="alt">📋 명세서 목록</a><a href="/" class="alt">🏠 홈</a></div>
+
+  <div class="summary">
+    <div class="kpi"><b id="k-items">-</b><span>품목 종류</span></div>
+    <div class="kpi"><b id="k-weight">-</b><span>누계 중량(kg)</span></div>
+    <div class="kpi"><b id="k-amount">-</b><span>누계 매입액(원)</span></div>
+  </div>
+
+  <input id="q" type="text" placeholder="품목명 검색" />
+  <div class="twrap">
+    <table><thead><tr><th>품목</th><th>원산지</th><th class="num">누계 중량(kg)</th><th class="num">누계 금액</th><th class="num">건수</th></tr></thead>
+    <tbody id="tb"><tr><td colspan="5" class="muted">불러오는 중...</td></tr></tbody></table>
+  </div>
+
+<script>
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const TENANT_ID = "881f6cc1-b552-468c-b9b4-152edb464e61";
+const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
+const won = (v) => Number(v||0).toLocaleString("ko-KR");
+const kg = (v) => (Math.round((Number(v)||0)*100)/100).toLocaleString("ko-KR");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+
+(async () => { try {
+  if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
+  if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
+} catch(e){} })();
+
+let AGG = [];
+
+async function load() {
+  try {
+    const url = REST + "/ocr_line_item?tenant_id=eq." + TENANT_ID +
+      "&select=raw_product_name,raw_quantity,raw_amount,raw_origin&limit=5000";
+    const r = await fetch(url, { headers: H });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const rows = await r.json();
+    const map = new Map();
+    for (const it of rows) {
+      const name = (it.raw_product_name || "-").trim();
+      const key = name + "|" + (it.raw_origin || "");
+      const e = map.get(key) || { name, origin: it.raw_origin || "-", weight: 0, amount: 0, count: 0 };
+      e.weight += Number(it.raw_quantity) || 0;
+      e.amount += Number(it.raw_amount) || 0;
+      e.count += 1;
+      map.set(key, e);
+    }
+    AGG = [...map.values()].sort((a, b) => b.amount - a.amount);
+    document.getElementById("k-items").textContent = AGG.length;
+    document.getElementById("k-weight").textContent = kg(AGG.reduce((s, e) => s + e.weight, 0));
+    document.getElementById("k-amount").textContent = won(AGG.reduce((s, e) => s + e.amount, 0));
+    renderTable(AGG);
+  } catch (e) {
+    document.getElementById("tb").innerHTML = "<tr><td colspan='5' class='muted'>불러오기 실패: " + esc(e.message) + "</td></tr>";
+  }
+}
+
+function renderTable(list) {
+  const tb = document.getElementById("tb");
+  if (!list.length) { tb.innerHTML = "<tr><td colspan='5' class='muted'>저장된 매입 품목이 없습니다.</td></tr>"; return; }
+  tb.innerHTML = list.map((e) =>
+    "<tr><td class='name'>" + esc(e.name) + "</td><td>" + esc(e.origin) + "</td>" +
+    "<td class='num'>" + kg(e.weight) + "</td><td class='num'>" + won(e.amount) + "</td><td class='num'>" + e.count + "</td></tr>"
+  ).join("");
+}
+
+document.getElementById("q").addEventListener("input", (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  renderTable(q ? AGG.filter((x) => x.name.toLowerCase().includes(q)) : AGG);
+});
+
+load();
+</script>
+</body>
+</html>
