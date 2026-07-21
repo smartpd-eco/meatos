@@ -77,10 +77,6 @@
       </main>
     </div>
 
-    <a href="scan.html" id="scan-fab" onclick="event.preventDefault(); window.location.assign('scan.html');" style="position:fixed;right:16px;bottom:88px;z-index:99999;background:#16a34a;color:#fff;padding:15px 20px;border-radius:999px;font-size:16px;font-weight:800;text-decoration:none;box-shadow:0 6px 16px rgba(0,0,0,.28)">📄 거래명세서 스캔</a>
-    <a href="records.html" id="records-fab" onclick="event.preventDefault(); window.location.assign('records.html');" style="position:fixed;right:16px;bottom:150px;z-index:99999;background:#2563eb;color:#fff;padding:12px 18px;border-radius:999px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 6px 16px rgba(0,0,0,.28)">📋 저장 목록</a>
-    <a href="stock.html" id="stock-fab" onclick="event.preventDefault(); window.location.assign('stock.html');" style="position:fixed;right:16px;bottom:208px;z-index:99999;background:#7c3aed;color:#fff;padding:12px 18px;border-radius:999px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 6px 16px rgba(0,0,0,.28)">📦 재고 현황</a>
-
     <div class="mobile-tabbar" aria-label="모바일 빠른 메뉴">
       <button class="mobile-tab active" data-view="dashboard"><span aria-hidden="true">＋</span><strong>입력</strong></button>
       <button class="mobile-tab" data-view="inventory"><span aria-hidden="true">▣</span><strong>재고</strong></button>
@@ -94,5 +90,22 @@
 
     <script src="runtime-config.js"></script>
     <script src="app.js" type="module"></script>
+    <script>
+      // 대시보드 진입점을 거래명세서 스캔/저장목록/재고 페이지로 연결 (모바일)
+      // 캡처 단계에서 먼저 가로채 앱 기본 동작보다 우선 이동.
+      document.addEventListener("click", function (e) {
+        var el = e.target && e.target.closest ? e.target : null;
+        if (!el) return;
+        var dest = null;
+        if (el.closest("[data-ocr-input-open]")) dest = "scan.html";        // "고기가 들어왔어요" · 입력
+        else if (el.closest(".mobile-kpi-card.purchase")) dest = "records.html"; // 매입현황 → 저장 목록
+        else if (el.closest(".mobile-kpi-card.inventory")) dest = "stock.html";  // 재고현황 → 재고 현황
+        if (dest) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          window.location.assign(dest);
+        }
+      }, true);
+    </script>
   </body>
 </html>
