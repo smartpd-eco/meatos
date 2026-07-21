@@ -27,8 +27,8 @@
 </style>
 </head>
 <body>
-  <h1>📦 재고 현황 <span style="font-size:13px;color:#6b7280">(매입 기준 누계)</span></h1>
-  <div class="sub">저장된 거래명세서 품목을 합산한 누계입니다. (판매 차감 없음 · 입출고 원장 아님)</div>
+  <h1>📦 재고 현황 <span style="font-size:13px;color:#6b7280">(현재고)</span></h1>
+  <div class="sub">재고 반영된 현재고입니다 (매입 IN − 판매 OUT). 명세서 목록에서 "재고 반영"을 눌러야 반영됩니다.</div>
   <div class="bar"><a href="scan.html">📷 새로 스캔</a><a href="records.html" class="alt">📋 명세서 목록</a><a href="/" class="alt">🏠 홈</a></div>
 
   <div class="summary">
@@ -61,22 +61,15 @@ let AGG = [];
 
 async function load() {
   try {
-    const url = REST + "/ocr_line_item?tenant_id=eq." + TENANT_ID +
-      "&select=raw_product_name,raw_quantity,raw_amount,raw_origin&limit=5000";
+    const url = REST + "/inventory_balance?tenant_id=eq." + TENANT_ID +
+      "&select=raw_product_name,origin,on_hand_qty,net_amount,movement_count&order=net_amount.desc&limit=2000";
     const r = await fetch(url, { headers: H });
     if (!r.ok) throw new Error("HTTP " + r.status);
     const rows = await r.json();
-    const map = new Map();
-    for (const it of rows) {
-      const name = (it.raw_product_name || "-").trim();
-      const key = name + "|" + (it.raw_origin || "");
-      const e = map.get(key) || { name, origin: it.raw_origin || "-", weight: 0, amount: 0, count: 0 };
-      e.weight += Number(it.raw_quantity) || 0;
-      e.amount += Number(it.raw_amount) || 0;
-      e.count += 1;
-      map.set(key, e);
-    }
-    AGG = [...map.values()].sort((a, b) => b.amount - a.amount);
+    AGG = rows.map((e) => ({
+      name: (e.raw_product_name || "-"), origin: e.origin || "-",
+      weight: Number(e.on_hand_qty) || 0, amount: Number(e.net_amount) || 0, count: Number(e.movement_count) || 0
+    })).sort((a, b) => b.amount - a.amount);
     document.getElementById("k-items").textContent = AGG.length;
     document.getElementById("k-weight").textContent = kg(AGG.reduce((s, e) => s + e.weight, 0));
     document.getElementById("k-amount").textContent = won(AGG.reduce((s, e) => s + e.amount, 0));
