@@ -232,6 +232,8 @@ function buildPrompt(payload: AnalyzeInvoiceRequest) {
     "Preserve the printed raw product name. Do not standardize aliases in this step.",
     "Do not use receivable balances, previous balances, handwritten notes, or dates as line amounts.",
     "A line item must be supported by a visible product row. Keep quantity, unit price, supply, tax, total, and trace/import number separate.",
+    "supplyAmount = quantity x unitPrice. Choose `quantity` as the value that makes this equation hold. Korean meat is usually priced per kg, so `quantity` is the WEIGHT in kg (e.g. 43.60), NOT the box/carton count.",
+    "If a row shows BOTH a box/carton count and a weight (e.g. '3 Box 43.60'), put the weight (43.60) in `quantity` and put the box count in `unit` as text (e.g. '3 Box').",
     "Set reviewRequired=true for any null, conflict, damaged area, arithmetic mismatch, or uncertain row boundary.",
     `Fields needing comparison: ${unresolved}.`,
     payload.supplierName ? `Supplier hint only: ${payload.supplierName}.` : "",

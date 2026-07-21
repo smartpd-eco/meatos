@@ -1161,10 +1161,10 @@ function renderMobileOcr() {
   const reviewCount = lineItems.filter((item) => item.needsReview).length;
   const totalAmount = Number(documentFields.totalAmount ?? 0);
   const calculatedLineTotal = roundCurrency(lineItems.reduce((sum, item) => sum + Number(item.totalAmount ?? 0), 0));
-  const totalAmountIsTrusted = totalAmount > 0
-    && totalAmount <= 1_000_000_000
-    && calculatedLineTotal > 0
-    && Math.abs(roundCurrency(totalAmount) - calculatedLineTotal) <= 1;
+  // Trust the recognized document total on its own merits. It legitimately
+  // differs from the line-item sum on multi-page or running-balance invoices,
+  // so we must NOT blank it just because it != sum of visible rows.
+  const totalAmountIsTrusted = totalAmount > 0 && totalAmount <= 1_000_000_000;
   const statusLabel = isPosted
     ? "재고 반영 완료"
     : isApproved
@@ -1253,8 +1253,8 @@ function renderMobileOcrTestReport({ document, lineItems, operationLog }) {
   const lineTotal = roundCurrency(lineItems.reduce((sum, item) => sum + Number(item.totalAmount ?? 0), 0));
   const rows = lineItems.flatMap((item) => buildMobileOcrAuditRows(item));
   const totalMatched = documentTotal > 0 && lineTotal > 0 && Math.abs(roundCurrency(documentTotal) - lineTotal) <= 1;
-  const documentRows = buildMobileOcrDocumentAuditRows({ document, lineItems, totalMatched, operationLog });
-  const failedCount = [...documentRows, ...rows].filter((row) => row.status !== "PASS").length;
+  const documentRows = buildMobileOcrDocumentAuditRows({ document, lineItems, totalMatched, lineTotal, operationLog });
+  const failedCount = [...documentRows, ...rows].filter((row) => row.status !== "PASS" && row.status !== "INFO").length;
   const durationLabel = operationLog?.durationMs > 0
     ? `${(operationLog.durationMs / 1000).toFixed(2)}초`
     : "측정값 없음";
@@ -1270,16 +1270,16 @@ function renderMobileOcrTestReport({ document, lineItems, operationLog }) {
         <div><span>처리 엔진</span><strong>${escapeHtml(providerLabel)}</strong></div>
         <div><span>처리 시간</span><strong>${escapeHtml(durationLabel)}</strong></div>
         <div><span>행 합계</span><strong>${formatCurrency(lineTotal)}</strong></div>
-        <div class="${totalMatched ? "is-pass" : "has-failure"}"><span>문서 합계 검산</span><strong>${totalMatched ? "일치" : "불일치"}</strong></div>
+        <div class="${totalMatched ? "is-pass" : ""}"><span>문서 합계 검산</span><strong>${totalMatched ? "일치" : "참고"}</strong></div>
       </div>
       <div class="mobile-ocr-audit-list">
         <section class="mobile-ocr-audit-group">
-          <header><strong>문서 기본 정보</strong><b class="${documentRows.some((row) => row.status !== "PASS") ? "has-failure" : "is-pass"}">${documentRows.some((row) => row.status !== "PASS") ? "확인 필요" : "정상"}</b></header>
+          <header><strong>문서 기본 정보</strong><b class="${documentRows.some((row) => row.status !== "PASS" && row.status !== "INFO") ? "has-failure" : "is-pass"}">${documentRows.some((row) => row.status !== "PASS" && row.status !== "INFO") ? "확인 필요" : "정상"}</b></header>
           ${documentRows.map((row) => `
             <div class="mobile-ocr-audit-row">
               <span>${escapeHtml(row.label)}</span>
               <strong>${escapeHtml(row.displayValue)}</strong>
-              <b class="${row.status === "PASS" ? "is-pass" : "has-failure"}">${row.status === "PASS" ? "정상" : "확인"}</b>
+              <b class="${row.status === "PASS" || row.status === "INFO" ? "is-pass" : "has-failure"}">${row.status === "PASS" ? "정상" : row.status === "INFO" ? "참고" : "확인"}</b>
               <small>${escapeHtml(row.reason)}</small>
             </div>
           `).join("")}
@@ -1306,7 +1306,7 @@ function renderMobileOcrTestReport({ document, lineItems, operationLog }) {
   `;
 }
 
-function buildMobileOcrDocumentAuditRows({ document, lineItems, totalMatched, operationLog }) {
+function buildMobileOcrDocumentAuditRows({ document, lineItems, totalMatched, lineTotal = 0, operationLog }) {
   const fields = document.documentFields ?? {};
   const supplierName = String(fields.supplierName || document.supplierName || "").trim();
   const invoiceDate = String(fields.invoiceDate || "").trim();
@@ -1334,8 +1334,10 @@ function buildMobileOcrDocumentAuditRows({ document, lineItems, totalMatched, op
     {
       label: "문서 합계",
       displayValue: formatCurrency(Number(fields.totalAmount ?? 0)),
-      status: totalMatched ? "PASS" : "REVIEW",
-      reason: totalMatched ? "품목 금액 합계와 일치" : "품목 금액 합계와 문서 합계가 일치하지 않음"
+      status: totalMatched ? "PASS" : "INFO",
+      reason: totalMatched
+        ? "품목 금액 합계와 일치"
+        : `품목 합계 ${formatCurrency(lineTotal)}과(와) 다름 · 다른 페이지·전잔액이 포함됐을 수 있어 참고용입니다`
     }
   ];
 }
@@ -1552,9 +1554,10 @@ function validateMobileOcrDocument(document, lineItems) {
   }
   if (!documentTotal) {
     messages.push("문서 합계가 확인되지 않았습니다. 원본과 비교해 입력해주세요.");
-  } else if (Math.abs(roundCurrency(lineTotal) - roundCurrency(documentTotal)) > 1) {
-    messages.push("품목 금액 합계와 문서 총 금액이 다릅니다.");
   }
+  // Note: document total vs sum-of-lines difference is NOT treated as an error.
+  // Real invoices span multiple pages / carry previous balances, so the printed
+  // total often exceeds the visible product rows. This is informational only.
 
   return { ok: messages.length === 0, messages: [...new Set(messages)] };
 }
