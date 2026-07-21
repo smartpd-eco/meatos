@@ -77,6 +77,8 @@
     </div>
     <div class="edit-hint">✏️ 값이 틀리면 셀을 눌러 바로 고치세요. 중량·단가를 고치면 공급가액이 자동 계산됩니다.</div>
   <div class="foot-note" id="f-note"></div>
+    <button id="saveBtn" style="display:block;width:100%;margin-top:14px;padding:16px;font-size:17px;font-weight:700;border:none;border-radius:12px;background:#2563eb;color:#fff;cursor:pointer">💾 매입 저장</button>
+    <div id="saveMsg" class="muted" style="margin-top:8px"></div>
     <details style="margin-top:10px"><summary class="muted">원본 응답(JSON)</summary><pre style="white-space:pre-wrap;font-size:11px" id="raw"></pre></details>
   </div>
 
@@ -91,6 +93,10 @@ const MAX_DIM = 1600, TIMEOUT_MS = 60000;
 } catch(e){} })();
 
 let LINES = [];
+let DOC = {};
+let FILE_NAME = "scan.jpg";
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const TENANT_ID = "881f6cc1-b552-468c-b9b4-152edb464e61"; // SMARTPD_DEV
 const won = (v) => v == null || v === "" ? "-" : Number(v).toLocaleString("ko-KR");
 const num = (s) => Number(String(s).replace(/[^0-9.]/g, "")) || 0;
 
@@ -106,12 +112,50 @@ document.querySelector("#tbl tbody").addEventListener("input", (e) => {
     if (cell && document.activeElement !== cell) cell.textContent = won(sup);
   }
 });
+
+// 매입 저장: ocr_document + ocr_line_item 에 기록
+document.getElementById("saveBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("saveBtn"), msg = document.getElementById("saveMsg");
+  if (!LINES.length) { msg.style.color = "#b91c1c"; msg.textContent = "저장할 품목이 없습니다."; return; }
+  btn.disabled = true; msg.style.color = "#6b7280"; msg.textContent = "저장 중...";
+  const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY, "Content-Type": "application/json" };
+  const code = "SCAN-" + Date.now();
+  const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(DOC.invoiceDate || "");
+  const docRow = {
+    tenant_id: TENANT_ID, document_code: code,
+    original_file_path: "scan/" + code, original_file_hash: code,
+    file_name: FILE_NAME, mime_type: "image/jpeg", document_status: "REVIEW_REQUIRED",
+    parsed_json: { documentFields: DOC, lineItems: LINES },
+    invoice_date: dateOk ? DOC.invoiceDate : null,
+    total_amount: Number(DOC.totalAmount) || 0
+  };
+  try {
+    const r1 = await fetch(REST + "/ocr_document", { method: "POST", headers: { ...H, Prefer: "return=representation" }, body: JSON.stringify(docRow) });
+    const t1 = await r1.text();
+    if (!r1.ok) throw new Error("문서 " + r1.status + ": " + t1.slice(0, 150));
+    const docId = JSON.parse(t1)[0].id;
+    const lineRows = LINES.map((it, i) => ({
+      tenant_id: TENANT_ID, ocr_document_id: docId, line_no: i + 1,
+      raw_product_name: (it.rawProductName && String(it.rawProductName).trim()) || "-",
+      raw_quantity: Number(it.quantity) || 0, raw_unit: it.unit || null,
+      raw_unit_price: Number(it.unitPrice) || 0, raw_amount: Number(it.supplyAmount) || 0,
+      raw_origin: it.origin || null, raw_grade: it.grade || null,
+      confidence: Number(it.confidence) || 0
+    }));
+    const r2 = await fetch(REST + "/ocr_line_item", { method: "POST", headers: H, body: JSON.stringify(lineRows) });
+    if (!r2.ok) throw new Error("품목 " + r2.status + ": " + (await r2.text()).slice(0, 150));
+    msg.style.color = "#166534"; msg.textContent = "✓ 저장 완료 · 문서번호 " + code + " · 품목 " + lineRows.length + "건";
+  } catch (e) {
+    msg.style.color = "#b91c1c"; msg.textContent = "저장 실패: " + e.message;
+  } finally { btn.disabled = false; }
+});
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 function step(id, cls){ const el=document.getElementById(id); el.className = cls||""; }
 
 document.getElementById("file").addEventListener("change", async (ev) => {
   const file = ev.target.files && ev.target.files[0];
   if (!file) return;
+  FILE_NAME = file.name || "scan.jpg";
   ["s2","s3","s4"].forEach(s=>step(s,""));
   document.getElementById("resultCard").style.display = "none";
   step("s1","ok");
@@ -146,6 +190,8 @@ async function downscale(file){
 function render(result){
   const items = Array.isArray(result.lineItems)?result.lineItems:[];
   const f = result.documentFields||{};
+  DOC = f;
+  document.getElementById("saveMsg").textContent = "";
   document.getElementById("f-supplier").textContent = f.supplierName || "-";
   document.getElementById("f-date").textContent = f.invoiceDate || "-";
   const tbody = document.querySelector("#tbl tbody"); tbody.innerHTML="";
