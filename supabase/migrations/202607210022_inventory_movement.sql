@@ -32,6 +32,10 @@ create index if not exists inventory_movement_tenant_product_idx
 create index if not exists inventory_movement_document_idx
   on public.inventory_movement (ocr_document_id);
 
+-- Match the rest of the schema (RLS is off project-wide; the app uses the anon
+-- key directly). Without this, anon inserts fail with 42501 RLS violation.
+alter table public.inventory_movement disable row level security;
+
 -- Current on-hand balance per product (IN adds, OUT subtracts).
 create or replace view public.inventory_balance as
 select
