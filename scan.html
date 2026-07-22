@@ -165,18 +165,48 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 function step(id, cls){ const el=document.getElementById(id); el.className = cls||""; }
 
-// 이력번호 → 축산물이력제 도축/이력 조회 (번호 복사 후 조회 페이지 열기)
-function traceUrl(no){ return /^L/i.test(String(no||"").trim()) ? "https://www.mtrace.go.kr/hstryinq/hstryInqPig.do" : "https://www.mtrace.go.kr/hstryinq/hstryInqCattle.do"; }
-async function openTrace(no){
-  const t = String(no||"").trim(); if(!t) return;
-  try { await navigator.clipboard.writeText(t); toast("이력번호 "+t+" 복사됨 · 조회창에 붙여넣기하세요"); }
-  catch(e){ toast("조회 페이지에서 "+t+" 를 입력하세요"); }
-  window.open(traceUrl(t), "_blank");
+// 이력번호 → 축산물통합이력정보 조회 (앱 내 패널로 표시)
+const TRACE_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/trace-lookup";
+function _ymd(s){ s=String(s||""); return /^\d{8}$/.test(s) ? s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8) : s; }
+function _trow(label,val){ return val ? "<div style='display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9'><span style='color:#6b7280'>"+label+"</span><b style='text-align:right'>"+esc(val)+"</b></div>" : ""; }
+function _species(s){ return String(s||"").replace("PIG","돼지").replace("CATTLE","소").replace("|LOT_NO"," 묶음").replace("|PIG_NO"," 이력").replace("|CATTLE_NO"," 개체"); }
+function _traceModal(){
+  let m=document.getElementById("trace-modal");
+  if(!m){
+    m=document.createElement("div"); m.id="trace-modal";
+    m.style.cssText="position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px";
+    m.innerHTML="<div style='background:#fff;border-radius:14px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:16px'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'><b style='font-size:17px'>🔎 축산물 이력정보</b><button id='trace-close' style='border:none;background:#e5e7eb;border-radius:8px;padding:6px 12px;font-weight:700'>닫기</button></div><div id='trace-body'></div></div>";
+    document.body.appendChild(m);
+    m.addEventListener("click",function(e){ if(e.target===m) m.style.display="none"; });
+    m.querySelector("#trace-close").addEventListener("click",function(){ m.style.display="none"; });
+  }
+  return m;
 }
-function toast(msg){
-  let d = document.getElementById("mt-toast");
-  if(!d){ d=document.createElement("div"); d.id="mt-toast"; d.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 16px;border-radius:10px;font-size:14px;z-index:100000;max-width:90%;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.3)"; document.body.appendChild(d); }
-  d.textContent=msg; d.style.display="block"; clearTimeout(d._t); d._t=setTimeout(()=>{d.style.display="none";},3500);
+async function openTrace(no){
+  const t=String(no||"").trim(); if(!t) return;
+  const m=_traceModal(), body=m.querySelector("#trace-body");
+  body.innerHTML="<div style='color:#6b7280;padding:20px;text-align:center'>이력번호 "+esc(t)+"<br>조회 중...</div>";
+  m.style.display="flex";
+  try{
+    const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(t),{headers:{Authorization:"Bearer "+ANON_KEY,apikey:ANON_KEY},signal:AbortSignal.timeout(30000)});
+    const b=await r.json(), i=b.info||{};
+    if(!b.ok){
+      body.innerHTML="<div style='padding:6px 2px'>이 번호의 <b>국내</b> 축산물 이력정보가 없습니다.<div style='color:#6b7280;font-size:13px;margin-top:4px'>수입육이면 아래에서 조회하세요.</div></div>"+
+        "<div style='margin-top:12px;display:flex;gap:8px'><a href='https://www.meatwatch.go.kr' target='_blank' style='flex:1;text-align:center;padding:12px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700'>수입 이력 조회</a><a href='https://www.mtrace.go.kr/hstryinq/hstryInqCattle.do' target='_blank' style='flex:1;text-align:center;padding:12px;border-radius:10px;background:#e5e7eb;color:#111827;text-decoration:none;font-weight:700'>국내 이력제</a></div>";
+      return;
+    }
+    body.innerHTML=
+      "<div style='font-size:15px;font-weight:800;margin-bottom:6px'>이력번호 "+esc(t)+"</div>"+
+      _trow("구분", i.kind)+_trow("축종", _species(i.species))+
+      _trow("🔪 도축장", i.butcheryPlaceNm)+_trow("도축장 주소", i.butcheryPlaceAddr)+
+      _trow("도축일자", _ymd(i.butcheryYmd))+_trow("도축검사", i.butcheryResult==="Y"?"합격":i.butcheryResult)+
+      _trow("등급", i.grade)+_trow("근내지방도", i.insfat)+
+      _trow("🏠 농장주소", i.farmAddr)+_trow("사육자", i.farmerNm)+
+      _trow("포장처리업소", i.processPlaceNm)+_trow("수입국", i.nationNm)+
+      "<div style='margin-top:10px'><a href='https://www.mtrace.go.kr/hstryinq/hstryInqPig.do' target='_blank' style='color:#2563eb;font-size:13px'>공식 축산물이력제에서 자세히 보기 ›</a></div>";
+  }catch(e){
+    body.innerHTML="<div style='padding:10px;color:#b91c1c'>조회 실패: "+esc(e.name==="TimeoutError"?"시간 초과":e.message)+"</div>";
+  }
 }
 document.addEventListener("click", function(e){ const a=e.target.closest && e.target.closest(".tracelink"); if(a){ e.preventDefault(); openTrace(a.dataset.no); } });
 
