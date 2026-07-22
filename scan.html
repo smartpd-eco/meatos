@@ -78,7 +78,7 @@
     </div>
     <div class="edit-hint">✏️ 값이 틀리면 셀을 눌러 바로 고치세요. 중량·단가를 고치면 공급가액이 자동 계산됩니다.</div>
   <div class="foot-note" id="f-note"></div>
-    <button id="saveBtn" style="display:block;width:100%;margin-top:14px;padding:16px;font-size:17px;font-weight:700;border:none;border-radius:12px;background:#2563eb;color:#fff;cursor:pointer">💾 매입 저장</button>
+    <button id="saveBtn" style="display:block;width:100%;margin-top:14px;padding:16px;font-size:17px;font-weight:700;border:none;border-radius:12px;background:#2563eb;color:#fff;cursor:pointer">💾 저장 + 재고 반영</button>
     <div id="saveMsg" class="muted" style="margin-top:8px"></div>
     <details style="margin-top:10px"><summary class="muted">원본 응답(JSON)</summary><pre style="white-space:pre-wrap;font-size:11px" id="raw"></pre></details>
   </div>
@@ -125,7 +125,7 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   const docRow = {
     tenant_id: TENANT_ID, document_code: code,
     original_file_path: "scan/" + code, original_file_hash: code,
-    file_name: FILE_NAME, mime_type: "image/jpeg", document_status: "REVIEW_REQUIRED",
+    file_name: FILE_NAME, mime_type: "image/jpeg", document_status: "POSTED",
     parsed_json: { documentFields: DOC, lineItems: LINES },
     invoice_date: dateOk ? DOC.invoiceDate : null,
     total_amount: Number(DOC.totalAmount) || 0
@@ -145,7 +145,18 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
     }));
     const r2 = await fetch(REST + "/ocr_line_item", { method: "POST", headers: H, body: JSON.stringify(lineRows) });
     if (!r2.ok) throw new Error("품목 " + r2.status + ": " + (await r2.text()).slice(0, 150));
-    msg.style.color = "#166534"; msg.textContent = "✓ 저장 완료 · 문서번호 " + code + " · 품목 " + lineRows.length + "건";
+    // 저장과 동시에 재고 반영(IN)
+    const mv = LINES.map((it, i) => ({
+      tenant_id: TENANT_ID, movement_type: "IN",
+      raw_product_name: (it.rawProductName && String(it.rawProductName).trim()) || "-",
+      origin: it.origin || null, unit: it.unit || null,
+      quantity: Number(it.quantity) || 0, unit_price: Number(it.unitPrice) || 0, amount: Number(it.supplyAmount) || 0,
+      trace_no: it.traceOrImportNo || null, supplier_name: DOC.supplierName || null,
+      ocr_document_id: docId, ocr_line_no: i + 1, movement_date: dateOk ? DOC.invoiceDate : null
+    }));
+    const r3 = await fetch(REST + "/inventory_movement", { method: "POST", headers: H, body: JSON.stringify(mv) });
+    if (!r3.ok) throw new Error("재고반영 " + r3.status + ": " + (await r3.text()).slice(0, 150));
+    msg.style.color = "#166534"; msg.textContent = "✓ 저장 + 재고 반영 완료 · 품목 " + lineRows.length + "건";
   } catch (e) {
     msg.style.color = "#b91c1c"; msg.textContent = "저장 실패: " + e.message;
   } finally { btn.disabled = false; }
