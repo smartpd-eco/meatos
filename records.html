@@ -33,11 +33,10 @@
   tfoot td { font-weight:800; background:#f9fafb; }
   .back { margin:8px 0; display:inline-block; color:#2563eb; cursor:pointer; }
   .tracelink { color:#2563eb; text-decoration:none; font-weight:700; white-space:nowrap; }
+  #trace-print-area { display:none; }
   @media print {
-    body.trace-printing > *:not(#trace-modal) { display:none !important; }
-    body.trace-printing #trace-modal { position:static !important; display:block !important; inset:auto !important; background:#fff !important; padding:0 !important; }
-    body.trace-printing #trace-modal > div { max-width:100% !important; max-height:none !important; box-shadow:none !important; border-radius:0 !important; overflow:visible !important; }
-    body.trace-printing #trace-modal button, body.trace-printing #trace-modal a { display:none !important; }
+    body.trace-printing > *:not(#trace-print-area) { display:none !important; }
+    #trace-print-area { display:block !important; padding:8px 4px; }
   }
 </style>
 </head>
@@ -102,8 +101,71 @@ function _traceModal(){
   }
   return m;
 }
-let _curTraceNo="";
+let _curTraceNo="", _curTraceInfo=null;
+function _pv(v){ return (v==null||v==="")?"-":esc(v); }
+function _printDoc(i){
+  const now=new Date().toLocaleString("ko-KR",{year:"2-digit",month:"numeric",day:"numeric",hour:"numeric",minute:"2-digit"});
+  let inner;
+  if(i.source==="import"){
+    inner=
+    "<div class='thead'><span>"+now+"</span><span>수입이력정보 조회</span></div>"+
+    "<div class='tbox'><span class='tl'>이력번호</span><span class='tn'>"+_pv(i.traceNo)+"</span></div>"+
+    "<div class='sc'>기본정보 <em>품목명은 수입신고시점의 품목정보입니다.</em></div>"+
+    "<table><tr><th>이력번호</th><td>"+_pv(i.traceNo)+"</td><th>선하증권번호</th><td>"+_pv(i.blNo)+"</td></tr>"+
+    "<tr><th>수입축산물 품목명</th><td colspan='3'>"+_pv(i.itemNm)+"</td></tr></table>"+
+    "<div class='sc'>원산지정보</div>"+
+    "<table><tr><th>원산지 국가</th><td colspan='3'>"+_pv(i.nationNm)+"</td></tr></table>"+
+    "<div class='sc'>수입이력정보</div>"+
+    "<table><tr><th>수출국 도축장</th><td>"+_pv(i.butcheryPlaceNm)+"</td><th>수출국 도축일자</th><td>"+_pv(i.butcheryYmd)+"</td></tr>"+
+    "<tr><th>수출국 가공장</th><td>"+_pv(i.processPlaceNm)+"</td><th>수출국 가공일자</th><td>"+_pv(i.processYmd)+"</td></tr>"+
+    "<tr><th>수출업체</th><td>"+_pv(i.exporterNm)+"</td><th>수입업체</th><td>"+_pv(i.importerNm)+"</td></tr>"+
+    "<tr><th>수입일자</th><td colspan='3'>"+_pv(i.importDt)+"</td></tr>"+
+    "<tr><th>부위명(코드)</th><td colspan='3'>"+_pv(i.partNm)+(i.partCode?"("+esc(i.partCode)+")":"")+"</td></tr></table>"+
+    "<p class='note'>※ 본 자료는 참고용 자료로서 법적 책임소재에 대한 증빙자료로 사용될 수 없습니다.</p>";
+  } else {
+    const sp=_species(i.species||"");
+    inner=
+    "<div class='thead'><span>"+now+"</span><span>이력번호 조회</span></div>"+
+    "<div class='brand'>🐄 축산물이력제 &nbsp;<b>"+_pv(sp)+" 이력번호 조회</b></div>"+
+    "<div class='sc'>사육정보</div>"+
+    "<table><tr><th>이력번호</th><td>"+_pv(i.traceNo)+"</td><th>농장식별번호</th><td>"+_pv(i.farmId)+"</td></tr>"+
+    "<tr><th>농장경영자</th><td>"+_pv(i.farmerNm)+"</td><th>농장소재지</th><td>"+_pv(i.farmAddr)+"</td></tr>"+
+    "<tr><th>축종</th><td colspan='3'>"+_pv(sp)+"</td></tr></table>"+
+    "<div class='sc'>도축정보</div>"+
+    "<table><tr><th>도축장</th><td>"+_pv(i.butcheryPlaceNm)+"</td><th>소재지</th><td>"+_pv(i.butcheryPlaceAddr)+"</td></tr>"+
+    "<tr><th>도축일자</th><td>"+_pv(i.butcheryYmd)+"</td><th>도축검사결과</th><td>"+(i.butcheryResult==="Y"?"합격":_pv(i.butcheryResult))+"</td></tr></table>"+
+    ((i.grade||i.insfat)?("<div class='sc'>등급정보</div><table><tr><th>등급</th><td>"+_pv(i.grade)+"</td><th>근내지방도</th><td>"+_pv(i.insfat)+"</td></tr></table>"):"")+
+    "<div class='sc'>식육포장처리 정보</div>"+
+    "<table><tr><th>번호</th><th>업소명(등급)</th><th>소재지</th></tr>"+
+    "<tr><td>1</td><td>"+_pv(i.processPlaceNm)+"</td><td>"+_pv(i.processPlaceAddr)+"</td></tr></table>"+
+    "<div class='sc'>유통과정 정보</div>"+
+    "<div class='flow'><span class='st'>사육</span><span class='ar'>›</span><span class='st'>도축</span><span class='ar'>›</span><span class='st'>가공</span><span class='ar'>›</span><span class='st cur'>판매</span></div>";
+  }
+  return "<style>"+
+    "#trace-print-area{font-family:system-ui,'Malgun Gothic',sans-serif;color:#111827}"+
+    "#trace-print-area .thead{display:flex;justify-content:space-between;font-size:11px;color:#6b7280;margin-bottom:14px}"+
+    "#trace-print-area .tbox{display:flex;align-items:center;gap:16px;border:1px solid #cbd5e1;border-radius:6px;padding:14px 18px;margin-bottom:18px}"+
+    "#trace-print-area .tbox .tl{color:#2563eb;font-weight:800;font-size:15px}"+
+    "#trace-print-area .tbox .tn{border:2px solid #2563eb;border-radius:6px;padding:8px 22px;font-size:20px;font-weight:800;letter-spacing:1px}"+
+    "#trace-print-area .brand{font-size:17px;font-weight:800;margin-bottom:14px}"+
+    "#trace-print-area .sc{font-size:14px;font-weight:800;border-bottom:2px solid #16a34a;padding-bottom:5px;margin:16px 0 0}"+
+    "#trace-print-area .sc em{font-size:11px;color:#ea580c;font-weight:600;font-style:normal;margin-left:6px}"+
+    "#trace-print-area table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}"+
+    "#trace-print-area th,#trace-print-area td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left;vertical-align:middle}"+
+    "#trace-print-area th{background:#f8fafc;color:#374151;font-weight:700;white-space:nowrap;width:120px}"+
+    "#trace-print-area .note{color:#dc2626;font-size:11px;text-align:center;margin-top:18px}"+
+    "#trace-print-area .flow{display:flex;align-items:center;justify-content:center;gap:6px;padding:22px 0}"+
+    "#trace-print-area .flow .st{width:74px;height:74px;border-radius:50%;border:2px solid #cbd5e1;color:#6b7280;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}"+
+    "#trace-print-area .flow .st.cur{background:#16a34a;border-color:#16a34a;color:#fff}"+
+    "#trace-print-area .flow .ar{color:#9ca3af;font-size:22px;font-weight:800}"+
+    "</style><div class='doc'>"+inner+"</div>";
+}
 function _printTrace(){
+  const i=_curTraceInfo;
+  if(!i || !(i.source==="import"||i.butcheryPlaceNm||i.farmerNm||i.processPlaceNm)){ alert("출력할 이력정보가 없습니다."); return; }
+  let a=document.getElementById("trace-print-area");
+  if(!a){ a=document.createElement("div"); a.id="trace-print-area"; document.body.appendChild(a); }
+  a.innerHTML=_printDoc(i);
   const old=document.title;
   document.title="축산물이력_"+String(_curTraceNo||"").replace(/[^0-9A-Za-z]/g,"");
   document.body.classList.add("trace-printing");
@@ -117,7 +179,7 @@ async function openTrace(no){
   m.style.display="flex";
   try{
     const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(t),{headers:{Authorization:"Bearer "+ANON_KEY,apikey:ANON_KEY},signal:AbortSignal.timeout(30000)});
-    const b=await r.json(), i=b.info||{};
+    const b=await r.json(), i=b.info||{}; _curTraceInfo=i;
     if((b.source||i.source)==="import"){ body.innerHTML=_importBody(t,i); return; }
     if(!b.ok){
       body.innerHTML="<div style='padding:6px 2px'>이 번호의 <b>국내</b> 축산물 이력정보가 없습니다.<div style='color:#6b7280;font-size:13px;margin-top:4px'>수입육이면 아래에서 조회하세요.</div></div>"+

@@ -80,6 +80,8 @@ Deno.serve(async (req: Request) => {
             importerNm: mj.receiverNm || "",
             blNo: mj.blNo || "",
             consumeYmd: range(mj.limitFromDt, mj.limitToDt),
+            importDt: mj.applyDt || "",
+            partCode: mj.regnCode || "",
             salePrhibt: mj.distbSlePrhibtAt || "",
             recallTarget: mj.rtrvlTrgetAt || "",
             recallContent: mj.rtrvlContent || ""
@@ -105,6 +107,7 @@ Deno.serve(async (req: Request) => {
     butcheryYmd: f.butcheryYmd || f.rceptDt || "",
     butcheryResult: f.psexmYn || f.inspectPassYn || "",
     farmAddr: f.farmAddr || "",
+    farmId: f.farmNo || f.farmUniqueNo || f.farmIdentNo || "",
     farmerNm: f.farmerNm || f.frmrNm || f.mngrNm || "",
     processPlaceNm: f.processPlaceNm || f.entrpNm || "",
     processPlaceAddr: f.processPlaceAddr || f.entrpAddr || "",
