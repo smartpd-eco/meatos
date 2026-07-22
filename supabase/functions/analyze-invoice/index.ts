@@ -183,24 +183,35 @@ async function resolveGeminiModel(apiKey: string): Promise<string> {
 async function callGemini(payload: AnalyzeInvoiceRequest, image: ImagePayload) {
   const apiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
   const model = await resolveGeminiModel(apiKey);
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: buildPrompt(payload) }, { inlineData: { mimeType: image.mimeType, data: image.base64 } }] }],
-      // thinkingBudget:0 disables the model's internal reasoning pass, which
-      // otherwise makes flash vision latency swing wildly (9-30s+) and blow the
-      // client timeout. Structured invoice extraction does not need it.
-      generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: GEMINI_INVOICE_SCHEMA, thinkingConfig: { thinkingBudget: 0 } }
-    })
-  });
-  const body = await response.json();
-  if (!response.ok) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const parts = [{ text: buildPrompt(payload) }, { inlineData: { mimeType: image.mimeType, data: image.base64 } }];
+
+  // Some models reject specific generationConfig fields (e.g. thinkingBudget:0
+  // on newer models, or responseSchema shape) with HTTP 400 "invalid argument".
+  // Try richest config first, then progressively drop the fragile fields.
+  const configs: Record<string, unknown>[] = [
+    { temperature: 0, responseMimeType: "application/json", responseSchema: GEMINI_INVOICE_SCHEMA, thinkingConfig: { thinkingBudget: 0 } },
+    { temperature: 0, responseMimeType: "application/json", responseSchema: GEMINI_INVOICE_SCHEMA },
+    { temperature: 0, responseMimeType: "application/json" }
+  ];
+
+  let lastError = "GEMINI_UNKNOWN";
+  for (const generationConfig of configs) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig })
+    });
+    const body = await response.json();
+    if (response.ok) {
+      const text = body?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? "").join("") ?? "";
+      return { result: parseStructuredResult(text), usage: normalizeGeminiUsage(body?.usageMetadata), model };
+    }
     const detail = body?.error?.message ? `: ${String(body.error.message).slice(0, 200)}` : "";
-    throw new Error(`GEMINI_HTTP_${response.status}${detail}`);
+    lastError = `GEMINI_HTTP_${response.status}${detail}`;
+    if (response.status !== 400) break; // only argument errors are worth retrying with a simpler config
   }
-  const text = body?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? "").join("") ?? "";
-  return { result: parseStructuredResult(text), usage: normalizeGeminiUsage(body?.usageMetadata), model };
+  throw new Error(lastError);
 }
 
 async function callOpenAi(payload: AnalyzeInvoiceRequest, image: ImagePayload) {
