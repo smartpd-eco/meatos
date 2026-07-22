@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>매출현황</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  h1 { font-size:19px; margin:2px 0 12px; }
+  .kpis { display:flex; gap:8px; margin-bottom:14px; }
+  .kpi { flex:1; background:#fff; border-radius:12px; padding:14px 8px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .kpi b { display:block; font-size:20px; } .kpi .amt { font-size:13px; color:#166534; font-weight:700; margin-top:2px; } .kpi span { font-size:12px; color:#6b7280; }
+  .card { background:#fff; border-radius:14px; padding:14px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { font-size:15px; margin:0 0 10px; }
+  .frm { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .frm .full { grid-column:1 / -1; }
+  label { font-size:12px; color:#6b7280; display:block; }
+  input { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; margin-top:4px; }
+  button.primary { display:block; width:100%; margin-top:12px; padding:14px; font-size:16px; font-weight:800; border:none; border-radius:12px; background:#16a34a; color:#fff; cursor:pointer; }
+  .msg { font-size:13px; margin-top:8px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th,td { border-bottom:1px solid #eef2f7; padding:9px 6px; text-align:left; white-space:nowrap; }
+  th { background:#f8fafc; color:#374151; } td.num,th.num { text-align:right; }
+  td.name { white-space:normal; font-weight:600; }
+  .muted { color:#6b7280; padding:12px; text-align:center; }
+</style>
+</head>
+<body>
+  <h1>💰 매출현황</h1>
+
+  <div class="kpis">
+    <div class="kpi"><b id="k-m">-</b><div class="amt" id="k-m-amt">-</div><span>이번 달</span></div>
+    <div class="kpi"><b id="k-w">-</b><div class="amt" id="k-w-amt">-</div><span>이번 주</span></div>
+    <div class="kpi"><b id="k-d">-</b><div class="amt" id="k-d-amt">-</div><span>오늘</span></div>
+  </div>
+
+  <div class="card">
+    <h2>➕ 판매 입력</h2>
+    <div class="frm">
+      <div class="full"><label>품목명<input id="f-item" type="text" placeholder="예: 삼겹살" /></label></div>
+      <div><label>수량<input id="f-qty" type="number" step="0.01" placeholder="0" /></label></div>
+      <div><label>단가(원)<input id="f-price" type="number" step="1" placeholder="0" /></label></div>
+      <div><label>금액(원)<input id="f-amt" type="number" step="1" placeholder="자동 계산" /></label></div>
+      <div><label>판매일<input id="f-date" type="date" /></label></div>
+      <div class="full"><label>메모<input id="f-memo" type="text" placeholder="선택" /></label></div>
+    </div>
+    <button class="primary" id="saveBtn">💾 매출 저장</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>🧾 매출 내역 <span style="font-weight:400;color:#6b7280;font-size:13px">(최신순)</span></h2>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>날짜</th><th class="name">품목</th><th class="num">수량</th><th class="num">단가</th><th class="num">금액</th></tr></thead>
+      <tbody id="tb"><tr><td colspan="5" class="muted">불러오는 중…</td></tr></tbody>
+    </table></div>
+  </div>
+
+<script src="header.js"></script>
+<script>
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const TENANT = "881f6cc1-b552-468c-b9b4-152edb464e61";
+const H = { apikey: ANON, Authorization: "Bearer " + ANON };
+const HW = { ...H, "Content-Type": "application/json" };
+const won = (v) => Number(v||0).toLocaleString("ko-KR");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+function pad(n){ return String(n).padStart(2,"0"); }
+function fmt(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+const today = fmt(new Date());
+document.getElementById("f-date").value = today;
+
+(async () => { try {
+  if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
+  if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
+} catch(e){} })();
+
+// 금액 자동 계산 (수량×단가). 사용자가 금액을 직접 고치면 그 값 유지.
+let amtTouched = false;
+document.getElementById("f-amt").addEventListener("input", ()=>{ amtTouched = true; });
+function recalc(){ if(amtTouched) return; const q=Number(document.getElementById("f-qty").value)||0, p=Number(document.getElementById("f-price").value)||0; if(q&&p) document.getElementById("f-amt").value = Math.round(q*p); }
+document.getElementById("f-qty").addEventListener("input", recalc);
+document.getElementById("f-price").addEventListener("input", recalc);
+
+function weekStart(){ const d=new Date(); const dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow); return fmt(d); }
+function monthStart(){ const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-01"; }
+
+let ALL = [];
+async function load(){
+  try{
+    const r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,item_name,quantity,unit_price,amount,created_at&order=sale_date.desc,created_at.desc&limit=500",{headers:H});
+    if(!r.ok){ document.getElementById("tb").innerHTML="<tr><td colspan='5' class='muted'>매출 테이블이 아직 없습니다. 마이그레이션 실행 후 이용하세요.</td></tr>"; return; }
+    ALL = await r.json();
+    renderKpis(); renderList();
+  }catch(e){ document.getElementById("tb").innerHTML="<tr><td colspan='5' class='muted'>불러오기 실패: "+esc(e.message)+"</td></tr>"; }
+}
+function sumRange(from){ const rows=ALL.filter(x=>x.sale_date>=from); return { cnt:rows.length, amt:rows.reduce((s,x)=>s+(Number(x.amount)||0),0) }; }
+function renderKpis(){
+  const m=sumRange(monthStart()), w=sumRange(weekStart()), d=sumRange(today);
+  document.getElementById("k-m").textContent=m.cnt+"건"; document.getElementById("k-m-amt").textContent=won(m.amt)+"원";
+  document.getElementById("k-w").textContent=w.cnt+"건"; document.getElementById("k-w-amt").textContent=won(w.amt)+"원";
+  document.getElementById("k-d").textContent=d.cnt+"건"; document.getElementById("k-d-amt").textContent=won(d.amt)+"원";
+}
+function renderList(){
+  const tb=document.getElementById("tb");
+  if(!ALL.length){ tb.innerHTML="<tr><td colspan='5' class='muted'>매출 내역이 없습니다. 위에서 판매를 입력하세요.</td></tr>"; return; }
+  tb.innerHTML = ALL.map(x=>"<tr><td>"+esc(x.sale_date)+"</td><td class='name'>"+esc(x.item_name)+"</td><td class='num'>"+(x.quantity!=null?won(x.quantity):"-")+"</td><td class='num'>"+(x.unit_price!=null?won(x.unit_price):"-")+"</td><td class='num'>"+won(x.amount)+"</td></tr>").join("");
+}
+load();
+
+document.getElementById("saveBtn").addEventListener("click", async ()=>{
+  const msg=document.getElementById("msg");
+  const item=(document.getElementById("f-item").value||"").trim();
+  if(!item){ msg.style.color="#b91c1c"; msg.textContent="품목명을 입력하세요."; return; }
+  const q=document.getElementById("f-qty").value, p=document.getElementById("f-price").value, a=document.getElementById("f-amt").value;
+  const row={ tenant_id:TENANT, sale_date:document.getElementById("f-date").value||today, item_name:item,
+    quantity: q!==""?Number(q):null, unit_price: p!==""?Number(p):null,
+    amount: a!==""?Number(a):(q&&p?Math.round(Number(q)*Number(p)):0),
+    memo:(document.getElementById("f-memo").value||"").trim()||null };
+  msg.style.color="#6b7280"; msg.textContent="저장 중…";
+  try{
+    const r=await fetch(REST+"/sales_record",{method:"POST",headers:{...HW,Prefer:"return=minimal"},body:JSON.stringify(row)});
+    if(!r.ok) throw new Error(r.status+": "+(await r.text()).slice(0,150));
+    msg.style.color="#166534"; msg.textContent="✓ 매출 저장 완료";
+    document.getElementById("f-item").value=""; document.getElementById("f-qty").value=""; document.getElementById("f-price").value=""; document.getElementById("f-amt").value=""; document.getElementById("f-memo").value=""; amtTouched=false;
+    load();
+  }catch(e){ msg.style.color="#b91c1c"; msg.textContent="저장 실패: "+e.message; }
+});
+</script>
+</body>
+</html>

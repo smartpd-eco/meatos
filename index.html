@@ -1,183 +1,158 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#111827" />
-    <meta
-      name="description"
-      content="Core Engine 기반 AI 축산물 Universal SCM Platform"
-    />
-    <title>고기장터</title>
-    <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css" />
-    <script type="importmap">
-      {
-        "imports": {
-          "@paddleocr/paddleocr-js": "/node_modules/@paddleocr/paddleocr-js/dist/index.mjs",
-          "@paddleocr/paddleocr-js/viz": "/node_modules/@paddleocr/paddleocr-js/dist/viz.mjs",
-          "@techstark/opencv-js": "/src/vendor/opencv-wrapper.mjs",
-          "clipper-lib": "/src/vendor/clipper-wrapper.mjs",
-          "js-yaml": "/node_modules/js-yaml/dist/js-yaml.mjs",
-          "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.mjs"
-        }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#16a34a" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <meta name="description" content="정육점 사장님을 위한 AI 업무비서 · 고기장터 MEATOS" />
+  <title>고기장터</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f3f4f6; color: #111827; padding: 14px; }
+    .banner { background: #16a34a; color: #fff; border-radius: 18px; padding: 34px 20px; text-align: center; cursor: pointer; margin: 8px 0 16px; box-shadow: 0 4px 14px rgba(22,163,74,.28); }
+    .banner h2 { margin: 0 0 6px; font-size: 26px; font-weight: 800; }
+    .banner p { margin: 0; font-size: 14px; opacity: .95; }
+    .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .kcard { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); cursor: pointer; border: none; text-align: left; }
+    .kcard .khead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .kcard .ktitle { font-size: 15px; font-weight: 800; }
+    .kcard .ktag { font-size: 11px; color: #9ca3af; }
+    .kcard .kval { font-size: 28px; font-weight: 800; line-height: 1.15; }
+    .kcard .ksub { font-size: 12px; color: #6b7280; margin-top: 8px; }
+    .kcard .kline { height: 4px; border-radius: 999px; margin-top: 10px; background: #e5e7eb; }
+    .kcard.sales .kline { background: #16a34a; } .kcard.purchase .kline { background: #f59e0b; }
+    .kcard.inventory .kline { background: #2563eb; } .kcard.alert .kline { background: #f59e0b; }
+    .kcard.alert .kval.warn { color: #b91c1c; }
+    @media (min-width: 720px) { .cards { grid-template-columns: repeat(4, 1fr); } }
+    .foot { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 22px; }
+  </style>
+</head>
+<body>
+  <div class="banner" id="banner">
+    <h2>🥩 고기가 들어왔어요!</h2>
+    <p>사진 찍기 · 파일 불러오기 · 자동 인식</p>
+  </div>
+
+  <div class="cards">
+    <button class="kcard sales" data-go="sales.html">
+      <div class="khead"><span class="ktitle">매출현황</span><span class="ktag">이번 달</span></div>
+      <div class="kval" id="k-sales">-</div>
+      <div class="ksub" id="k-sales-sub">불러오는 중…</div>
+      <div class="kline"></div>
+    </button>
+    <button class="kcard purchase" data-go="purchases.html">
+      <div class="khead"><span class="ktitle">매입현황</span><span class="ktag">이번 달</span></div>
+      <div class="kval" id="k-buy">-</div>
+      <div class="ksub" id="k-buy-sub">불러오는 중…</div>
+      <div class="kline"></div>
+    </button>
+    <button class="kcard inventory" data-go="stock.html">
+      <div class="khead"><span class="ktitle">재고현황</span><span class="ktag">전체</span></div>
+      <div class="kval" id="k-stock">-</div>
+      <div class="ksub" id="k-stock-sub">불러오는 중…</div>
+      <div class="kline"></div>
+    </button>
+    <button class="kcard alert" data-go="alerts.html">
+      <div class="khead"><span class="ktitle">알림현황</span><span class="ktag">유통기한</span></div>
+      <div class="kval" id="k-alert">-</div>
+      <div class="ksub" id="k-alert-sub">불러오는 중…</div>
+      <div class="kline"></div>
+    </button>
+  </div>
+
+  <div class="foot">© 2026 MEATOS · 고기장터</div>
+
+  <script src="header.js"></script>
+  <script>
+    (async () => { try {
+      if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x => x.unregister())); }
+      if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x => caches.delete(x))); }
+    } catch (e) {} })();
+
+    const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+    const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+    const TENANT = "881f6cc1-b552-468c-b9b4-152edb464e61";
+    const H = { apikey: ANON, Authorization: "Bearer " + ANON };
+    const won = (v) => Number(v || 0).toLocaleString("ko-KR");
+    function localToday() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+    function monthStart() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01"; }
+
+    document.querySelectorAll(".kcard[data-go]").forEach(c => c.addEventListener("click", () => location.assign(c.dataset.go)));
+
+    // 배너 → 카메라/파일 선택 → 스캔
+    async function downscale(file) {
+      const MAX = 1600; const bmp = await createImageBitmap(file);
+      const s = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+      const w = Math.round(bmp.width * s), h = Math.round(bmp.height * s);
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(bmp, 0, 0, w, h);
+      return c.toDataURL("image/jpeg", 0.85);
+    }
+    function makeInput(cam) {
+      const i = document.createElement("input"); i.type = "file"; i.accept = "image/*";
+      if (cam) i.setAttribute("capture", "environment"); i.style.display = "none";
+      i.addEventListener("change", async () => {
+        const f = i.files && i.files[0]; if (!f) return;
+        try { sessionStorage.setItem("meatos_pending_image", await downscale(f)); sessionStorage.setItem("meatos_pending_name", f.name || "scan.jpg"); } catch (e) {}
+        location.assign("scan.html");
+      });
+      document.body.appendChild(i); return i;
+    }
+    const camIn = makeInput(true), fileIn = makeInput(false);
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px";
+    ov.innerHTML = "<div style='background:#fff;border-radius:16px;padding:20px;width:100%;max-width:360px'>" +
+      "<div style='font-size:18px;font-weight:800;margin-bottom:6px'>거래명세서 입력</div>" +
+      "<div style='color:#6b7280;font-size:13px;margin-bottom:14px'>입력 방식을 선택하세요</div>" +
+      "<button id='oc' style='display:block;width:100%;padding:18px;margin-bottom:10px;font-size:17px;font-weight:800;border:none;border-radius:12px;background:#16a34a;color:#fff'>📷 사진 찍기</button>" +
+      "<button id='of' style='display:block;width:100%;padding:18px;margin-bottom:10px;font-size:17px;font-weight:800;border:none;border-radius:12px;background:#2563eb;color:#fff'>📁 파일 불러오기</button>" +
+      "<button id='ox' style='display:block;width:100%;padding:12px;font-size:15px;border:none;border-radius:12px;background:#e5e7eb;color:#111827'>닫기</button></div>";
+    document.body.appendChild(ov);
+    document.getElementById("banner").addEventListener("click", () => ov.style.display = "flex");
+    ov.addEventListener("click", e => { if (e.target === ov) ov.style.display = "none"; });
+    ov.querySelector("#oc").addEventListener("click", () => { ov.style.display = "none"; camIn.value = ""; camIn.click(); });
+    ov.querySelector("#of").addEventListener("click", () => { ov.style.display = "none"; fileIn.value = ""; fileIn.click(); });
+    ov.querySelector("#ox").addEventListener("click", () => ov.style.display = "none");
+
+    // 대시보드 카드 실제 데이터
+    async function jget(path) { try { const r = await fetch(REST + path, { headers: H }); return r.ok ? await r.json() : []; } catch (e) { return []; } }
+    (async function loadCards() {
+      const today = localToday(), m0 = monthStart();
+      try {
+        const sr = await fetch(REST + "/sales_record?tenant_id=eq." + TENANT + "&sale_date=gte." + m0 + "&select=amount,sale_date", { headers: H });
+        if (sr.ok) {
+          const rows = await sr.json();
+          const amt = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+          document.getElementById("k-sales").textContent = rows.length + "건";
+          document.getElementById("k-sales-sub").textContent = "이번 달 " + won(amt) + "원";
+        } else { document.getElementById("k-sales").textContent = "0건"; document.getElementById("k-sales-sub").textContent = "판매 입력 없음"; }
+      } catch (e) { document.getElementById("k-sales").textContent = "0건"; document.getElementById("k-sales-sub").textContent = "판매 입력 없음"; }
+
+      const docs = await jget("/ocr_document?tenant_id=eq." + TENANT + "&document_status=eq.POSTED&select=total_amount,invoice_date,created_at,parsed_json&order=created_at.desc&limit=500");
+      const mdocs = docs.filter(d => ((d.invoice_date || (d.created_at || "").slice(0, 10)) >= m0));
+      const buyAmt = mdocs.reduce((s, d) => s + (Number(d.total_amount) || 0), 0);
+      const sups = new Set(mdocs.map(d => (d.parsed_json && d.parsed_json.documentFields && d.parsed_json.documentFields.supplierName) || "").filter(Boolean));
+      document.getElementById("k-buy").textContent = mdocs.length + "건";
+      document.getElementById("k-buy-sub").textContent = "공급사 " + sups.size + "곳 · " + won(buyAmt) + "원";
+
+      const mv = await jget("/inventory_movement?tenant_id=eq." + TENANT + "&select=raw_product_name,movement_type,quantity&limit=5000");
+      const bal = {};
+      mv.forEach(m => { const k = m.raw_product_name || "-"; const q = Number(m.quantity) || 0; bal[k] = (bal[k] || 0) + (m.movement_type === "OUT" ? -q : q); });
+      const names = Object.keys(bal); const low = names.filter(k => bal[k] <= 0).length;
+      document.getElementById("k-stock").textContent = names.length + "개 품목";
+      document.getElementById("k-stock-sub").textContent = low > 0 ? ("부족 " + low + "개") : "정상";
+
+      const logs = await jget("/daily_sanitation_logs?tenant_id=eq." + TENANT + "&work_date=eq." + today + "&select=id&limit=1");
+      const alertEl = document.getElementById("k-alert"), subEl = document.getElementById("k-alert-sub");
+      if (!logs.length) { alertEl.textContent = "미작성"; alertEl.classList.add("warn"); subEl.textContent = "정육일지 작성 필요"; }
+      else {
+        const lim = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+        const exp = await jget("/inventory_movement?tenant_id=eq." + TENANT + "&expiry_date=not.is.null&expiry_date=lte." + lim + "&select=id");
+        alertEl.textContent = exp.length + "건"; subEl.textContent = exp.length ? "임박·만료 확인" : "임박·만료 없음";
       }
-    </script>
-  </head>
-  <body>
-    <div class="app-shell">
-      <aside class="sidebar" aria-label="주요 메뉴">
-        <div class="brand">
-          <div class="brand-mark">고</div>
-          <div>
-            <strong>고기장터</strong>
-            <span>Powered by Eco SmartPD  MEATOS</span>
-          </div>
-        </div>
-        <nav class="nav-list">
-          <button class="nav-item active" data-view="dashboard">입력</button>
-          <button class="nav-item" data-view="inventory">재고</button>
-          <button class="nav-item" data-view="sales">매출</button>
-          <button class="nav-item" data-view="more">더보기</button>
-        </nav>
-      </aside>
-
-      <main class="main">
-        <header class="topbar">
-          <button class="mobile-back-button" id="mobile-back-button" type="button" aria-label="고기장터 홈으로 돌아가기">‹</button>
-          <div>
-            <p class="eyebrow">AI 업무비서</p>
-            <h1 id="view-title">고기장터</h1>
-          </div>
-          <div class="top-actions">
-            <span class="status-dot"></span>
-            <span>사진 찍고 확인하면 끝</span>
-            <button class="secondary-button" id="run-supabase-check">연결 확인</button>
-            <button class="primary-button" id="run-health-check">업무 점검</button>
-          </div>
-        </header>
-
-        <section class="hero-band" aria-labelledby="hero-title">
-          <div>
-            <p class="eyebrow">사진 찍기  확인  완료</p>
-            <h2 id="hero-title">정육점 사장님의 계산대 옆 AI 비서입니다.</h2>
-            <p>
-              사용자는 복잡한 ERP를 보지 않습니다. 가장 자주 쓰는 일만 크게 보여주고, 나머지는 뒤에서 자동으로 처리합니다.
-            </p>
-          </div>
-          <div class="adapter-map" aria-label="핵심 메뉴">
-            <span>입력</span>
-            <span>재고</span>
-            <span>매출</span>
-            <strong>더보기</strong>
-          </div>
-        </section>
-
-        <section id="app-view" class="content-grid"></section>
-      </main>
-    </div>
-
-    <div class="mobile-tabbar" aria-label="모바일 빠른 메뉴">
-      <button class="mobile-tab active" data-view="dashboard"><span aria-hidden="true">＋</span><strong>입력</strong></button>
-      <button class="mobile-tab" data-view="inventory"><span aria-hidden="true">▣</span><strong>재고</strong></button>
-      <button class="mobile-tab" data-view="sales"><span aria-hidden="true">▥</span><strong>매출</strong></button>
-      <button class="mobile-tab" data-view="more"><span aria-hidden="true">•••</span><strong>더보기</strong></button>
-    </div>
-
-    <template id="toast-template">
-      <div class="toast" role="status"></div>
-    </template>
-
-    <script src="runtime-config.js"></script>
-    <script src="app.js" type="module"></script>
-    <script>
-      // 대시보드 진입점 연결. "고기가 들어왔어요"는 카메라/파일창을 즉시 열고(한 번 탭),
-      // 선택하면 스캔 화면으로 넘어가 자동 인식한다. 카드들은 목록/재고로 이동.
-      (function () {
-        async function downscale(file) {
-          var MAX = 1600;
-          var bmp = await createImageBitmap(file);
-          var scale = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
-          var w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
-          var c = document.createElement("canvas"); c.width = w; c.height = h;
-          c.getContext("2d").drawImage(bmp, 0, 0, w, h);
-          return c.toDataURL("image/jpeg", 0.85);
-        }
-        function makeInput(useCamera) {
-          var i = document.createElement("input");
-          i.type = "file"; i.accept = "image/*";
-          if (useCamera) i.setAttribute("capture", "environment");
-          i.style.display = "none";
-          i.addEventListener("change", async function () {
-            var file = i.files && i.files[0]; if (!file) return;
-            try {
-              var d = await downscale(file);
-              sessionStorage.setItem("meatos_pending_image", d);
-              sessionStorage.setItem("meatos_pending_name", file.name || "scan.jpg");
-            } catch (e) {}
-            window.location.assign("scan.html");
-          });
-          document.body.appendChild(i);
-          return i;
-        }
-        var camInput = makeInput(true), fileInput = makeInput(false);
-
-        // 카메라/파일 선택 오버레이
-        var ov = document.createElement("div");
-        ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px";
-        ov.innerHTML =
-          "<div style='background:#fff;border-radius:16px;padding:20px;width:100%;max-width:360px'>" +
-          "<div style='font-size:18px;font-weight:800;margin-bottom:6px'>거래명세서 입력</div>" +
-          "<div style='color:#6b7280;font-size:13px;margin-bottom:14px'>입력 방식을 선택하세요</div>" +
-          "<button id='opt-cam' style='display:block;width:100%;padding:18px;margin-bottom:10px;font-size:17px;font-weight:800;border:none;border-radius:12px;background:#16a34a;color:#fff'>📷 사진 찍기</button>" +
-          "<button id='opt-file' style='display:block;width:100%;padding:18px;margin-bottom:10px;font-size:17px;font-weight:800;border:none;border-radius:12px;background:#2563eb;color:#fff'>📁 파일 불러오기</button>" +
-          "<button id='opt-close' style='display:block;width:100%;padding:12px;font-size:15px;border:none;border-radius:12px;background:#e5e7eb;color:#111827'>닫기</button>" +
-          "</div>";
-        document.body.appendChild(ov);
-        var show = function () { ov.style.display = "flex"; }, hide = function () { ov.style.display = "none"; };
-        ov.addEventListener("click", function (e) { if (e.target === ov) hide(); });
-        ov.querySelector("#opt-cam").addEventListener("click", function () { hide(); camInput.value = ""; camInput.click(); });
-        ov.querySelector("#opt-file").addEventListener("click", function () { hide(); fileInput.value = ""; fileInput.click(); });
-        ov.querySelector("#opt-close").addEventListener("click", hide);
-
-        document.addEventListener("click", function (e) {
-          var el = e.target;
-          if (!el || !el.closest) return;
-          if (el.closest("[data-ocr-input-open]")) {          // "고기가 들어왔어요" · 입력 → 선택창
-            e.preventDefault(); e.stopImmediatePropagation();
-            show();
-            return;
-          }
-          var dest = null;
-          if (el.closest(".mobile-kpi-card.purchase")) dest = "records.html";   // 매입현황 → 저장 목록
-          else if (el.closest(".mobile-kpi-card.inventory")) dest = "stock.html"; // 재고현황 → 재고 현황
-          else if (el.closest(".mobile-kpi-card.review")) dest = "alerts.html";   // 알림현황 → 유통기한 알림
-          if (dest) { e.preventDefault(); e.stopImmediatePropagation(); window.location.assign(dest); }
-        }, true);
-
-        // 대시보드 '알림현황' 카드에 유통기한 임박·만료 건수 표시
-        var SB = window.__MEATOS_SUPABASE__ || {};
-        var REST_URL = (SB.url || "https://pkrsiqjzllyiafwpskll.supabase.co") + "/rest/v1";
-        var ANON_KEY = SB.anonKey || "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
-        var TENANT_ID = "881f6cc1-b552-468c-b9b4-152edb464e61";
-        function _localToday(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-        async function updateAlertBadge() {
-          var el = document.getElementById("dash-alert-count");
-          if (!el) return;
-          var hdr = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
-          try {
-            // 정육일지 미작성이면 최우선 표시
-            var lr = await fetch(REST_URL + "/daily_sanitation_logs?tenant_id=eq." + TENANT_ID + "&work_date=eq." + _localToday() + "&select=id&limit=1", { headers: hdr });
-            if (lr.ok && (await lr.json()).length === 0) { el.textContent = "미작성"; el.style.color = "#b91c1c"; return; }
-            // 작성됐으면 유통기한 임박·만료 건수
-            var lim = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
-            var r = await fetch(REST_URL + "/inventory_movement?tenant_id=eq." + TENANT_ID + "&expiry_date=not.is.null&expiry_date=lte." + lim + "&select=id", { headers: hdr });
-            if (r.ok) { var rows = await r.json(); el.textContent = rows.length + "건"; el.style.color = ""; }
-          } catch (e) { /* ignore */ }
-        }
-        setInterval(updateAlertBadge, 3000);
-        updateAlertBadge();
-      })();
-    </script>
-  </body>
+    })();
+  </script>
+</body>
 </html>

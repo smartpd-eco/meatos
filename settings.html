@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>환경설정</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  h1 { font-size:19px; margin:2px 0 12px; }
+  .sec { color:#6b7280; font-size:12px; font-weight:700; margin:16px 4px 6px; }
+  .group { background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  a.item, div.item { display:flex; justify-content:space-between; align-items:center; padding:16px; text-decoration:none; color:#111827; border-bottom:1px solid #f1f5f9; }
+  a.item:last-child, div.item:last-child { border-bottom:none; }
+  .item .l { font-weight:600; } .item .r { color:#9ca3af; font-size:13px; }
+  .item small { display:block; color:#9ca3af; font-weight:400; font-size:12px; margin-top:2px; }
+</style>
+</head>
+<body>
+  <h1>⚙️ 환경설정</h1>
+
+  <div class="sec">기준 관리</div>
+  <div class="group">
+    <a class="item" href="policy.html"><span class="l">유통기한 기준 설정<small>축종·부위·보관별 소비기한 일수</small></span><span class="r">›</span></a>
+  </div>
+
+  <div class="sec">위생·기록</div>
+  <div class="group">
+    <a class="item" href="sanitation.html"><span class="l">금일 정육일지 작성<small>위생·작업 점검표</small></span><span class="r">›</span></a>
+    <a class="item" href="sanitation-list.html"><span class="l">지난 정육일지<small>기간별 조회·인쇄</small></span><span class="r">›</span></a>
+  </div>
+
+  <div class="sec">사업장 정보</div>
+  <div class="group">
+    <div class="item"><span class="l">상호<small>사업자 정보</small></span><span class="r">(주)좋은축산유통</span></div>
+    <div class="item"><span class="l">앱 버전</span><span class="r">고기장터 MEATOS</span></div>
+  </div>
+
+  <div class="sec">계정</div>
+  <div class="group">
+    <div class="item" id="logout" style="cursor:pointer"><span class="l">로그아웃</span><span class="r">준비중</span></div>
+  </div>
+
+<script src="header.js"></script>
+<script>
+  (async () => { try {
+    if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
+    if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
+  } catch(e){} })();
+  document.getElementById("logout").addEventListener("click", ()=>alert("로그아웃 기능은 준비 중입니다."));
+</script>
+</body>
+</html>

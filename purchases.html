@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>매입현황</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  .htop { display:flex; justify-content:space-between; align-items:center; margin:2px 0 12px; gap:8px; }
+  h1 { font-size:19px; margin:0; }
+  .btn { padding:10px 14px; border:none; border-radius:10px; background:#2563eb; color:#fff; font-weight:700; text-decoration:none; font-size:14px; white-space:nowrap; }
+  .kpis { display:flex; gap:8px; margin-bottom:14px; }
+  .kpi { flex:1; background:#fff; border-radius:12px; padding:14px 8px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .kpi b { display:block; font-size:20px; } .kpi .amt { font-size:13px; color:#b45309; font-weight:700; margin-top:2px; } .kpi span { font-size:12px; color:#6b7280; }
+  .card { background:#fff; border-radius:14px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { font-size:15px; margin:0 0 10px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th,td { border-bottom:1px solid #eef2f7; padding:9px 6px; text-align:left; white-space:nowrap; }
+  th { background:#f8fafc; color:#374151; } td.num,th.num { text-align:right; }
+  td.name { white-space:normal; font-weight:600; }
+  tr.clickable { cursor:pointer; } tr.clickable:hover td { background:#f9fafb; }
+  .muted { color:#6b7280; padding:12px; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="htop">
+    <h1>📥 매입현황</h1>
+    <a class="btn" href="records.html">🧾 거래명세서 보기</a>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><b id="k-m">-</b><div class="amt" id="k-m-amt">-</div><span>이번 달</span></div>
+    <div class="kpi"><b id="k-w">-</b><div class="amt" id="k-w-amt">-</div><span>이번 주</span></div>
+    <div class="kpi"><b id="k-d">-</b><div class="amt" id="k-d-amt">-</div><span>오늘</span></div>
+  </div>
+
+  <div class="card">
+    <h2>🧾 매입 내역 <span style="font-weight:400;color:#6b7280;font-size:13px">(최신순 · 누르면 거래명세서)</span></h2>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>날짜</th><th class="name">공급자</th><th class="num">품목수</th><th class="num">금액</th></tr></thead>
+      <tbody id="tb"><tr><td colspan="4" class="muted">불러오는 중…</td></tr></tbody>
+    </table></div>
+  </div>
+
+<script src="header.js"></script>
+<script>
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const TENANT = "881f6cc1-b552-468c-b9b4-152edb464e61";
+const H = { apikey: ANON, Authorization: "Bearer " + ANON };
+const won = (v) => Number(v||0).toLocaleString("ko-KR");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+function pad(n){ return String(n).padStart(2,"0"); }
+function fmt(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+const today = fmt(new Date());
+function weekStart(){ const d=new Date(); const dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow); return fmt(d); }
+function monthStart(){ const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-01"; }
+
+(async () => { try {
+  if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
+  if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
+} catch(e){} })();
+
+const supplierOf = (d) => (d.parsed_json && d.parsed_json.documentFields && d.parsed_json.documentFields.supplierName) || "-";
+const itemsOf = (d) => (d.parsed_json && Array.isArray(d.parsed_json.lineItems)) ? d.parsed_json.lineItems.length : 0;
+const dateOf = (d) => d.invoice_date || (d.created_at ? d.created_at.slice(0,10) : "-");
+
+let ALL = [];
+async function load(){
+  try{
+    const r = await fetch(REST+"/ocr_document?tenant_id=eq."+TENANT+"&document_status=eq.POSTED&select=id,invoice_date,total_amount,parsed_json,created_at&order=created_at.desc&limit=500",{headers:H});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    ALL = await r.json();
+    renderKpis(); renderList();
+  }catch(e){ document.getElementById("tb").innerHTML="<tr><td colspan='4' class='muted'>불러오기 실패: "+esc(e.message)+"</td></tr>"; }
+}
+function sumRange(from){ const rows=ALL.filter(x=>dateOf(x)>=from); return { cnt:rows.length, amt:rows.reduce((s,x)=>s+(Number(x.total_amount)||0),0) }; }
+function renderKpis(){
+  const m=sumRange(monthStart()), w=sumRange(weekStart()), d=sumRange(today);
+  document.getElementById("k-m").textContent=m.cnt+"건"; document.getElementById("k-m-amt").textContent=won(m.amt)+"원";
+  document.getElementById("k-w").textContent=w.cnt+"건"; document.getElementById("k-w-amt").textContent=won(w.amt)+"원";
+  document.getElementById("k-d").textContent=d.cnt+"건"; document.getElementById("k-d-amt").textContent=won(d.amt)+"원";
+}
+function renderList(){
+  const tb=document.getElementById("tb");
+  if(!ALL.length){ tb.innerHTML="<tr><td colspan='4' class='muted'>매입 내역이 없습니다.</td></tr>"; return; }
+  tb.innerHTML = ALL.map(d=>"<tr class='clickable'><td>"+esc(dateOf(d))+"</td><td class='name'>"+esc(supplierOf(d))+"</td><td class='num'>"+itemsOf(d)+"</td><td class='num'>"+won(d.total_amount)+"</td></tr>").join("");
+  tb.querySelectorAll("tr.clickable").forEach((tr)=>tr.addEventListener("click",()=>location.assign("records.html")));
+}
+load();
+</script>
+</body>
+</html>
