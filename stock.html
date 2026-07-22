@@ -59,7 +59,7 @@
       <div class="kpi"><b id="d-cnt">-</b><span>입출고 건수</span></div>
     </div>
     <div class="twrap">
-      <table><thead><tr><th>날짜</th><th>구분</th><th class="num">중량(kg)</th><th class="num">단가</th><th class="num">금액</th><th>공급처</th><th>품질이력</th></tr></thead>
+      <table><thead><tr><th>날짜</th><th>구분</th><th class="num">중량(kg)</th><th class="num">단가</th><th class="num">금액</th><th>유통기한</th><th>공급처</th><th>품질이력</th></tr></thead>
       <tbody id="d-tb"></tbody></table>
     </div>
   </div>
@@ -72,6 +72,17 @@ const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
 const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const kg = (v) => (Math.round((Number(v)||0)*100)/100).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+function dLeft(exp){ const d=new Date(exp+"T00:00:00"); if(isNaN(d)) return null; const t=new Date(); t.setHours(0,0,0,0); return Math.round((d-t)/86400000); }
+function expiryCell(exp){
+  if(!exp) return "<span style='color:#9ca3af'>-</span>";
+  const n=dLeft(exp); if(n===null) return esc(exp);
+  let bg,txt,label;
+  if(n<0){ bg="#fee2e2";txt="#b91c1c";label="만료 "+(-n)+"일"; }
+  else if(n<=1){ bg="#ffedd5";txt="#c2410c";label="D-"+n; }
+  else if(n<=3){ bg="#fef9c3";txt="#a16207";label="D-"+n; }
+  else { bg="#dcfce7";txt="#166534";label="D-"+n; }
+  return "<span style='background:"+bg+";color:"+txt+";padding:2px 8px;border-radius:999px;font-weight:700;white-space:nowrap;font-size:12px'>"+esc(exp)+" · "+label+"</span>";
+}
 
 // 품질이력(이력번호) → 축산물통합이력정보 조회 (앱 내 패널로 표시)
 const TRACE_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/trace-lookup";
@@ -137,7 +148,7 @@ function sign(m){ return m.movement_type === "OUT" ? -1 : 1; }
 async function load() {
   try {
     const url = REST + "/inventory_movement?tenant_id=eq." + TENANT_ID +
-      "&select=raw_product_name,origin,unit,quantity,unit_price,amount,movement_type,movement_date,supplier_name,trace_no,created_at&limit=5000";
+      "&select=raw_product_name,origin,unit,quantity,unit_price,amount,movement_type,movement_date,supplier_name,trace_no,slaughter_date,expiry_date,created_at&limit=5000";
     const r = await fetch(url, { headers: H });
     if (!r.ok) throw new Error("HTTP " + r.status);
     MOVES = await r.json();
@@ -189,7 +200,7 @@ function showDetail(key) {
     "<tr><td>" + esc(m.movement_date || (m.created_at ? m.created_at.slice(0,10) : "-")) + "</td>" +
     "<td class='" + (m.movement_type === "OUT" ? "out" : "in") + "'>" + (m.movement_type === "OUT" ? "출고" : "입고") + "</td>" +
     "<td class='num'>" + kg(m.quantity) + "</td><td class='num'>" + won(m.unit_price) + "</td>" +
-    "<td class='num'>" + won(m.amount) + "</td><td>" + esc(m.supplier_name || m.origin || "-") + "</td>" +
+    "<td class='num'>" + won(m.amount) + "</td><td>" + expiryCell(m.expiry_date) + "</td><td>" + esc(m.supplier_name || m.origin || "-") + "</td>" +
     "<td>" + (m.trace_no ? "<a href='#' class='tracelink' data-no=\"" + esc(m.trace_no) + "\">" + esc(m.trace_no) + " 🔎</a>" : "-") + "</td></tr>"
   ).join("");
   document.getElementById("listView").style.display = "none";

@@ -146,14 +146,17 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
     }));
     const r2 = await fetch(REST + "/ocr_line_item", { method: "POST", headers: H, body: JSON.stringify(lineRows) });
     if (!r2.ok) throw new Error("품목 " + r2.status + ": " + (await r2.text()).slice(0, 150));
-    // 저장과 동시에 재고 반영(IN)
+    // 저장과 동시에 재고 반영(IN) + 도축일/유통기한 계산
+    msg.textContent = "유통기한 계산 중...";
+    const exp = await computeExpiryForLines(LINES, dateOk ? DOC.invoiceDate : null);
     const mv = LINES.map((it, i) => ({
       tenant_id: TENANT_ID, movement_type: "IN",
       raw_product_name: (it.rawProductName && String(it.rawProductName).trim()) || "-",
       origin: it.origin || null, unit: it.unit || null,
       quantity: Number(it.quantity) || 0, unit_price: Number(it.unitPrice) || 0, amount: Number(it.supplyAmount) || 0,
       trace_no: it.traceOrImportNo || null, supplier_name: DOC.supplierName || null,
-      ocr_document_id: docId, ocr_line_no: i + 1, movement_date: dateOk ? DOC.invoiceDate : null
+      ocr_document_id: docId, ocr_line_no: i + 1, movement_date: dateOk ? DOC.invoiceDate : null,
+      slaughter_date: exp[i].slaughter_date, expiry_date: exp[i].expiry_date
     }));
     const r3 = await fetch(REST + "/inventory_movement", { method: "POST", headers: H, body: JSON.stringify(mv) });
     if (!r3.ok) throw new Error("재고반영 " + r3.status + ": " + (await r3.text()).slice(0, 150));
@@ -209,6 +212,46 @@ async function openTrace(no){
   }
 }
 document.addEventListener("click", function(e){ const a=e.target.closest && e.target.closest(".tracelink"); if(a){ e.preventDefault(); openTrace(a.dataset.no); } });
+
+// ===== 유통기한 계산 =====
+let EXPIRY_POLICY = null;
+async function loadExpiryPolicy(){
+  if (EXPIRY_POLICY) return EXPIRY_POLICY;
+  try {
+    const r = await fetch(REST+"/expiry_policy?tenant_id=eq."+TENANT_ID+"&enabled=eq.true&select=species,part_name,storage_type,default_days",{headers:{apikey:ANON_KEY,Authorization:"Bearer "+ANON_KEY}});
+    EXPIRY_POLICY = r.ok ? await r.json() : [];
+  } catch(e){ EXPIRY_POLICY = []; }
+  return EXPIRY_POLICY;
+}
+function normSpecies(s){ s=String(s||""); if(/돼지|돈|포크|pig/i.test(s)) return "돼지"; if(/한우|소|우|beef|cattle/i.test(s)) return "소"; if(/닭|계|치킨|chicken/i.test(s)) return "닭"; return ""; }
+function normStorage(name){ return /냉동|frozen/i.test(String(name||"")) ? "냉동" : "냉장"; }
+function expiryDays(policy, sp, storage, partText){
+  const cands = (policy||[]).filter(p=>p.species===sp && p.storage_type===storage);
+  const hit = cands.find(p=>p.part_name!=="전부위" && partText && partText.indexOf(p.part_name)>=0);
+  if (hit) return hit.default_days;
+  const generic = cands.find(p=>p.part_name==="전부위");
+  if (generic) return generic.default_days;
+  return storage==="냉동" ? (sp==="소"?365:180) : 10; // 기본값
+}
+function addDays(dateStr, days){ const d=new Date(dateStr+"T00:00:00"); if(isNaN(d)) return null; d.setDate(d.getDate()+Number(days||0)); return d.toISOString().slice(0,10); }
+async function computeExpiryForLines(lines, invoiceDate){
+  const policy = await loadExpiryPolicy();
+  const slaughter = await Promise.all(lines.map(async (it)=>{
+    if(!it.traceOrImportNo) return null;
+    try {
+      const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(it.traceOrImportNo),{headers:{Authorization:"Bearer "+ANON_KEY,apikey:ANON_KEY},signal:AbortSignal.timeout(12000)});
+      const b=await r.json(); const y=b.info&&b.info.butcheryYmd;
+      return (y&&/^\d{8}$/.test(y)) ? y.slice(0,4)+"-"+y.slice(4,6)+"-"+y.slice(6,8) : null;
+    } catch(e){ return null; }
+  }));
+  return lines.map((it,i)=>{
+    const base = slaughter[i] || (/^\d{4}-\d{2}-\d{2}$/.test(invoiceDate||"") ? invoiceDate : null);
+    const sp = normSpecies(it.species || it.rawProductName);
+    const storage = normStorage((it.rawProductName||"")+" "+(it.unit||"")+" "+(it.condition||""));
+    const days = expiryDays(policy, sp, storage, (it.part||"")+" "+(it.rawProductName||""));
+    return { slaughter_date: slaughter[i], expiry_date: base ? addDays(base, days) : null };
+  });
+}
 
 document.getElementById("file").addEventListener("change", async (ev) => {
   const file = ev.target.files && ev.target.files[0];
