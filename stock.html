@@ -28,6 +28,7 @@
   .muted { color:#6b7280; font-size:14px; padding:10px; }
   .back { margin:4px 0 10px; display:inline-block; color:#2563eb; cursor:pointer; font-weight:700; }
   .in { color:#166534; font-weight:700; } .out { color:#b91c1c; font-weight:700; }
+  .tracelink { color:#2563eb; text-decoration:none; font-weight:700; white-space:nowrap; }
   .prodhead { font-size:18px; font-weight:800; margin:4px 0 10px; }
 </style>
 </head>
@@ -58,7 +59,7 @@
       <div class="kpi"><b id="d-cnt">-</b><span>입출고 건수</span></div>
     </div>
     <div class="twrap">
-      <table><thead><tr><th>날짜</th><th>구분</th><th class="num">중량(kg)</th><th class="num">단가</th><th class="num">금액</th><th>공급처</th></tr></thead>
+      <table><thead><tr><th>날짜</th><th>구분</th><th class="num">중량(kg)</th><th class="num">단가</th><th class="num">금액</th><th>공급처</th><th>품질이력</th></tr></thead>
       <tbody id="d-tb"></tbody></table>
     </div>
   </div>
@@ -71,6 +72,21 @@ const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
 const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const kg = (v) => (Math.round((Number(v)||0)*100)/100).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+
+// 품질이력(이력번호) → 축산물이력제 도축/이력 조회
+function traceUrl(no){ return /^L/i.test(String(no||"").trim()) ? "https://www.mtrace.go.kr/hstryinq/hstryInqPig.do" : "https://www.mtrace.go.kr/hstryinq/hstryInqCattle.do"; }
+async function openTrace(no){
+  const t = String(no||"").trim(); if(!t) return;
+  try { await navigator.clipboard.writeText(t); toast("이력번호 "+t+" 복사됨 · 조회창에 붙여넣기하세요"); }
+  catch(e){ toast("조회 페이지에서 "+t+" 를 입력하세요"); }
+  window.open(traceUrl(t), "_blank");
+}
+function toast(msg){
+  let d = document.getElementById("mt-toast");
+  if(!d){ d=document.createElement("div"); d.id="mt-toast"; d.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 16px;border-radius:10px;font-size:14px;z-index:100000;max-width:90%;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.3)"; document.body.appendChild(d); }
+  d.textContent=msg; d.style.display="block"; clearTimeout(d._t); d._t=setTimeout(()=>{d.style.display="none";},3500);
+}
+document.addEventListener("click", function(e){ const a=e.target.closest && e.target.closest(".tracelink"); if(a){ e.preventDefault(); openTrace(a.dataset.no); } });
 
 const ORIGIN_WORDS = /^(국내산|미국산|수입산|수입|호주산|캐나다산|브라질산|덴마크산|스페인산|칠레산|네덜란드산|멕시코산)$/;
 // 냉동/냉장 구분은 유지하고, 뒤에 붙은 원산지 꼬리표만 제거해 동일 품목을 하나로 묶는다.
@@ -91,7 +107,7 @@ function sign(m){ return m.movement_type === "OUT" ? -1 : 1; }
 async function load() {
   try {
     const url = REST + "/inventory_movement?tenant_id=eq." + TENANT_ID +
-      "&select=raw_product_name,origin,unit,quantity,unit_price,amount,movement_type,movement_date,supplier_name,created_at&limit=5000";
+      "&select=raw_product_name,origin,unit,quantity,unit_price,amount,movement_type,movement_date,supplier_name,trace_no,created_at&limit=5000";
     const r = await fetch(url, { headers: H });
     if (!r.ok) throw new Error("HTTP " + r.status);
     MOVES = await r.json();
@@ -143,7 +159,8 @@ function showDetail(key) {
     "<tr><td>" + esc(m.movement_date || (m.created_at ? m.created_at.slice(0,10) : "-")) + "</td>" +
     "<td class='" + (m.movement_type === "OUT" ? "out" : "in") + "'>" + (m.movement_type === "OUT" ? "출고" : "입고") + "</td>" +
     "<td class='num'>" + kg(m.quantity) + "</td><td class='num'>" + won(m.unit_price) + "</td>" +
-    "<td class='num'>" + won(m.amount) + "</td><td>" + esc(m.supplier_name || m.origin || "-") + "</td></tr>"
+    "<td class='num'>" + won(m.amount) + "</td><td>" + esc(m.supplier_name || m.origin || "-") + "</td>" +
+    "<td>" + (m.trace_no ? "<a href='#' class='tracelink' data-no=\"" + esc(m.trace_no) + "\">" + esc(m.trace_no) + " 🔎</a>" : "-") + "</td></tr>"
   ).join("");
   document.getElementById("listView").style.display = "none";
   document.getElementById("detailView").style.display = "block";
