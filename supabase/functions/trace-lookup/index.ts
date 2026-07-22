@@ -63,7 +63,8 @@ Deno.serve(async (req: Request) => {
       const mr = await fetch(`http://www.meatwatch.go.kr/rest/selectDistbHistInfoWsrvDetail/${encodeURIComponent(sysId)}/${encodeURIComponent(traceNo)}/list.do`);
       const mj = await mr.json();
       if (mj && String(mj.returnCode) === "0" && mj.distbIdntfcNo) {
-        const range = (a?: string, b?: string) => [a, b].filter(Boolean).join(" ~ ");
+        const d8 = (s?: string) => { const v = String(s ?? "").trim(); return /^\d{8}$/.test(v) ? `${v.slice(0,4)}-${v.slice(4,6)}-${v.slice(6,8)}` : v; };
+        const range = (a?: string, b?: string) => [d8(a), d8(b)].filter(Boolean).join(" ~ ");
         return json({
           ok: true, traceNo, source: "import", resultMsg: "수입 이력정보",
           info: {
@@ -80,7 +81,7 @@ Deno.serve(async (req: Request) => {
             importerNm: mj.receiverNm || "",
             blNo: mj.blNo || "",
             consumeYmd: range(mj.limitFromDt, mj.limitToDt),
-            importDt: mj.applyDt || "",
+            importDt: d8(mj.applyDt),
             partCode: mj.regnCode || "",
             salePrhibt: mj.distbSlePrhibtAt || "",
             recallTarget: mj.rtrvlTrgetAt || "",

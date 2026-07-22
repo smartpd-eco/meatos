@@ -133,7 +133,7 @@ function _printDoc(i){
     "<div class='sc'>원산지정보</div>"+
     "<table><tr><th>원산지 국가</th><td colspan='3'>"+_pv(i.nationNm)+"</td></tr></table>"+
     "<div class='sc'>수입이력정보</div>"+
-    "<table><tr><th>수출국 도축장</th><td>"+_pv(i.butcheryPlaceNm)+"</td><th>수출국 도축일자</th><td>"+_pv(i.butcheryYmd)+"</td></tr>"+
+    "<table><tr><th>수출국 도축장</th><td>"+_pv(i.butcheryPlaceNm)+"</td><th>수출국 도축일자</th><td>"+_pv(_ymd(i.butcheryYmd))+"</td></tr>"+
     "<tr><th>수출국 가공장</th><td>"+_pv(i.processPlaceNm)+"</td><th>수출국 가공일자</th><td>"+_pv(i.processYmd)+"</td></tr>"+
     "<tr><th>수출업체</th><td>"+_pv(i.exporterNm)+"</td><th>수입업체</th><td>"+_pv(i.importerNm)+"</td></tr>"+
     "<tr><th>수입일자</th><td colspan='3'>"+_pv(i.importDt)+"</td></tr>"+
@@ -150,7 +150,7 @@ function _printDoc(i){
     "<tr><th>축종</th><td colspan='3'>"+_pv(sp)+"</td></tr></table>"+
     "<div class='sc'>도축정보</div>"+
     "<table><tr><th>도축장</th><td>"+_pv(i.butcheryPlaceNm)+"</td><th>소재지</th><td>"+_pv(i.butcheryPlaceAddr)+"</td></tr>"+
-    "<tr><th>도축일자</th><td>"+_pv(i.butcheryYmd)+"</td><th>도축검사결과</th><td>"+(i.butcheryResult==="Y"?"합격":_pv(i.butcheryResult))+"</td></tr></table>"+
+    "<tr><th>도축일자</th><td>"+_pv(_ymd(i.butcheryYmd))+"</td><th>도축검사결과</th><td>"+(i.butcheryResult==="Y"?"합격":_pv(i.butcheryResult))+"</td></tr></table>"+
     ((i.grade||i.insfat)?("<div class='sc'>등급정보</div><table><tr><th>등급</th><td>"+_pv(i.grade)+"</td><th>근내지방도</th><td>"+_pv(i.insfat)+"</td></tr></table>"):"")+
     "<div class='sc'>식육포장처리 정보</div>"+
     "<table><tr><th>번호</th><th>업소명(등급)</th><th>소재지</th></tr>"+
