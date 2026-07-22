@@ -69,7 +69,8 @@ Deno.serve(async (req: Request) => {
           info: {
             traceNo, kind: "수입",
             species: mj.kprodNm || "",
-            grade: mj.regnNm || "",
+            grade: "",
+            partNm: mj.regnNm || "",
             insfat: "", weight: "", birthYmd: "", sexNm: "",
             butcheryPlaceNm: mj.butchNm || "",
             butcheryPlaceAddr: "",
