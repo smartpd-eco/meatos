@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>알림현황</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  h1 { font-size:19px; margin:2px 0 4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:12px; }
+  .bar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .bar a { flex:1; text-align:center; padding:12px; border-radius:10px; background:#16a34a; color:#fff; text-decoration:none; font-weight:700; }
+  .bar a.alt { background:#e5e7eb; color:#111827; }
+  .kpis { display:flex; gap:8px; margin-bottom:14px; }
+  .kpi { flex:1; border-radius:12px; padding:14px 8px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .kpi b { display:block; font-size:22px; } .kpi span { font-size:12px; }
+  .k-exp { background:#fee2e2; color:#b91c1c; } .k-danger { background:#ffedd5; color:#c2410c; } .k-warn { background:#fef9c3; color:#a16207; }
+  .card { background:#fff; border-radius:12px; padding:12px 14px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,.08); border-left:6px solid #d1d5db; }
+  .card.exp { border-left-color:#dc2626; } .card.danger { border-left-color:#ea580c; } .card.warn { border-left-color:#ca8a04; }
+  .r1 { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .nm { font-weight:800; font-size:15px; }
+  .badge { padding:2px 10px; border-radius:999px; font-weight:800; font-size:12px; white-space:nowrap; }
+  .b-exp { background:#fee2e2; color:#b91c1c; } .b-danger { background:#ffedd5; color:#c2410c; } .b-warn { background:#fef9c3; color:#a16207; } .b-ok { background:#dcfce7; color:#166534; }
+  .meta { color:#6b7280; font-size:13px; margin-top:4px; }
+  .muted { color:#6b7280; font-size:14px; padding:16px; text-align:center; }
+  .tracelink { color:#2563eb; text-decoration:none; font-weight:700; }
+  .sechdr { font-weight:800; margin:14px 0 6px; }
+</style>
+</head>
+<body>
+  <h1>🔔 알림현황</h1>
+  <div class="sub">유통기한 임박·만료 품목입니다. 도축일(없으면 입고일) 기준 자동 계산.</div>
+  <div class="bar"><a href="scan.html">📷 새로 스캔</a><a href="stock.html" class="alt">📦 재고</a><a href="/" class="alt">🏠 홈</a></div>
+
+  <div class="kpis">
+    <div class="kpi k-exp"><b id="k-exp">-</b><span>만료</span></div>
+    <div class="kpi k-danger"><b id="k-danger">-</b><span>위험(D-1)</span></div>
+    <div class="kpi k-warn"><b id="k-warn">-</b><span>임박(D-3)</span></div>
+  </div>
+
+  <div id="list"><p class="muted">불러오는 중...</p></div>
+
+<script>
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const TENANT_ID = "881f6cc1-b552-468c-b9b4-152edb464e61";
+const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
+const won = (v) => Number(v||0).toLocaleString("ko-KR");
+const kg = (v) => (Math.round((Number(v)||0)*100)/100).toLocaleString("ko-KR");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+function dLeft(exp){ const d=new Date(exp+"T00:00:00"); if(isNaN(d)) return null; const t=new Date(); t.setHours(0,0,0,0); return Math.round((d-t)/86400000); }
+
+(async () => { try {
+  if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
+  if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
+} catch(e){} })();
+
+async function load(){
+  try{
+    const url = REST+"/inventory_movement?tenant_id=eq."+TENANT_ID+"&expiry_date=not.is.null&select=raw_product_name,quantity,unit,movement_date,slaughter_date,expiry_date,supplier_name,trace_no&order=expiry_date.asc&limit=1000";
+    const r = await fetch(url,{headers:H});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const rows = (await r.json()).map(m=>({ ...m, n: dLeft(m.expiry_date) })).filter(m=>m.n!==null);
+    const exp = rows.filter(m=>m.n<0), danger = rows.filter(m=>m.n>=0&&m.n<=1), warn = rows.filter(m=>m.n>=2&&m.n<=3);
+    document.getElementById("k-exp").textContent = exp.length;
+    document.getElementById("k-danger").textContent = danger.length;
+    document.getElementById("k-warn").textContent = warn.length;
+    const alerts = rows.filter(m=>m.n<=3).sort((a,b)=>a.n-b.n); // 만료+임박, 급한 순
+    const el = document.getElementById("list");
+    if(!alerts.length){ el.innerHTML = "<p class='muted'>✓ 유통기한 임박·만료 품목이 없습니다.</p>"; return; }
+    el.innerHTML = "<div class='sechdr'>⚠️ 확인 필요 "+alerts.length+"건</div>" + alerts.map(m=>{
+      let cls, bcls, label;
+      if(m.n<0){ cls="exp";bcls="b-exp";label="만료 "+(-m.n)+"일 지남"; }
+      else if(m.n<=1){ cls="danger";bcls="b-danger";label="D-"+m.n; }
+      else { cls="warn";bcls="b-warn";label="D-"+m.n; }
+      const trace = m.trace_no ? " · <a href='#' class='tracelink' data-no=\""+esc(m.trace_no)+"\">이력 🔎</a>" : "";
+      return "<div class='card "+cls+"'><div class='r1'><span class='nm'>"+esc(m.raw_product_name||"-")+"</span><span class='badge "+bcls+"'>"+label+"</span></div>"+
+        "<div class='meta'>유통기한 "+esc(m.expiry_date)+" · 중량 "+kg(m.quantity)+"kg · "+esc(m.supplier_name||"-")+trace+"</div></div>";
+    }).join("");
+  }catch(e){ document.getElementById("list").innerHTML = "<p class='muted'>불러오기 실패: "+esc(e.message)+"</p>"; }
+}
+load();
+
+// 이력번호 조회 패널
+const TRACE_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/trace-lookup";
+function _ymd(s){ s=String(s||""); return /^\d{8}$/.test(s)?s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8):s; }
+function _trow(l,v){ return v?"<div style='display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9'><span style='color:#6b7280'>"+l+"</span><b style='text-align:right'>"+esc(v)+"</b></div>":""; }
+function _species(s){ return String(s||"").replace("PIG","돼지").replace("CATTLE","소").replace("|LOT_NO"," 묶음").replace("|PIG_NO"," 이력").replace("|CATTLE_NO"," 개체"); }
+function _tm(){ let m=document.getElementById("trace-modal"); if(!m){ m=document.createElement("div"); m.id="trace-modal"; m.style.cssText="position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px"; m.innerHTML="<div style='background:#fff;border-radius:14px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:16px'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'><b style='font-size:17px'>🔎 축산물 이력정보</b><button id='trace-close' style='border:none;background:#e5e7eb;border-radius:8px;padding:6px 12px;font-weight:700'>닫기</button></div><div id='trace-body'></div></div>"; document.body.appendChild(m); m.addEventListener("click",e=>{if(e.target===m)m.style.display="none";}); m.querySelector("#trace-close").addEventListener("click",()=>m.style.display="none"); } return m; }
+async function openTrace(no){ const t=String(no||"").trim(); if(!t) return; const m=_tm(),body=m.querySelector("#trace-body"); body.innerHTML="<div style='color:#6b7280;padding:20px;text-align:center'>이력번호 "+esc(t)+"<br>조회 중...</div>"; m.style.display="flex";
+  try{ const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(t),{headers:{Authorization:"Bearer "+ANON_KEY,apikey:ANON_KEY},signal:AbortSignal.timeout(30000)}); const b=await r.json(),i=b.info||{};
+    if(!b.ok){ body.innerHTML="<div style='padding:6px 2px'>이 번호의 <b>국내</b> 이력정보가 없습니다.</div><div style='margin-top:12px'><a href='https://www.meatwatch.go.kr' target='_blank' style='display:block;text-align:center;padding:12px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700'>수입 이력 조회(MEATWATCH)</a></div>"; return; }
+    body.innerHTML="<div style='font-size:15px;font-weight:800;margin-bottom:6px'>이력번호 "+esc(t)+"</div>"+_trow("축종",_species(i.species))+_trow("🔪 도축장",i.butcheryPlaceNm)+_trow("도축장 주소",i.butcheryPlaceAddr)+_trow("도축일자",_ymd(i.butcheryYmd))+_trow("도축검사",i.butcheryResult==="Y"?"합격":i.butcheryResult)+_trow("등급",i.grade)+_trow("🏠 농장주소",i.farmAddr)+_trow("사육자",i.farmerNm)+_trow("포장처리업소",i.processPlaceNm);
+  }catch(e){ body.innerHTML="<div style='padding:10px;color:#b91c1c'>조회 실패: "+esc(e.name==="TimeoutError"?"시간 초과":e.message)+"</div>"; } }
+document.addEventListener("click",function(e){ const a=e.target.closest&&e.target.closest(".tracelink"); if(a){ e.preventDefault(); openTrace(a.dataset.no); } });
+</script>
+</body>
+</html>

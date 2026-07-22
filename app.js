@@ -317,9 +317,9 @@ function renderDashboard() {
           <small>부족 ${lowStockRows.length}개</small>
         </button>
         <button type="button" class="mobile-kpi-card review" data-home-view="ocr">
-          <span>검토 대기 <small>전체</small></span>
-          <strong>${pendingReviewCount}건</strong>
-          <small>확인이 필요합니다</small>
+          <span>알림현황 <small>유통기한</small></span>
+          <strong id="dash-alert-count">-</strong>
+          <small>임박·만료 확인</small>
         </button>
       </div>
 
