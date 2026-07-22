@@ -33,6 +33,12 @@
   tfoot td { font-weight:800; background:#f9fafb; }
   .back { margin:8px 0; display:inline-block; color:#2563eb; cursor:pointer; }
   .tracelink { color:#2563eb; text-decoration:none; font-weight:700; white-space:nowrap; }
+  @media print {
+    body.trace-printing > *:not(#trace-modal) { display:none !important; }
+    body.trace-printing #trace-modal { position:static !important; display:block !important; inset:auto !important; background:#fff !important; padding:0 !important; }
+    body.trace-printing #trace-modal > div { max-width:100% !important; max-height:none !important; box-shadow:none !important; border-radius:0 !important; overflow:visible !important; }
+    body.trace-printing #trace-modal button, body.trace-printing #trace-modal a { display:none !important; }
+  }
 </style>
 </head>
 <body>
@@ -89,15 +95,23 @@ function _traceModal(){
   if(!m){
     m=document.createElement("div"); m.id="trace-modal";
     m.style.cssText="position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px";
-    m.innerHTML="<div style='background:#fff;border-radius:14px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:16px'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'><b style='font-size:17px'>🔎 축산물 이력정보</b><button id='trace-close' style='border:none;background:#e5e7eb;border-radius:8px;padding:6px 12px;font-weight:700'>닫기</button></div><div id='trace-body'></div></div>";
+    m.innerHTML="<div style='background:#fff;border-radius:14px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:16px'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'><b style='font-size:17px'>🔎 축산물 이력정보</b><span style='display:flex;gap:6px'><button id='trace-print' onclick='_printTrace()' style='border:none;background:#2563eb;color:#fff;border-radius:8px;padding:6px 12px;font-weight:700'>🖨️ 출력</button><button id='trace-close' style='border:none;background:#e5e7eb;border-radius:8px;padding:6px 12px;font-weight:700'>닫기</button></span></div><div id='trace-body'></div></div>";
     document.body.appendChild(m);
     m.addEventListener("click",function(e){ if(e.target===m) m.style.display="none"; });
     m.querySelector("#trace-close").addEventListener("click",function(){ m.style.display="none"; });
   }
   return m;
 }
+let _curTraceNo="";
+function _printTrace(){
+  const old=document.title;
+  document.title="축산물이력_"+String(_curTraceNo||"").replace(/[^0-9A-Za-z]/g,"");
+  document.body.classList.add("trace-printing");
+  window.print();
+  setTimeout(function(){ document.body.classList.remove("trace-printing"); document.title=old; }, 800);
+}
 async function openTrace(no){
-  const t=String(no||"").trim(); if(!t) return;
+  const t=String(no||"").trim(); if(!t) return; _curTraceNo=t;
   const m=_traceModal(), body=m.querySelector("#trace-body");
   body.innerHTML="<div style='color:#6b7280;padding:20px;text-align:center'>이력번호 "+esc(t)+"<br>조회 중...</div>";
   m.style.display="flex";
