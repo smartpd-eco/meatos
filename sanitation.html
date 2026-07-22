@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>금일 정육일지</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  h1 { font-size:20px; margin:2px 0 4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:12px; }
+  .bar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .bar a { flex:1; text-align:center; padding:12px; border-radius:10px; background:#e5e7eb; color:#111827; text-decoration:none; font-weight:700; }
+  .card { background:#fff; border-radius:12px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { font-size:16px; margin:0 0 10px; }
+  .head { display:flex; gap:8px; flex-wrap:wrap; }
+  .head label { flex:1; min-width:120px; font-size:13px; color:#6b7280; }
+  .head input, .head select, input[type=text], textarea { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; margin-top:4px; }
+  .chk { display:flex; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid #f1f5f9; font-size:15px; }
+  .chk input { width:22px; height:22px; }
+  .temps { display:flex; gap:10px; }
+  .temps > div { flex:1; }
+  textarea { min-height:64px; resize:vertical; }
+  .ai b { font-size:20px; } .ai .row { display:flex; gap:8px; }
+  .ai .box { flex:1; background:#f8fafc; border-radius:10px; padding:12px; text-align:center; }
+  button.primary { display:block; width:100%; padding:16px; font-size:17px; font-weight:800; border:none; border-radius:12px; background:#16a34a; color:#fff; cursor:pointer; margin-bottom:10px; }
+  button.print { background:#2563eb; }
+  .msg { padding:6px 4px; font-size:14px; }
+  @media print { .noprint{display:none!important;} body{background:#fff;padding:0;} .card{box-shadow:none;border:1px solid #e5e7eb;} }
+</style>
+</head>
+<body>
+  <h1>📋 금일 정육일지</h1>
+  <div class="sub">매일 위생·작업 점검을 기록합니다. 저장하면 홈 알림현황에 "작성 완료"로 표시됩니다.</div>
+  <div class="bar noprint"><a href="/">🏠 홈</a></div>
+
+  <div class="card">
+    <div class="head">
+      <label>작성일<input id="f-date" type="text" readonly></label>
+      <label>담당자<input id="f-worker" type="text" placeholder="이름"></label>
+      <label>근무조<select id="f-shift"><option>전일</option><option>오전</option><option>오후</option></select></label>
+    </div>
+  </div>
+
+  <div id="form"></div>
+
+  <div class="card ai">
+    <h2>⑦ AI 자동 점검</h2>
+    <div class="row">
+      <div class="box"><b id="ai-expiry">-</b><div>유통기한 임박·만료</div></div>
+      <div class="box"><b id="ai-ocr">-</b><div>OCR 검토 대기</div></div>
+      <div class="box"><b id="ai-stock">-</b><div>재고 품목</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>⑧ 특이사항</h2>
+    <textarea id="f-memo" placeholder="특이사항을 입력하세요"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>전자서명</h2>
+    <div class="head">
+      <label>담당자 서명<input id="sig-worker" type="text" placeholder="담당자 성명"></label>
+      <label>관리자 서명<input id="sig-manager" type="text" placeholder="관리자 성명"></label>
+    </div>
+  </div>
+
+  <button class="primary" id="saveBtn">💾 저장</button>
+  <button class="primary print noprint" id="printBtn">🖨️ 인쇄 / PDF 저장</button>
+  <div class="msg" id="saveMsg"></div>
+
+<script>
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const TENANT_ID = "881f6cc1-b552-468c-b9b4-152edb464e61";
+const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
+const HW = { ...H, "Content-Type": "application/json" };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+const today = new Date(); today.setHours(0,0,0,0);
+const todayStr = today.toISOString().slice(0,10);
+document.getElementById("f-date").value = todayStr;
+
+(async () => { try {
+  if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
+  if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
+} catch(e){} })();
+
+const SECTIONS = [
+  { key:"check_personal", title:"① 개인 위생", items:["손 세척 완료","위생복 착용","위생모 착용","마스크 착용","장갑 착용","장신구 제거","건강상태 이상 없음"] },
+  { key:"check_equipment", title:"② 작업장 위생", items:["작업대 청결","칼 세척","도마 세척","톱 세척","분쇄기 세척","진공포장기 세척","바닥 청소","배수구 청소"] },
+  { key:"check_inventory", title:"④ 원료육 점검", items:["변색 없음","이취 없음","포장 이상 없음","이력번호 확인","유통기한 확인"] },
+  { key:"check_store", title:"⑤ 매장 위생", items:["쇼케이스 청결","진열상태 양호","쓰레기 처리 완료","해충 흔적 없음","환기 완료"] },
+  { key:"check_sale", title:"⑥ 판매 전 점검", items:["가격표 확인","원산지 표시","축산물이력 표시","소비기한 확인","할인상품 확인"] }
+];
+
+function renderForm(){
+  const host = document.getElementById("form");
+  // 개인/작업장
+  let html = "";
+  html += sectionCard(SECTIONS[0]);
+  html += sectionCard(SECTIONS[1]);
+  // ③ 냉장고
+  html += "<div class='card'><h2>③ 냉장고 점검</h2><div class='temps'>"+
+    "<div><label>냉장온도(℃)<input id='fridge' type='number' step='0.1' placeholder='예: 2.0'></label></div>"+
+    "<div><label>냉동온도(℃)<input id='freezer' type='number' step='0.1' placeholder='예: -18.0'></label></div></div>"+
+    "<div class='chk'><input type='checkbox' id='fridge-ok'><label for='fridge-ok'>온도 정상</label></div></div>";
+  html += sectionCard(SECTIONS[2]);
+  html += sectionCard(SECTIONS[3]);
+  html += sectionCard(SECTIONS[4]);
+  host.innerHTML = html;
+}
+function sectionCard(s){
+  return "<div class='card' data-sec='"+s.key+"'><h2>"+esc(s.title)+"</h2>"+
+    s.items.map((it,i)=>"<div class='chk'><input type='checkbox' id='"+s.key+"_"+i+"' data-item=\""+esc(it)+"\"><label for='"+s.key+"_"+i+"'>"+esc(it)+"</label></div>").join("")+"</div>";
+}
+renderForm();
+
+async function loadAi(){
+  try{
+    const t=new Date(); t.setHours(0,0,0,0); const lim=new Date(t.getTime()+3*86400000).toISOString().slice(0,10);
+    const exp=await (await fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT_ID+"&expiry_date=not.is.null&expiry_date=lte."+lim+"&select=id",{headers:H})).json();
+    document.getElementById("ai-expiry").textContent=(exp.length||0)+"건";
+    const rev=await (await fetch(REST+"/ocr_document?tenant_id=eq."+TENANT_ID+"&document_status=eq.REVIEW_REQUIRED&select=id",{headers:H})).json();
+    document.getElementById("ai-ocr").textContent=(rev.length||0)+"건";
+    const inv=await (await fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT_ID+"&select=raw_product_name",{headers:H})).json();
+    const kinds=new Set(inv.map(x=>x.raw_product_name)); document.getElementById("ai-stock").textContent=kinds.size+"종";
+  }catch(e){}
+}
+loadAi();
+
+function collectSection(key){
+  const out={}; document.querySelectorAll("[data-sec='"+key+"'] input[data-item]").forEach(inp=>{ out[inp.dataset.item]=inp.checked; }); return out;
+}
+document.getElementById("saveBtn").addEventListener("click", async ()=>{
+  const msg=document.getElementById("saveMsg"); msg.style.color="#6b7280"; msg.textContent="저장 중...";
+  const row={
+    tenant_id:TENANT_ID, work_date:todayStr,
+    worker_name:(document.getElementById("f-worker").value||"").trim()||null,
+    work_shift:document.getElementById("f-shift").value,
+    check_personal:collectSection("check_personal"),
+    check_equipment:collectSection("check_equipment"),
+    check_refrigerator:{ "온도 정상": document.getElementById("fridge-ok").checked },
+    fridge_temp: document.getElementById("fridge").value!==""?Number(document.getElementById("fridge").value):null,
+    freezer_temp: document.getElementById("freezer").value!==""?Number(document.getElementById("freezer").value):null,
+    check_inventory:collectSection("check_inventory"),
+    check_store:collectSection("check_store"),
+    check_sale:collectSection("check_sale"),
+    ai_snapshot:{ expiry:document.getElementById("ai-expiry").textContent, ocr:document.getElementById("ai-ocr").textContent, stock:document.getElementById("ai-stock").textContent },
+    memo:(document.getElementById("f-memo").value||"").trim()||null,
+    signature:{ worker:(document.getElementById("sig-worker").value||"").trim(), manager:(document.getElementById("sig-manager").value||"").trim() }
+  };
+  try{
+    const r=await fetch(REST+"/daily_sanitation_logs",{method:"POST",headers:{...HW,Prefer:"return=minimal"},body:JSON.stringify(row)});
+    if(!r.ok) throw new Error(r.status+": "+(await r.text()).slice(0,150));
+    msg.style.color="#166534"; msg.textContent="✓ 정육일지 저장 완료 ("+todayStr+")";
+  }catch(e){ msg.style.color="#b91c1c"; msg.textContent="저장 실패: "+e.message; }
+});
+document.getElementById("printBtn").addEventListener("click", ()=>window.print());
+</script>
+</body>
+</html>
