@@ -147,7 +147,7 @@ function _printDoc(i){
     const sp=_species(i.species||"");
     inner=
     "<div class='thead'><span>"+now+"</span><span>이력번호 조회</span></div>"+
-    "<div class='brand'>🐄 축산물이력제 &nbsp;<b>"+_pv(sp)+" 이력번호 조회</b></div>"+
+    "<div class='brand'><svg width='40' height='40' viewBox='0 0 100 100'><circle cx='50' cy='50' r='49' fill='#e60012'/><circle cx='50' cy='50' r='41' fill='none' stroke='#fff' stroke-width='2'/><text x='50' y='42' text-anchor='middle' fill='#fff' font-size='23' font-weight='900' font-family='sans-serif'>이력</text><text x='50' y='66' text-anchor='middle' fill='#fff' font-size='23' font-weight='900' font-family='sans-serif'>추적</text><text x='50' y='85' text-anchor='middle' fill='#fff' font-size='9' font-family='sans-serif'>Traceability</text></svg><span class='bt'>축산물이력제</span><span class='bsep'></span><span class='bsub'>"+_pv(sp)+" 이력번호 조회</span></div>"+
     "<div class='sc'>사육정보</div>"+
     "<table><tr><th>이력번호</th><td>"+_pv(i.traceNo)+"</td><th>농장식별번호</th><td>"+_pv(i.farmId)+"</td></tr>"+
     "<tr><th>농장경영자</th><td>"+_pv(i.farmerNm)+"</td><th>농장소재지</th><td>"+_pv(i.farmAddr)+"</td></tr>"+
@@ -168,7 +168,10 @@ function _printDoc(i){
     "#trace-print-area .tbox{display:flex;align-items:center;gap:16px;border:1px solid #cbd5e1;border-radius:6px;padding:14px 18px;margin-bottom:18px}"+
     "#trace-print-area .tbox .tl{color:#2563eb;font-weight:800;font-size:15px}"+
     "#trace-print-area .tbox .tn{border:2px solid #2563eb;border-radius:6px;padding:8px 22px;font-size:20px;font-weight:800;letter-spacing:1px}"+
-    "#trace-print-area .brand{font-size:17px;font-weight:800;margin-bottom:14px}"+
+    "#trace-print-area .brand{display:flex;align-items:center;gap:10px;margin-bottom:14px}"+
+    "#trace-print-area .brand .bt{font-size:19px;font-weight:900;color:#1f2937}"+
+    "#trace-print-area .brand .bsep{width:1px;height:22px;background:#d1d5db}"+
+    "#trace-print-area .brand .bsub{font-size:16px;font-weight:700;color:#374151}"+
     "#trace-print-area .sc{font-size:14px;font-weight:800;border-bottom:2px solid #16a34a;padding-bottom:5px;margin:16px 0 0}"+
     "#trace-print-area .sc em{font-size:11px;color:#ea580c;font-weight:600;font-style:normal;margin-left:6px}"+
     "#trace-print-area table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}"+
