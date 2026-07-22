@@ -32,7 +32,9 @@
 <body>
   <h1>🔔 알림현황</h1>
   <div class="sub">유통기한 임박·만료 품목입니다. 도축일(없으면 입고일) 기준 자동 계산.</div>
-  <div class="bar"><a href="stock.html" class="alt">📦 재고</a><a href="policy.html" class="alt">⚙️ 기준</a><a href="/" class="alt">🏠 홈</a></div>
+  <div class="bar"><a href="sanitation.html">📋 정육일지</a><a href="stock.html" class="alt">📦 재고</a><a href="policy.html" class="alt">⚙️ 기준</a><a href="/" class="alt">🏠 홈</a></div>
+
+  <div id="log-status" style="margin-bottom:12px"></div>
 
   <div class="kpis">
     <div class="kpi k-exp"><b id="k-exp">-</b><span>만료</span></div>
@@ -51,6 +53,20 @@ const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const kg = (v) => (Math.round((Number(v)||0)*100)/100).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 function dLeft(exp){ const d=new Date(exp+"T00:00:00"); if(isNaN(d)) return null; const t=new Date(); t.setHours(0,0,0,0); return Math.round((d-t)/86400000); }
+function localToday(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+async function loadLogStatus(){
+  const host=document.getElementById("log-status");
+  try{
+    const r=await fetch(REST+"/daily_sanitation_logs?tenant_id=eq."+TENANT_ID+"&work_date=eq."+localToday()+"&select=id,worker_name&limit=1",{headers:H});
+    const written = r.ok && (await r.json()).length>0;
+    if(written){
+      host.innerHTML="<div style='background:#dcfce7;color:#166534;border-radius:12px;padding:14px;font-weight:800'>🟢 오늘 정육일지가 작성되었습니다.</div>";
+    } else {
+      host.innerHTML="<div style='background:#fee2e2;color:#b91c1c;border-radius:12px;padding:14px'><div style='font-weight:800;margin-bottom:8px'>🔴 오늘 정육일지를 작성해주세요.</div><a href='sanitation.html' style='display:block;text-align:center;padding:12px;border-radius:10px;background:#16a34a;color:#fff;text-decoration:none;font-weight:800'>📋 정육일지 작성하기</a></div>";
+    }
+  }catch(e){ host.innerHTML=""; }
+}
+loadLogStatus();
 
 (async () => { try {
   if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }

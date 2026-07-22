@@ -160,15 +160,19 @@
         var REST_URL = (SB.url || "https://pkrsiqjzllyiafwpskll.supabase.co") + "/rest/v1";
         var ANON_KEY = SB.anonKey || "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
         var TENANT_ID = "881f6cc1-b552-468c-b9b4-152edb464e61";
+        function _localToday(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
         async function updateAlertBadge() {
           var el = document.getElementById("dash-alert-count");
           if (!el) return;
+          var hdr = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
           try {
-            var t = new Date(); t.setHours(0, 0, 0, 0);
-            var lim = new Date(t.getTime() + 3 * 86400000).toISOString().slice(0, 10);
-            var url = REST_URL + "/inventory_movement?tenant_id=eq." + TENANT_ID + "&expiry_date=not.is.null&expiry_date=lte." + lim + "&select=id";
-            var r = await fetch(url, { headers: { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY } });
-            if (r.ok) { var rows = await r.json(); el.textContent = rows.length + "건"; }
+            // 정육일지 미작성이면 최우선 표시
+            var lr = await fetch(REST_URL + "/daily_sanitation_logs?tenant_id=eq." + TENANT_ID + "&work_date=eq." + _localToday() + "&select=id&limit=1", { headers: hdr });
+            if (lr.ok && (await lr.json()).length === 0) { el.textContent = "미작성"; el.style.color = "#b91c1c"; return; }
+            // 작성됐으면 유통기한 임박·만료 건수
+            var lim = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+            var r = await fetch(REST_URL + "/inventory_movement?tenant_id=eq." + TENANT_ID + "&expiry_date=not.is.null&expiry_date=lte." + lim + "&select=id", { headers: hdr });
+            if (r.ok) { var rows = await r.json(); el.textContent = rows.length + "건"; el.style.color = ""; }
           } catch (e) { /* ignore */ }
         }
         setInterval(updateAlertBadge, 3000);
