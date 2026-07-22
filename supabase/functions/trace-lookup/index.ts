@@ -56,6 +56,40 @@ Deno.serve(async (req: Request) => {
     } catch (e) { lastMsg = e instanceof Error ? e.message : String(e); }
   }
 
+  // 국내 이력이 없으면 수입(MEATWATCH) 조회로 폴백
+  if (!anyData) {
+    const sysId = Deno.env.get("MEATWATCH_SYS_ID") ?? "meatos2026";
+    try {
+      const mr = await fetch(`http://www.meatwatch.go.kr/rest/selectDistbHistInfoWsrvDetail/${encodeURIComponent(sysId)}/${encodeURIComponent(traceNo)}/list.do`);
+      const mj = await mr.json();
+      if (mj && String(mj.returnCode) === "0" && mj.distbIdntfcNo) {
+        const butch = [mj.butchfromDt, mj.butchtoDt].filter(Boolean).join(" ~ ");
+        return json({
+          ok: true, traceNo, source: "import", resultMsg: "수입 이력정보",
+          info: {
+            traceNo, kind: "수입",
+            species: mj.kprodNm || "",
+            grade: mj.regnNm || "",
+            insfat: "", weight: "", birthYmd: "", sexNm: "",
+            butcheryPlaceNm: mj.butchNm || "",
+            butcheryPlaceAddr: "",
+            butcheryYmd: butch,
+            butcheryResult: "",
+            farmAddr: "",
+            farmerNm: "",
+            processPlaceNm: String(mj.prcssNm || "").replace(/^[,\s]+/, ""),
+            processPlaceAddr: "",
+            nationNm: mj.makeplcNm || "",
+            blNo: mj.blNo || "",
+            exporterNm: mj.senderNm || "",
+            importerNm: mj.receiverNm || ""
+          },
+          raw: mj
+        });
+      }
+    } catch (e) { /* fall through to empty domestic result */ }
+  }
+
   const f = merged;
   const info = {
     traceNo,
