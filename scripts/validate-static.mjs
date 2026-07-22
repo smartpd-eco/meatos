@@ -98,7 +98,7 @@ const productEngine = await readFile("src/core/product-engine.js", "utf8");
 const service = await readFile("services/product/product-catalog-service.js", "utf8");
 const manifest = JSON.parse(await readFile("manifest.webmanifest", "utf8"));
 
-for (const check of ["app.js", "manifest.webmanifest", "mobile-tabbar"]) {
+for (const check of ["manifest.webmanifest", "header.js", "banner"]) {
   if (!html.includes(check)) {
     throw new Error(`index.html missing ${check}`);
   }
