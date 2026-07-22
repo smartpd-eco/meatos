@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Cache-Control" content="no-store" />
-<title>재고 현황 (매입 기준)</title>
+<title>재고 현황</title>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
@@ -16,31 +16,51 @@
   input#q { width:100%; padding:12px; border:1px solid #d1d5db; border-radius:10px; font-size:15px; margin-bottom:12px; }
   .summary { display:flex; gap:8px; margin-bottom:12px; }
   .kpi { flex:1; background:#fff; border-radius:12px; padding:12px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .kpi b { display:block; font-size:18px; } .kpi span { color:#6b7280; font-size:12px; }
+  .kpi b { display:block; font-size:17px; } .kpi span { color:#6b7280; font-size:12px; }
   .twrap { background:#fff; border-radius:12px; overflow-x:auto; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  table { width:100%; border-collapse:collapse; font-size:14px; min-width:520px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; min-width:480px; }
   th,td { border-bottom:1px solid #eef2f7; padding:10px 8px; text-align:left; white-space:nowrap; }
-  th { background:#f8fafc; color:#374151; position:sticky; top:0; }
+  th { background:#f8fafc; color:#374151; }
   td.num,th.num { text-align:right; }
-  td.name { white-space:normal; min-width:160px; font-weight:600; }
+  td.name { white-space:normal; min-width:150px; font-weight:600; }
+  tr.clickable { cursor:pointer; } tr.clickable:hover td { background:#f9fafb; }
+  .chill { color:#2563eb; font-weight:700; } .frozen { color:#0891b2; font-weight:700; }
   .muted { color:#6b7280; font-size:14px; padding:10px; }
+  .back { margin:4px 0 10px; display:inline-block; color:#2563eb; cursor:pointer; font-weight:700; }
+  .in { color:#166534; font-weight:700; } .out { color:#b91c1c; font-weight:700; }
+  .prodhead { font-size:18px; font-weight:800; margin:4px 0 10px; }
 </style>
 </head>
 <body>
-  <h1>📦 재고 현황 <span style="font-size:13px;color:#6b7280">(현재고)</span></h1>
-  <div class="sub">재고 반영된 현재고입니다 (매입 IN − 판매 OUT). 명세서 목록에서 "재고 반영"을 눌러야 반영됩니다.</div>
+  <h1>📦 재고 현황</h1>
+  <div class="sub">매입 저장 시 자동으로 반영됩니다. 품목을 누르면 입고/출고 내역을 볼 수 있습니다.</div>
   <div class="bar"><a href="scan.html">📷 새로 스캔</a><a href="records.html" class="alt">📋 명세서 목록</a><a href="/" class="alt">🏠 홈</a></div>
 
-  <div class="summary">
-    <div class="kpi"><b id="k-items">-</b><span>품목 종류</span></div>
-    <div class="kpi"><b id="k-weight">-</b><span>누계 중량(kg)</span></div>
-    <div class="kpi"><b id="k-amount">-</b><span>누계 매입액(원)</span></div>
+  <div id="listView">
+    <div class="summary">
+      <div class="kpi"><b id="k-items">-</b><span>품목 종류</span></div>
+      <div class="kpi"><b id="k-weight">-</b><span>총 중량(kg)</span></div>
+      <div class="kpi"><b id="k-amount">-</b><span>총 금액(원)</span></div>
+    </div>
+    <input id="q" type="text" placeholder="품목명 검색" />
+    <div class="twrap">
+      <table><thead><tr><th>품목</th><th class="num">현재고(kg)</th><th class="num">재고 금액</th><th class="num">건수</th></tr></thead>
+      <tbody id="tb"><tr><td colspan="4" class="muted">불러오는 중...</td></tr></tbody></table>
+    </div>
   </div>
 
-  <input id="q" type="text" placeholder="품목명 검색" />
-  <div class="twrap">
-    <table><thead><tr><th>품목</th><th>원산지</th><th class="num">누계 중량(kg)</th><th class="num">누계 금액</th><th class="num">건수</th></tr></thead>
-    <tbody id="tb"><tr><td colspan="5" class="muted">불러오는 중...</td></tr></tbody></table>
+  <div id="detailView" style="display:none">
+    <span class="back" id="back">‹ 재고 목록</span>
+    <div class="prodhead" id="d-name"></div>
+    <div class="summary">
+      <div class="kpi"><b id="d-qty">-</b><span>현재고(kg)</span></div>
+      <div class="kpi"><b id="d-amt">-</b><span>재고 금액</span></div>
+      <div class="kpi"><b id="d-cnt">-</b><span>입출고 건수</span></div>
+    </div>
+    <div class="twrap">
+      <table><thead><tr><th>날짜</th><th>구분</th><th class="num">중량(kg)</th><th class="num">단가</th><th class="num">금액</th><th>공급처</th></tr></thead>
+      <tbody id="d-tb"></tbody></table>
+    </div>
   </div>
 
 <script>
@@ -52,45 +72,92 @@ const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const kg = (v) => (Math.round((Number(v)||0)*100)/100).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 
+const ORIGIN_WORDS = /^(국내산|미국산|수입산|수입|호주산|캐나다산|브라질산|덴마크산|스페인산|칠레산|네덜란드산|멕시코산)$/;
+// 냉동/냉장 구분은 유지하고, 뒤에 붙은 원산지 꼬리표만 제거해 동일 품목을 하나로 묶는다.
+function normName(s) {
+  return String(s || "").split(/\s+/).filter((t) => t && !ORIGIN_WORDS.test(t)).join(" ").trim() || "(미인식)";
+}
+
 (async () => { try {
   if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
   if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
 } catch(e){} })();
 
-let AGG = [];
+let MOVES = [];      // 원장 전체
+let GROUPS = [];     // 정규화 품목별 집계
+
+function sign(m){ return m.movement_type === "OUT" ? -1 : 1; }
 
 async function load() {
   try {
-    const url = REST + "/inventory_balance?tenant_id=eq." + TENANT_ID +
-      "&select=raw_product_name,origin,on_hand_qty,net_amount,movement_count&order=net_amount.desc&limit=2000";
+    const url = REST + "/inventory_movement?tenant_id=eq." + TENANT_ID +
+      "&select=raw_product_name,origin,unit,quantity,unit_price,amount,movement_type,movement_date,supplier_name,created_at&limit=5000";
     const r = await fetch(url, { headers: H });
     if (!r.ok) throw new Error("HTTP " + r.status);
-    const rows = await r.json();
-    AGG = rows.map((e) => ({
-      name: (e.raw_product_name || "-"), origin: e.origin || "-",
-      weight: Number(e.on_hand_qty) || 0, amount: Number(e.net_amount) || 0, count: Number(e.movement_count) || 0
-    })).sort((a, b) => b.amount - a.amount);
-    document.getElementById("k-items").textContent = AGG.length;
-    document.getElementById("k-weight").textContent = kg(AGG.reduce((s, e) => s + e.weight, 0));
-    document.getElementById("k-amount").textContent = won(AGG.reduce((s, e) => s + e.amount, 0));
-    renderTable(AGG);
+    MOVES = await r.json();
+    const map = new Map();
+    for (const m of MOVES) {
+      const key = normName(m.raw_product_name);
+      const e = map.get(key) || { key, name: key, qty: 0, amount: 0, count: 0 };
+      e.qty += sign(m) * (Number(m.quantity) || 0);
+      e.amount += sign(m) * (Number(m.amount) || 0);
+      e.count += 1;
+      map.set(key, e);
+    }
+    GROUPS = [...map.values()].sort((a, b) => b.amount - a.amount);
+    document.getElementById("k-items").textContent = GROUPS.length;
+    document.getElementById("k-weight").textContent = kg(GROUPS.reduce((s, e) => s + e.qty, 0));
+    document.getElementById("k-amount").textContent = won(GROUPS.reduce((s, e) => s + e.amount, 0));
+    renderList(GROUPS);
   } catch (e) {
-    document.getElementById("tb").innerHTML = "<tr><td colspan='5' class='muted'>불러오기 실패: " + esc(e.message) + "</td></tr>";
+    document.getElementById("tb").innerHTML = "<tr><td colspan='4' class='muted'>불러오기 실패: " + esc(e.message) + "</td></tr>";
   }
 }
 
-function renderTable(list) {
-  const tb = document.getElementById("tb");
-  if (!list.length) { tb.innerHTML = "<tr><td colspan='5' class='muted'>저장된 매입 품목이 없습니다.</td></tr>"; return; }
-  tb.innerHTML = list.map((e) =>
-    "<tr><td class='name'>" + esc(e.name) + "</td><td>" + esc(e.origin) + "</td>" +
-    "<td class='num'>" + kg(e.weight) + "</td><td class='num'>" + won(e.amount) + "</td><td class='num'>" + e.count + "</td></tr>"
-  ).join("");
+function colorName(name) {
+  if (name.indexOf("냉동") === 0) return "<span class='frozen'>냉동</span>" + esc(name.slice(2));
+  if (name.indexOf("냉장") === 0) return "<span class='chill'>냉장</span>" + esc(name.slice(2));
+  return esc(name);
 }
+
+function renderList(list) {
+  const tb = document.getElementById("tb");
+  if (!list.length) { tb.innerHTML = "<tr><td colspan='4' class='muted'>반영된 재고가 없습니다.</td></tr>"; return; }
+  tb.innerHTML = list.map((e) =>
+    "<tr class='clickable' data-key=\"" + esc(e.key) + "\"><td class='name'>" + colorName(e.name) + "</td>" +
+    "<td class='num'>" + kg(e.qty) + "</td><td class='num'>" + won(e.amount) + "</td><td class='num'>" + e.count + "</td></tr>"
+  ).join("");
+  tb.querySelectorAll("tr.clickable").forEach((tr) => tr.addEventListener("click", () => showDetail(tr.dataset.key)));
+}
+
+function showDetail(key) {
+  const rows = MOVES.filter((m) => normName(m.raw_product_name) === key)
+    .sort((a, b) => String(b.movement_date || b.created_at || "").localeCompare(String(a.movement_date || a.created_at || "")));
+  const qty = rows.reduce((s, m) => s + sign(m) * (Number(m.quantity) || 0), 0);
+  const amt = rows.reduce((s, m) => s + sign(m) * (Number(m.amount) || 0), 0);
+  document.getElementById("d-name").innerHTML = colorName(key);
+  document.getElementById("d-qty").textContent = kg(qty);
+  document.getElementById("d-amt").textContent = won(amt);
+  document.getElementById("d-cnt").textContent = rows.length;
+  document.getElementById("d-tb").innerHTML = rows.map((m) =>
+    "<tr><td>" + esc(m.movement_date || (m.created_at ? m.created_at.slice(0,10) : "-")) + "</td>" +
+    "<td class='" + (m.movement_type === "OUT" ? "out" : "in") + "'>" + (m.movement_type === "OUT" ? "출고" : "입고") + "</td>" +
+    "<td class='num'>" + kg(m.quantity) + "</td><td class='num'>" + won(m.unit_price) + "</td>" +
+    "<td class='num'>" + won(m.amount) + "</td><td>" + esc(m.supplier_name || m.origin || "-") + "</td></tr>"
+  ).join("");
+  document.getElementById("listView").style.display = "none";
+  document.getElementById("detailView").style.display = "block";
+  window.scrollTo(0, 0);
+}
+
+document.getElementById("back").addEventListener("click", () => {
+  document.getElementById("detailView").style.display = "none";
+  document.getElementById("listView").style.display = "block";
+});
 
 document.getElementById("q").addEventListener("input", (e) => {
   const q = e.target.value.trim().toLowerCase();
-  renderTable(q ? AGG.filter((x) => x.name.toLowerCase().includes(q)) : AGG);
+  renderList(q ? GROUPS.filter((x) => x.name.toLowerCase().includes(q)) : GROUPS);
 });
 
 load();
