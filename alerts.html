@@ -104,9 +104,22 @@ const TRACE_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/trace-looku
 function _ymd(s){ s=String(s||""); return /^\d{8}$/.test(s)?s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8):s; }
 function _trow(l,v){ return v?"<div style='display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9'><span style='color:#6b7280'>"+l+"</span><b style='text-align:right'>"+esc(v)+"</b></div>":""; }
 function _species(s){ return String(s||"").replace("PIG","돼지").replace("CATTLE","소").replace("|LOT_NO"," 묶음").replace("|PIG_NO"," 이력").replace("|CATTLE_NO"," 개체"); }
+function _importBody(t,i){
+  const warn=(i.salePrhibt==="Y"||i.recallTarget==="Y")?"<div style='background:#fee2e2;color:#b91c1c;border-radius:10px;padding:10px;font-weight:800;margin-bottom:8px'>⚠️ 판매금지·회수대상 이력입니다. 판매 전 확인하세요."+(i.recallContent?"<div style='font-weight:600;font-size:13px;margin-top:4px'>"+esc(i.recallContent)+"</div>":"")+"</div>":"";
+  return "<div style='font-size:15px;font-weight:800;margin-bottom:2px'>이력번호 "+esc(t)+"</div>"+
+    "<div style='display:inline-block;background:#dbeafe;color:#1e40af;font-size:12px;font-weight:800;padding:2px 10px;border-radius:999px;margin-bottom:8px'>🌍 수입 축산물</div>"+warn+
+    _trow("품목", i.itemNm)+_trow("부위", i.partNm)+
+    _trow("🌍 원산지", i.nationNm)+
+    _trow("🔪 도축장", i.butcheryPlaceNm)+_trow("도축기간", i.butcheryYmd)+
+    _trow("🏭 가공장", i.processPlaceNm)+_trow("가공기간", i.processYmd)+
+    _trow("수출업체", i.exporterNm)+_trow("수입업체", i.importerNm)+
+    _trow("B/L 번호", i.blNo)+_trow("소비기한", i.consumeYmd)+
+    "<div style='margin-top:10px'><a href='https://www.meatwatch.go.kr' target='_blank' style='color:#2563eb;font-size:13px'>MEATWATCH 공식 조회 ›</a></div>";
+}
 function _tm(){ let m=document.getElementById("trace-modal"); if(!m){ m=document.createElement("div"); m.id="trace-modal"; m.style.cssText="position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px"; m.innerHTML="<div style='background:#fff;border-radius:14px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:16px'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'><b style='font-size:17px'>🔎 축산물 이력정보</b><button id='trace-close' style='border:none;background:#e5e7eb;border-radius:8px;padding:6px 12px;font-weight:700'>닫기</button></div><div id='trace-body'></div></div>"; document.body.appendChild(m); m.addEventListener("click",e=>{if(e.target===m)m.style.display="none";}); m.querySelector("#trace-close").addEventListener("click",()=>m.style.display="none"); } return m; }
 async function openTrace(no){ const t=String(no||"").trim(); if(!t) return; const m=_tm(),body=m.querySelector("#trace-body"); body.innerHTML="<div style='color:#6b7280;padding:20px;text-align:center'>이력번호 "+esc(t)+"<br>조회 중...</div>"; m.style.display="flex";
   try{ const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(t),{headers:{Authorization:"Bearer "+ANON_KEY,apikey:ANON_KEY},signal:AbortSignal.timeout(30000)}); const b=await r.json(),i=b.info||{};
+    if((b.source||i.source)==="import"){ body.innerHTML=_importBody(t,i); return; }
     if(!b.ok){ body.innerHTML="<div style='padding:6px 2px'>이 번호의 <b>국내</b> 이력정보가 없습니다.</div><div style='margin-top:12px'><a href='https://www.meatwatch.go.kr' target='_blank' style='display:block;text-align:center;padding:12px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700'>수입 이력 조회(MEATWATCH)</a></div>"; return; }
     body.innerHTML="<div style='font-size:15px;font-weight:800;margin-bottom:6px'>이력번호 "+esc(t)+"</div>"+_trow("축종",_species(i.species))+_trow("🔪 도축장",i.butcheryPlaceNm)+_trow("도축장 주소",i.butcheryPlaceAddr)+_trow("도축일자",_ymd(i.butcheryYmd))+_trow("도축검사",i.butcheryResult==="Y"?"합격":i.butcheryResult)+_trow("등급",i.grade)+_trow("🏠 농장주소",i.farmAddr)+_trow("사육자",i.farmerNm)+_trow("포장처리업소",i.processPlaceNm);
   }catch(e){ body.innerHTML="<div style='padding:10px;color:#b91c1c'>조회 실패: "+esc(e.name==="TimeoutError"?"시간 초과":e.message)+"</div>"; } }

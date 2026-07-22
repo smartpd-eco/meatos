@@ -89,6 +89,18 @@ const TRACE_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/trace-looku
 function _ymd(s){ s=String(s||""); return /^\d{8}$/.test(s) ? s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8) : s; }
 function _trow(label,val){ return val ? "<div style='display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9'><span style='color:#6b7280'>"+label+"</span><b style='text-align:right'>"+esc(val)+"</b></div>" : ""; }
 function _species(s){ return String(s||"").replace("PIG","돼지").replace("CATTLE","소").replace("|LOT_NO"," 묶음").replace("|PIG_NO"," 이력").replace("|CATTLE_NO"," 개체"); }
+function _importBody(t,i){
+  const warn=(i.salePrhibt==="Y"||i.recallTarget==="Y")?"<div style='background:#fee2e2;color:#b91c1c;border-radius:10px;padding:10px;font-weight:800;margin-bottom:8px'>⚠️ 판매금지·회수대상 이력입니다. 판매 전 확인하세요."+(i.recallContent?"<div style='font-weight:600;font-size:13px;margin-top:4px'>"+esc(i.recallContent)+"</div>":"")+"</div>":"";
+  return "<div style='font-size:15px;font-weight:800;margin-bottom:2px'>이력번호 "+esc(t)+"</div>"+
+    "<div style='display:inline-block;background:#dbeafe;color:#1e40af;font-size:12px;font-weight:800;padding:2px 10px;border-radius:999px;margin-bottom:8px'>🌍 수입 축산물</div>"+warn+
+    _trow("품목", i.itemNm)+_trow("부위", i.partNm)+
+    _trow("🌍 원산지", i.nationNm)+
+    _trow("🔪 도축장", i.butcheryPlaceNm)+_trow("도축기간", i.butcheryYmd)+
+    _trow("🏭 가공장", i.processPlaceNm)+_trow("가공기간", i.processYmd)+
+    _trow("수출업체", i.exporterNm)+_trow("수입업체", i.importerNm)+
+    _trow("B/L 번호", i.blNo)+_trow("소비기한", i.consumeYmd)+
+    "<div style='margin-top:10px'><a href='https://www.meatwatch.go.kr' target='_blank' style='color:#2563eb;font-size:13px'>MEATWATCH 공식 조회 ›</a></div>";
+}
 function _traceModal(){
   let m=document.getElementById("trace-modal");
   if(!m){
@@ -109,6 +121,7 @@ async function openTrace(no){
   try{
     const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(t),{headers:{Authorization:"Bearer "+ANON_KEY,apikey:ANON_KEY},signal:AbortSignal.timeout(30000)});
     const b=await r.json(), i=b.info||{};
+    if((b.source||i.source)==="import"){ body.innerHTML=_importBody(t,i); return; }
     if(!b.ok){
       body.innerHTML="<div style='padding:6px 2px'>이 번호의 <b>국내</b> 축산물 이력정보가 없습니다.<div style='color:#6b7280;font-size:13px;margin-top:4px'>수입육이면 아래에서 조회하세요.</div></div>"+
         "<div style='margin-top:12px;display:flex;gap:8px'><a href='https://www.meatwatch.go.kr' target='_blank' style='flex:1;text-align:center;padding:12px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700'>수입 이력 조회</a><a href='https://www.mtrace.go.kr/hstryinq/hstryInqCattle.do' target='_blank' style='flex:1;text-align:center;padding:12px;border-radius:10px;background:#e5e7eb;color:#111827;text-decoration:none;font-weight:700'>국내 이력제</a></div>";

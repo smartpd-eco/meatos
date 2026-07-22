@@ -63,27 +63,26 @@ Deno.serve(async (req: Request) => {
       const mr = await fetch(`http://www.meatwatch.go.kr/rest/selectDistbHistInfoWsrvDetail/${encodeURIComponent(sysId)}/${encodeURIComponent(traceNo)}/list.do`);
       const mj = await mr.json();
       if (mj && String(mj.returnCode) === "0" && mj.distbIdntfcNo) {
-        const butch = [mj.butchfromDt, mj.butchtoDt].filter(Boolean).join(" ~ ");
+        const range = (a?: string, b?: string) => [a, b].filter(Boolean).join(" ~ ");
         return json({
           ok: true, traceNo, source: "import", resultMsg: "수입 이력정보",
           info: {
-            traceNo, kind: "수입",
+            traceNo, kind: "수입", source: "import",
+            itemNm: mj.kprodNm || "",
             species: mj.kprodNm || "",
-            grade: "",
-            partNm: mj.regnNm || "",
-            insfat: "", weight: "", birthYmd: "", sexNm: "",
-            butcheryPlaceNm: mj.butchNm || "",
-            butcheryPlaceAddr: "",
-            butcheryYmd: butch,
-            butcheryResult: "",
-            farmAddr: "",
-            farmerNm: "",
-            processPlaceNm: String(mj.prcssNm || "").replace(/^[,\s]+/, ""),
-            processPlaceAddr: "",
             nationNm: mj.makeplcNm || "",
-            blNo: mj.blNo || "",
+            partNm: mj.regnNm || "",
+            butcheryPlaceNm: mj.butchNm || "",
+            butcheryYmd: range(mj.butchfromDt, mj.butchtoDt),
+            processPlaceNm: String(mj.prcssNm || "").replace(/^[,\s]+/, ""),
+            processYmd: range(mj.prcssBeginDe, mj.prcssEndDe),
             exporterNm: mj.senderNm || "",
-            importerNm: mj.receiverNm || ""
+            importerNm: mj.receiverNm || "",
+            blNo: mj.blNo || "",
+            consumeYmd: range(mj.limitFromDt, mj.limitToDt),
+            salePrhibt: mj.distbSlePrhibtAt || "",
+            recallTarget: mj.rtrvlTrgetAt || "",
+            recallContent: mj.rtrvlContent || ""
           },
           raw: mj
         });
