@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>로그인 · 고기장터</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:16px; display:flex; flex-direction:column; align-items:center; }
+  .brand { display:flex; align-items:center; gap:10px; margin:24px 0 18px; }
+  .brand .logo { width:44px; height:44px; border-radius:12px; background:#16a34a; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:22px; }
+  .brand b { font-size:24px; }
+  .card { background:#fff; border-radius:16px; padding:20px; width:100%; max-width:400px; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  .tabs { display:flex; margin-bottom:16px; border-bottom:2px solid #eef2f7; }
+  .tabs button { flex:1; padding:12px; border:none; background:none; font-size:16px; font-weight:800; color:#9ca3af; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; }
+  .tabs button.on { color:#16a34a; border-bottom-color:#16a34a; }
+  label { font-size:12px; color:#6b7280; display:block; margin-top:10px; }
+  input { width:100%; padding:12px; border:1px solid #d1d5db; border-radius:10px; font-size:15px; margin-top:4px; }
+  button.primary { width:100%; margin-top:16px; padding:14px; font-size:16px; font-weight:800; border:none; border-radius:12px; background:#16a34a; color:#fff; cursor:pointer; }
+  button.primary:disabled { opacity:.6; }
+  .msg { font-size:13px; margin-top:10px; min-height:18px; text-align:center; }
+  .divider { text-align:center; color:#9ca3af; font-size:12px; margin:16px 0 10px; position:relative; }
+  .social button { width:100%; padding:12px; font-size:15px; font-weight:700; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .social .g { border-color:#dadce0; } .social .k { background:#FEE500; border-color:#FEE500; } .social .n { background:#03C75A; color:#fff; border-color:#03C75A; }
+  .foot { margin-top:18px; }
+  .foot a { color:#6b7280; font-size:13px; text-decoration:none; }
+</style>
+</head>
+<body>
+  <div class="brand"><span class="logo">고</span><b>고기장터</b></div>
+
+  <div class="card">
+    <div class="tabs">
+      <button id="tab-login" class="on" onclick="showTab('login')">로그인</button>
+      <button id="tab-signup" onclick="showTab('signup')">회원가입</button>
+    </div>
+
+    <!-- 로그인 -->
+    <div id="panel-login">
+      <label>이메일<input id="li-email" type="email" placeholder="you@example.com" autocomplete="username" /></label>
+      <label>비밀번호<input id="li-pw" type="password" placeholder="비밀번호" autocomplete="current-password" /></label>
+      <button class="primary" id="li-btn">로그인</button>
+    </div>
+
+    <!-- 회원가입 -->
+    <div id="panel-signup" style="display:none">
+      <label>회사명(정육점 상호)<input id="su-company" type="text" placeholder="예: (주)좋은축산유통" /></label>
+      <label>담당자명<input id="su-name" type="text" placeholder="이름" /></label>
+      <label>이메일(아이디)<input id="su-email" type="email" placeholder="you@example.com" autocomplete="username" /></label>
+      <label>비밀번호<input id="su-pw" type="password" placeholder="6자 이상" autocomplete="new-password" /></label>
+      <label>비밀번호 확인<input id="su-pw2" type="password" placeholder="비밀번호 재입력" autocomplete="new-password" /></label>
+      <button class="primary" id="su-btn">회원가입</button>
+    </div>
+
+    <div class="msg" id="msg"></div>
+
+    <div class="divider">간편 로그인</div>
+    <div class="social">
+      <button class="g" onclick="social('google')">🟢 Google로 계속</button>
+      <button class="k" onclick="social('kakao')">💬 카카오로 계속</button>
+      <button class="n" onclick="social('naver')">N 네이버로 계속</button>
+    </div>
+  </div>
+
+  <div class="foot"><a href="/">← 둘러보기(로그인 없이)</a></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SB_URL = "https://pkrsiqjzllyiafwpskll.supabase.co";
+const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const sb = supabase.createClient(SB_URL, ANON, { auth: { persistSession: true, detectSessionInUrl: true } });
+const $ = (id) => document.getElementById(id);
+const msg = (t, ok) => { const m=$("msg"); m.textContent=t; m.style.color = ok ? "#166534" : "#b91c1c"; };
+
+function showTab(t){
+  $("tab-login").classList.toggle("on", t==="login");
+  $("tab-signup").classList.toggle("on", t==="signup");
+  $("panel-login").style.display = t==="login" ? "block" : "none";
+  $("panel-signup").style.display = t==="signup" ? "block" : "none";
+  msg("");
+}
+
+async function loadAccount(user){
+  // 계정 조회, 없으면 생성(소셜 첫 로그인 등)
+  let { data: acct } = await sb.from("account").select("*").eq("auth_user_id", user.id).maybeSingle();
+  if(!acct){
+    const nm = user.user_metadata && (user.user_metadata.name || user.user_metadata.full_name) || (user.email||"").split("@")[0];
+    const co = user.user_metadata && user.user_metadata.company_name || "";
+    const { data } = await sb.rpc("signup_company_account", { p_auth_user_id: user.id, p_email: user.email, p_name: nm, p_company_name: co });
+    acct = Array.isArray(data) ? data[0] : data;
+  }
+  return acct;
+}
+
+function saveSession(user, acct, token){
+  const cache = { id:user.id, email:user.email, name:(acct&&acct.name)||"", company_id:(acct&&acct.company_id)||"", store_id:(acct&&acct.store_id)||"", role:(acct&&acct.role)||"OWNER", company_name:"" };
+  localStorage.setItem("meatos_user_cache", JSON.stringify(cache));
+  localStorage.setItem("meatos_access_token", token||"");
+  localStorage.setItem("meatos_last_active", String(Date.now()));
+}
+
+async function finalize(session){
+  if(!session || !session.user) return false;
+  const acct = await loadAccount(session.user);
+  // 회사명 캐시 보강
+  let companyName = "";
+  if(acct && acct.company_id){ const { data:c } = await sb.from("company").select("name").eq("id", acct.company_id).maybeSingle(); companyName = c && c.name || ""; }
+  const cache = { id:session.user.id, email:session.user.email, name:(acct&&acct.name)||"", company_id:(acct&&acct.company_id)||"", store_id:(acct&&acct.store_id)||"", role:(acct&&acct.role)||"OWNER", company_name:companyName };
+  localStorage.setItem("meatos_user_cache", JSON.stringify(cache));
+  localStorage.setItem("meatos_access_token", session.access_token||"");
+  localStorage.setItem("meatos_last_active", String(Date.now()));
+  location.assign("/");
+  return true;
+}
+
+// 진입 시: 이미 로그인/소셜 콜백 세션이면 마무리
+(async () => {
+  try { const { data } = await sb.auth.getSession(); if(data && data.session){ await finalize(data.session); } } catch(e){}
+})();
+
+// 이메일 로그인
+$("li-btn").addEventListener("click", async () => {
+  const email = $("li-email").value.trim(), pw = $("li-pw").value;
+  if(!email || !pw){ msg("이메일과 비밀번호를 입력하세요."); return; }
+  $("li-btn").disabled = true; msg("로그인 중…", true);
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if(error){ $("li-btn").disabled=false; msg(error.message.includes("Invalid") ? "이메일 또는 비밀번호가 올바르지 않습니다." : error.message); return; }
+  await finalize(data.session);
+});
+
+// 회원가입
+$("su-btn").addEventListener("click", async () => {
+  const company = $("su-company").value.trim(), name = $("su-name").value.trim();
+  const email = $("su-email").value.trim(), pw = $("su-pw").value, pw2 = $("su-pw2").value;
+  if(!company || !name || !email || !pw){ msg("모든 항목을 입력하세요."); return; }
+  if(pw.length < 6){ msg("비밀번호는 6자 이상이어야 합니다."); return; }
+  if(pw !== pw2){ msg("비밀번호가 일치하지 않습니다."); return; }
+  $("su-btn").disabled = true; msg("가입 처리 중…", true);
+  const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { name, company_name: company } } });
+  if(error){ $("su-btn").disabled=false; msg(error.message.includes("registered") ? "이미 가입된 이메일입니다. 로그인해 주세요." : error.message); return; }
+  const user = data.user;
+  if(user){ try { await sb.rpc("signup_company_account", { p_auth_user_id: user.id, p_email: email, p_name: name, p_company_name: company }); } catch(e){} }
+  if(data.session){ await finalize(data.session); }
+  else { $("su-btn").disabled=false; showTab("login"); msg("가입 완료! 이메일 인증이 필요할 수 있습니다. 인증 후 로그인하세요.", true); }
+});
+
+// 소셜 로그인
+async function social(provider){
+  msg("이동 중…", true);
+  const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + "/login.html" } });
+  if(error){ msg(provider + " 간편로그인은 관리자 설정(Supabase Auth Providers)이 필요합니다."); }
+}
+</script>
+</body>
+</html>
