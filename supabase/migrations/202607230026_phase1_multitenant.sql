@@ -3,8 +3,8 @@
 -- 원칙: 기존 컬럼/데이터 삭제 없음. tenant_id 유지. company/store 덧붙이기.
 --       company.id = tenant_master.id (동일 UUID) → company_id = tenant_id.
 --       BEFORE INSERT 트리거로 신규 행 자동 채움 → 앱 코드 무변경.
---       OCR 로직·인식 파이프라인과 무관 (정확도·속도 영향 없음).
--- 재실행 안전(idempotent).
+--       OCR 인식 파이프라인과 무관 (정확도·속도 영향 없음).
+-- 재실행 안전(idempotent). 명시적 구문(동적 SQL 미사용).
 -- =====================================================================
 
 -- ── Phase 0: 조직 계층 ────────────────────────────────────────────────
@@ -61,46 +61,81 @@ begin
 end;
 $$;
 
--- ── Phase 1: 운영 테이블에 company_id/store_id 덧붙이기 + 백필 + 트리거 ──
-do $$
-declare
-  t text;
-  tbls text[] := array[
-    'ocr_document','inventory_movement','sales_record',
-    'daily_sanitation_logs','expiry_policy'
-  ];
-begin
-  foreach t in array tbls loop
-    -- 컬럼 추가(nullable 유지: 앱은 아직 tenant_id만 기록)
-    execute format('alter table public.%I add column if not exists company_id uuid;', t);
-    execute format('alter table public.%I add column if not exists store_id uuid;', t);
+-- ── Phase 1: 운영 테이블별 company_id/store_id 덧붙이기 + 백필 + 트리거 ──
 
-    -- 백필: company_id = tenant_id, store_id = 회사 기본매장
-    execute format('update public.%I set company_id = tenant_id where company_id is null;', t);
-    execute format($f$
-      update public.%I x
-      set store_id = s.id
-      from public.store s
-      where x.store_id is null
-        and s.company_id = x.company_id and s.is_default;
-    $f$, t);
+-- 1) ocr_document
+alter table public.ocr_document add column if not exists company_id uuid;
+alter table public.ocr_document add column if not exists store_id uuid;
+update public.ocr_document set company_id = tenant_id where company_id is null;
+update public.ocr_document x set store_id = s.id
+  from public.store s
+  where x.store_id is null and s.company_id = x.company_id and s.is_default;
+create index if not exists ocr_document_company_created_idx
+  on public.ocr_document (company_id, created_at desc);
+drop trigger if exists trg_fill_cs on public.ocr_document;
+create trigger trg_fill_cs before insert on public.ocr_document
+  for each row execute function public.fill_company_store();
 
-    -- 조회 인덱스(선두 company_id)
-    execute format('create index if not exists %I on public.%I (company_id, created_at desc);', t||'_company_created_idx', t);
+-- 2) inventory_movement
+alter table public.inventory_movement add column if not exists company_id uuid;
+alter table public.inventory_movement add column if not exists store_id uuid;
+update public.inventory_movement set company_id = tenant_id where company_id is null;
+update public.inventory_movement x set store_id = s.id
+  from public.store s
+  where x.store_id is null and s.company_id = x.company_id and s.is_default;
+create index if not exists inventory_movement_company_created_idx
+  on public.inventory_movement (company_id, created_at desc);
+create index if not exists inventory_movement_store_date_idx
+  on public.inventory_movement (company_id, store_id, movement_date desc);
+drop trigger if exists trg_fill_cs on public.inventory_movement;
+create trigger trg_fill_cs before insert on public.inventory_movement
+  for each row execute function public.fill_company_store();
 
-    -- 신규 insert 자동 채움 트리거
-    execute format('drop trigger if exists trg_fill_cs on public.%I;', t);
-    execute format('create trigger trg_fill_cs before insert on public.%I for each row execute function public.fill_company_store();', t);
-  end loop;
-end $$;
+-- 3) sales_record
+alter table public.sales_record add column if not exists company_id uuid;
+alter table public.sales_record add column if not exists store_id uuid;
+update public.sales_record set company_id = tenant_id where company_id is null;
+update public.sales_record x set store_id = s.id
+  from public.store s
+  where x.store_id is null and s.company_id = x.company_id and s.is_default;
+create index if not exists sales_record_company_created_idx
+  on public.sales_record (company_id, created_at desc);
+create index if not exists sales_record_store_date_idx
+  on public.sales_record (company_id, store_id, sale_date desc);
+drop trigger if exists trg_fill_cs on public.sales_record;
+create trigger trg_fill_cs before insert on public.sales_record
+  for each row execute function public.fill_company_store();
 
--- store_id 조회 보조 인덱스(매장 단위 대시보드 대비)
-create index if not exists inventory_movement_store_date_idx on public.inventory_movement (company_id, store_id, movement_date desc);
-create index if not exists sales_record_store_date_idx on public.sales_record (company_id, store_id, sale_date desc);
+-- 4) daily_sanitation_logs
+alter table public.daily_sanitation_logs add column if not exists company_id uuid;
+alter table public.daily_sanitation_logs add column if not exists store_id uuid;
+update public.daily_sanitation_logs set company_id = tenant_id where company_id is null;
+update public.daily_sanitation_logs x set store_id = s.id
+  from public.store s
+  where x.store_id is null and s.company_id = x.company_id and s.is_default;
+create index if not exists daily_sanitation_logs_company_created_idx
+  on public.daily_sanitation_logs (company_id, created_at desc);
+drop trigger if exists trg_fill_cs on public.daily_sanitation_logs;
+create trigger trg_fill_cs before insert on public.daily_sanitation_logs
+  for each row execute function public.fill_company_store();
+
+-- 5) expiry_policy
+alter table public.expiry_policy add column if not exists company_id uuid;
+alter table public.expiry_policy add column if not exists store_id uuid;
+update public.expiry_policy set company_id = tenant_id where company_id is null;
+update public.expiry_policy x set store_id = s.id
+  from public.store s
+  where x.store_id is null and s.company_id = x.company_id and s.is_default;
+create index if not exists expiry_policy_company_created_idx
+  on public.expiry_policy (company_id, created_at desc);
+drop trigger if exists trg_fill_cs on public.expiry_policy;
+create trigger trg_fill_cs before insert on public.expiry_policy
+  for each row execute function public.fill_company_store();
 
 -- =====================================================================
--- 검증 쿼리(수동 확인용):
---   select count(*) filter (where company_id is null) as null_company from public.inventory_movement;
---   select count(*) from public.company;  select count(*) from public.store;
--- 모두 null_company = 0 이어야 정상.
+-- 검증(실행 후 확인):
+--   select count(*) from public.company;                                  -- 1 이상
+--   select count(*) from public.store;                                    -- 1 이상
+--   select count(*) filter (where company_id is null) as null_company
+--     from public.inventory_movement;                                     -- 0
 -- =====================================================================
