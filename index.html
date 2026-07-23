@@ -116,40 +116,58 @@
     ov.querySelector("#of").addEventListener("click", () => { ov.style.display = "none"; fileIn.value = ""; fileIn.click(); });
     ov.querySelector("#ox").addEventListener("click", () => ov.style.display = "none");
 
-    // 대시보드 카드 실제 데이터
-    async function jget(path) { try { const r = await fetch(REST + path, { headers: H }); return r.ok ? await r.json() : []; } catch (e) { return []; } }
+    // 대시보드 카드 — 집계 요약(Phase 2) 우선, 실패 시 원본 폴백
+    async function jget(path) { try { const r = await fetch(REST + path, { headers: H }); return r.ok ? await r.json() : null; } catch (e) { return null; } }
     (async function loadCards() {
-      const today = localToday(), m0 = monthStart();
-      try {
-        const sr = await fetch(REST + "/sales_record?tenant_id=eq." + TENANT + "&sale_date=gte." + m0 + "&select=amount,sale_date", { headers: H });
-        if (sr.ok) {
-          const rows = await sr.json();
-          const amt = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
-          document.getElementById("k-sales").textContent = rows.length + "건";
-          document.getElementById("k-sales-sub").textContent = "이번 달 " + won(amt) + "원";
-        } else { document.getElementById("k-sales").textContent = "0건"; document.getElementById("k-sales-sub").textContent = "판매 입력 없음"; }
-      } catch (e) { document.getElementById("k-sales").textContent = "0건"; document.getElementById("k-sales-sub").textContent = "판매 입력 없음"; }
+      const today = localToday(), m0 = monthStart(), ym = today.slice(0, 7);
 
-      const docs = await jget("/ocr_document?tenant_id=eq." + TENANT + "&document_status=eq.POSTED&select=total_amount,invoice_date,created_at,parsed_json&order=created_at.desc&limit=500");
-      const mdocs = docs.filter(d => ((d.invoice_date || (d.created_at || "").slice(0, 10)) >= m0));
-      const buyAmt = mdocs.reduce((s, d) => s + (Number(d.total_amount) || 0), 0);
-      const sups = new Set(mdocs.map(d => (d.parsed_json && d.parsed_json.documentFields && d.parsed_json.documentFields.supplierName) || "").filter(Boolean));
-      document.getElementById("k-buy").textContent = mdocs.length + "건";
-      document.getElementById("k-buy-sub").textContent = "공급사 " + sups.size + "곳 · " + won(buyAmt) + "원";
+      // 매출: monthly_sales_summary → 폴백 sales_record
+      let ms = await jget("/monthly_sales_summary?company_id=eq." + TENANT + "&ym=eq." + ym + "&select=order_cnt,amount");
+      if (ms && ms.length) {
+        const cnt = ms.reduce((s, r) => s + (r.order_cnt || 0), 0), amt = ms.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+        document.getElementById("k-sales").textContent = cnt + "건";
+        document.getElementById("k-sales-sub").textContent = "이번 달 " + won(amt) + "원";
+      } else {
+        const sr = await jget("/sales_record?tenant_id=eq." + TENANT + "&sale_date=gte." + m0 + "&select=amount");
+        if (sr) { const amt = sr.reduce((s, r) => s + (Number(r.amount) || 0), 0); document.getElementById("k-sales").textContent = sr.length + "건"; document.getElementById("k-sales-sub").textContent = "이번 달 " + won(amt) + "원"; }
+        else { document.getElementById("k-sales").textContent = "0건"; document.getElementById("k-sales-sub").textContent = "판매 입력 없음"; }
+      }
 
-      const mv = await jget("/inventory_movement?tenant_id=eq." + TENANT + "&select=raw_product_name,movement_type,quantity&limit=5000");
-      const bal = {};
-      mv.forEach(m => { const k = m.raw_product_name || "-"; const q = Number(m.quantity) || 0; bal[k] = (bal[k] || 0) + (m.movement_type === "OUT" ? -q : q); });
-      const names = Object.keys(bal); const low = names.filter(k => bal[k] <= 0).length;
-      document.getElementById("k-stock").textContent = names.length + "개 품목";
-      document.getElementById("k-stock-sub").textContent = low > 0 ? ("부족 " + low + "개") : "정상";
+      // 매입: monthly_purchase_summary → 폴백 ocr_document
+      let mp = await jget("/monthly_purchase_summary?company_id=eq." + TENANT + "&ym=eq." + ym + "&select=doc_cnt,amount");
+      if (mp && mp.length) {
+        const cnt = mp.reduce((s, r) => s + (r.doc_cnt || 0), 0), amt = mp.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+        document.getElementById("k-buy").textContent = cnt + "건";
+        document.getElementById("k-buy-sub").textContent = "이번 달 " + won(amt) + "원";
+      } else {
+        const docs = await jget("/ocr_document?tenant_id=eq." + TENANT + "&document_status=eq.POSTED&select=total_amount,invoice_date,created_at&order=created_at.desc&limit=500") || [];
+        const md = docs.filter(d => ((d.invoice_date || (d.created_at || "").slice(0, 10)) >= m0));
+        const amt = md.reduce((s, d) => s + (Number(d.total_amount) || 0), 0);
+        document.getElementById("k-buy").textContent = md.length + "건";
+        document.getElementById("k-buy-sub").textContent = "이번 달 " + won(amt) + "원";
+      }
 
+      // 재고: inventory_summary → 폴백 inventory_movement
+      let inv = await jget("/inventory_summary?company_id=eq." + TENANT + "&select=on_hand_qty,low_stock");
+      if (inv) {
+        const low = inv.filter(r => r.low_stock).length;
+        document.getElementById("k-stock").textContent = inv.length + "개 품목";
+        document.getElementById("k-stock-sub").textContent = low > 0 ? ("부족 " + low + "개") : "정상";
+      } else {
+        const mv = await jget("/inventory_movement?tenant_id=eq." + TENANT + "&select=raw_product_name,movement_type,quantity&limit=5000") || [];
+        const bal = {}; mv.forEach(m => { const k = m.raw_product_name || "-"; const q = Number(m.quantity) || 0; bal[k] = (bal[k] || 0) + (m.movement_type === "OUT" ? -q : q); });
+        const names = Object.keys(bal), low = names.filter(k => bal[k] <= 0).length;
+        document.getElementById("k-stock").textContent = names.length + "개 품목";
+        document.getElementById("k-stock-sub").textContent = low > 0 ? ("부족 " + low + "개") : "정상";
+      }
+
+      // 알림: 정육일지 미작성 / 유통기한 (원본 유지)
       const logs = await jget("/daily_sanitation_logs?tenant_id=eq." + TENANT + "&work_date=eq." + today + "&select=id&limit=1");
       const alertEl = document.getElementById("k-alert"), subEl = document.getElementById("k-alert-sub");
-      if (!logs.length) { alertEl.textContent = "미작성"; alertEl.classList.add("warn"); subEl.textContent = "정육일지 작성 필요"; }
+      if (!logs || !logs.length) { alertEl.textContent = "미작성"; alertEl.classList.add("warn"); subEl.textContent = "정육일지 작성 필요"; }
       else {
         const lim = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
-        const exp = await jget("/inventory_movement?tenant_id=eq." + TENANT + "&expiry_date=not.is.null&expiry_date=lte." + lim + "&select=id");
+        const exp = await jget("/inventory_movement?tenant_id=eq." + TENANT + "&expiry_date=not.is.null&expiry_date=lte." + lim + "&select=id") || [];
         alertEl.textContent = exp.length + "건"; subEl.textContent = exp.length ? "임박·만료 확인" : "임박·만료 없음";
       }
     })();

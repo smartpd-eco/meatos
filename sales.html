@@ -96,12 +96,22 @@ async function load(){
     renderKpis(); renderList();
   }catch(e){ document.getElementById("tb").innerHTML="<tr><td colspan='5' class='muted'>불러오기 실패: "+esc(e.message)+"</td></tr>"; }
 }
-function sumRange(from){ const rows=ALL.filter(x=>x.sale_date>=from); return { cnt:rows.length, amt:rows.reduce((s,x)=>s+(Number(x.amount)||0),0) }; }
-function renderKpis(){
-  const m=sumRange(monthStart()), w=sumRange(weekStart()), d=sumRange(today);
+async function jget(path){ try{ const r=await fetch(REST+path,{headers:H}); return r.ok?await r.json():null; }catch(e){ return null; } }
+function setKpi(m,w,d){
   document.getElementById("k-m").textContent=m.cnt+"건"; document.getElementById("k-m-amt").textContent=won(m.amt)+"원";
   document.getElementById("k-w").textContent=w.cnt+"건"; document.getElementById("k-w-amt").textContent=won(w.amt)+"원";
   document.getElementById("k-d").textContent=d.cnt+"건"; document.getElementById("k-d-amt").textContent=won(d.amt)+"원";
+}
+function sumRange(from){ const rows=ALL.filter(x=>x.sale_date>=from); return { cnt:rows.length, amt:rows.reduce((s,x)=>s+(Number(x.amount)||0),0) }; }
+async function renderKpis(){
+  // 집계 요약(Phase 2) 우선
+  const ds = await jget("/daily_sales_summary?company_id=eq."+TENANT+"&day=gte."+monthStart()+"&select=day,order_cnt,amount");
+  if(Array.isArray(ds)){
+    const agg=(from)=>{ const r=ds.filter(x=>x.day>=from); return { cnt:r.reduce((s,x)=>s+(x.order_cnt||0),0), amt:r.reduce((s,x)=>s+(Number(x.amount)||0),0) }; };
+    setKpi(agg(monthStart()), agg(weekStart()), agg(today)); return;
+  }
+  // 폴백: 원본
+  setKpi(sumRange(monthStart()), sumRange(weekStart()), sumRange(today));
 }
 function renderList(){
   const tb=document.getElementById("tb");
