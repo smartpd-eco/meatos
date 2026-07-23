@@ -182,7 +182,7 @@ async function openTrace(no){
     if((b.source||i.source)==="import"){ body.innerHTML=_importBody(t,i); return; }
     if(!b.ok){
       body.innerHTML="<div style='padding:6px 2px'>이 번호의 <b>국내</b> 축산물 이력정보가 없습니다.<div style='color:#6b7280;font-size:13px;margin-top:4px'>수입육이면 아래에서 조회하세요.</div></div>"+
-        "<div style='margin-top:12px;display:flex;gap:8px'><a href='https://www.meatwatch.go.kr' target='_blank' style='flex:1;text-align:center;padding:12px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700'>수입 이력 조회</a><a href='https://www.mtrace.go.kr/hstryinq/hstryInqCattle.do' target='_blank' style='flex:1;text-align:center;padding:12px;border-radius:10px;background:#e5e7eb;color:#111827;text-decoration:none;font-weight:700'>국내 이력제</a></div>";
+        "<div style='margin-top:12px;display:flex;gap:8px'><a href='http://www.meatwatch.go.kr/cs/dst/bdi/selectDistbHistInfoDetailAjaxPopup.do?searchWrd2="+encodeURIComponent(t)+"' target='_blank' rel='noopener' style='flex:1;text-align:center;padding:12px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700'>🌍 수입 이력</a><a href='https://www.mtrace.go.kr/search.do?mtraceNo="+encodeURIComponent(t)+"' target='_blank' rel='noopener' style='flex:1;text-align:center;padding:12px;border-radius:10px;background:#e5e7eb;color:#111827;text-decoration:none;font-weight:700'>🇰🇷 국내 이력제</a></div>";
       return;
     }
     body.innerHTML=
