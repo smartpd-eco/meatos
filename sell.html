@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>판매 스캔 (자동 출고)</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  h1 { font-size:19px; margin:2px 0 4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:12px; }
+  .scan { background:#111827; border-radius:14px; padding:16px; margin-bottom:12px; }
+  .scan input { width:100%; padding:16px; font-size:20px; font-weight:800; text-align:center; border:2px solid #16a34a; border-radius:12px; }
+  .scan .hint { color:#9ca3af; font-size:12px; text-align:center; margin-top:8px; }
+  .kpis { display:flex; gap:8px; margin-bottom:12px; }
+  .kpi { flex:1; background:#fff; border-radius:12px; padding:12px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .kpi b { display:block; font-size:18px; } .kpi span { color:#6b7280; font-size:12px; }
+  .card { background:#fff; border-radius:12px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { font-size:15px; margin:0 0 10px; }
+  label { font-size:12px; color:#6b7280; display:block; margin-top:8px; }
+  input.f, select.f { width:100%; padding:11px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; margin-top:4px; }
+  button.primary { width:100%; margin-top:12px; padding:13px; font-size:16px; font-weight:800; border:none; border-radius:10px; background:#16a34a; color:#fff; cursor:pointer; }
+  button.gray { background:#e5e7eb; color:#111827; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th,td { border-bottom:1px solid #eef2f7; padding:9px 6px; text-align:left; white-space:nowrap; }
+  th { background:#f8fafc; color:#374151; } td.num,th.num { text-align:right; }
+  td.name { white-space:normal; font-weight:600; }
+  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:#166534; color:#fff; padding:12px 20px; border-radius:999px; font-weight:800; box-shadow:0 4px 14px rgba(0,0,0,.25); z-index:100000; display:none; }
+  .muted { color:#6b7280; padding:10px; text-align:center; }
+</style>
+</head>
+<body>
+  <h1>🧾 판매 스캔 (자동 출고)</h1>
+  <div class="sub">저울 라벨/상품 바코드를 스캔하면 재고가 자동으로 빠지고 매출이 기록됩니다.</div>
+
+  <div class="scan">
+    <input id="scan" type="text" inputmode="numeric" placeholder="여기를 누르고 바코드를 스캔하세요" autocomplete="off" />
+    <div class="hint">스캐너가 자동 입력합니다. 처음 보는 바코드는 품목을 한 번만 지정하면 이후 자동.</div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><b id="k-cnt">0</b><span>오늘 판매 건수</span></div>
+    <div class="kpi"><b id="k-amt">0</b><span>오늘 매출(원)</span></div>
+  </div>
+
+  <div class="card" id="learn" style="display:none">
+    <h2>🆕 새 바코드 등록</h2>
+    <div style="color:#6b7280;font-size:13px">바코드 <b id="l-code"></b> — 어떤 품목인가요? 한 번만 지정하면 다음부턴 자동입니다.</div>
+    <label>품목 선택<input class="f" id="l-name" list="prodlist" placeholder="재고 품목명" /></label>
+    <datalist id="prodlist"></datalist>
+    <label>계산 방식<select class="f" id="l-type">
+      <option value="MANUAL">무게 직접 입력(가장 확실)</option>
+      <option value="PRICE_EMBED">바코드에 금액(원) 내장</option>
+      <option value="WEIGHT_EMBED">바코드에 중량(g) 내장</option>
+      <option value="FIXED">개당(포장상품)</option>
+    </select></label>
+    <label>단가(원/kg 또는 개당)<input class="f" id="l-price" type="number" step="1" placeholder="예: 19500" /></label>
+    <button class="primary" id="l-save">등록하고 판매 처리</button>
+    <button class="primary gray" id="l-cancel" style="margin-top:8px">취소</button>
+  </div>
+
+  <div class="card" id="confirm" style="display:none">
+    <h2>⚖️ 판매 확인</h2>
+    <div style="font-weight:800" id="c-name"></div>
+    <label>중량(kg)<input class="f" id="c-qty" type="number" step="0.001" /></label>
+    <label>금액(원)<input class="f" id="c-amt" type="number" step="1" /></label>
+    <button class="primary" id="c-save">출고 + 매출 기록 (Enter)</button>
+  </div>
+
+  <div class="card">
+    <h2>오늘 판매 내역 <span style="font-weight:400;color:#6b7280;font-size:13px">(스캔 즉시 재고 차감)</span></h2>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>시간</th><th class="name">품목</th><th class="num">중량(kg)</th><th class="num">금액</th></tr></thead>
+      <tbody id="tb"><tr><td colspan="4" class="muted">스캔을 시작하세요.</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="header.js"></script>
+<script>
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const TENANT = "881f6cc1-b552-468c-b9b4-152edb464e61";
+const H = { apikey: ANON, Authorization: "Bearer " + ANON };
+const HW = { ...H, "Content-Type": "application/json", Prefer: "return=minimal" };
+const won = (v) => Number(v||0).toLocaleString("ko-KR");
+const kg = (v) => (Math.round((Number(v)||0)*1000)/1000).toLocaleString("ko-KR");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function nowHm(){ const d=new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+
+(async () => { try {
+  if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
+  if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
+} catch(e){} })();
+
+const scanEl = document.getElementById("scan");
+function focusScan(){ try{ scanEl.focus(); }catch(e){} }
+focusScan(); document.addEventListener("click", (e)=>{ if(!e.target.closest("input,select,button")) focusScan(); });
+
+let MAPS = {};   // barcode_key -> mapping row
+let PRODUCTS = []; // 재고 품목명 목록
+let today = { cnt:0, amt:0 };
+
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none", 1800); }
+
+async function loadMaps(){
+  try{ const r=await fetch(REST+"/product_barcode?tenant_id=eq."+TENANT+"&select=barcode_key,raw_product_name,unit,default_price,weigh_type&limit=5000",{headers:H});
+    if(r.ok){ (await r.json()).forEach(m=>MAPS[m.barcode_key]=m); } }catch(e){}
+}
+async function loadProducts(){
+  try{ const r=await fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT+"&select=raw_product_name&limit=5000",{headers:H});
+    if(r.ok){ const s=new Set((await r.json()).map(x=>x.raw_product_name).filter(Boolean)); PRODUCTS=[...s].sort();
+      document.getElementById("prodlist").innerHTML = PRODUCTS.map(p=>"<option value=\""+esc(p)+"\">").join(""); } }catch(e){}
+}
+loadMaps(); loadProducts();
+
+// KR 매장/저울 바코드: 13자리, '2' 시작이면 품목코드+내장값 파싱
+function parseScanCode(code){
+  const raw = String(code).trim();
+  const d = raw.replace(/\D/g,"");
+  if(d.length===13 && /^2/.test(d)){ return { key: d.slice(1,7), embedded: Number(d.slice(7,12)), instore:true, raw }; }
+  return { key: raw, embedded: null, instore:false, raw };
+}
+function compute(map, embedded){
+  const price = Number(map.default_price)||0;
+  if(map.weigh_type==="PRICE_EMBED" && embedded!=null){ const amount=embedded; return { qty: price>0? Math.round(amount/price*1000)/1000 : 0, amount }; }
+  if(map.weigh_type==="WEIGHT_EMBED" && embedded!=null){ const qty=embedded/1000; return { qty, amount: Math.round(qty*price) }; }
+  if(map.weigh_type==="FIXED"){ return { qty:1, amount: price }; }
+  return null; // MANUAL
+}
+
+let PENDING = null; // {code, key, map, embedded}
+
+scanEl.addEventListener("keydown", (e)=>{
+  if(e.key!=="Enter") return;
+  e.preventDefault();
+  const code = scanEl.value.trim(); scanEl.value="";
+  if(!code) return;
+  handleScan(code);
+});
+
+function handleScan(code){
+  const p = parseScanCode(code);
+  const map = MAPS[p.key];
+  if(!map){ openLearn(p); return; }
+  const c = compute(map, p.embedded);
+  if(c){ record(map, c.qty, c.amount); }
+  else { openConfirm(map, p); }  // MANUAL
+}
+
+function openLearn(p){
+  PENDING = p;
+  document.getElementById("confirm").style.display="none";
+  document.getElementById("learn").style.display="block";
+  document.getElementById("l-code").textContent = p.raw;
+  document.getElementById("l-name").value=""; document.getElementById("l-price").value=""; document.getElementById("l-type").value="MANUAL";
+  document.getElementById("l-name").focus();
+}
+document.getElementById("l-cancel").addEventListener("click", ()=>{ document.getElementById("learn").style.display="none"; focusScan(); });
+document.getElementById("l-save").addEventListener("click", async ()=>{
+  const name=document.getElementById("l-name").value.trim();
+  if(!name){ alert("품목을 선택/입력하세요."); return; }
+  const weigh_type=document.getElementById("l-type").value;
+  const price=Number(document.getElementById("l-price").value)||null;
+  const map={ tenant_id:TENANT, barcode_key:PENDING.key, raw_product_name:name, unit:"kg", default_price:price, weigh_type };
+  try{
+    const r=await fetch(REST+"/product_barcode",{method:"POST",headers:HW,body:JSON.stringify(map)});
+    if(!r.ok) throw new Error(await r.text());
+    MAPS[PENDING.key]=map;
+  }catch(e){ alert("등록 실패: "+e.message); return; }
+  document.getElementById("learn").style.display="none";
+  const c=compute(map, PENDING.embedded);
+  if(c) record(map, c.qty, c.amount); else openConfirm(map, PENDING);
+});
+
+function openConfirm(map, p){
+  PENDING = { map, p };
+  document.getElementById("learn").style.display="none";
+  document.getElementById("confirm").style.display="block";
+  document.getElementById("c-name").textContent = map.raw_product_name;
+  const price=Number(map.default_price)||0;
+  document.getElementById("c-qty").value="";
+  document.getElementById("c-amt").value="";
+  const qEl=document.getElementById("c-qty"); qEl.focus();
+  qEl.oninput = ()=>{ if(price>0) document.getElementById("c-amt").value=Math.round((Number(qEl.value)||0)*price); };
+}
+document.getElementById("c-save").addEventListener("click", ()=>{
+  const qty=Number(document.getElementById("c-qty").value)||0;
+  const amt=Number(document.getElementById("c-amt").value)||0;
+  if(qty<=0){ alert("중량을 입력하세요."); return; }
+  document.getElementById("confirm").style.display="none";
+  record(PENDING.map, qty, amt);
+});
+document.getElementById("c-qty").addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); document.getElementById("c-save").click(); } });
+
+async function record(map, qty, amount){
+  const price = Number(map.default_price)|| (qty>0?Math.round(amount/qty):0);
+  const mv = { tenant_id:TENANT, movement_type:"OUT", raw_product_name:map.raw_product_name, unit:map.unit||"kg",
+    quantity:qty, unit_price:price, amount:amount, movement_date:todayStr(), memo:"판매 스캔" };
+  const sale = { tenant_id:TENANT, sale_date:todayStr(), item_name:map.raw_product_name, quantity:qty, unit_price:price, amount:amount, channel:"STORE", memo:"스캔 판매" };
+  try{
+    const r1=await fetch(REST+"/inventory_movement",{method:"POST",headers:HW,body:JSON.stringify(mv)});
+    if(!r1.ok) throw new Error("재고 "+r1.status);
+    fetch(REST+"/sales_record",{method:"POST",headers:HW,body:JSON.stringify(sale)}).catch(()=>{});
+    today.cnt++; today.amt+=amount;
+    document.getElementById("k-cnt").textContent=today.cnt;
+    document.getElementById("k-amt").textContent=won(today.amt);
+    addRow(map.raw_product_name, qty, amount);
+    toast("✓ "+map.raw_product_name+" "+kg(qty)+"kg 출고");
+  }catch(e){ toast("⚠ 실패: "+e.message); }
+  focusScan();
+}
+function addRow(name, qty, amt){
+  const tb=document.getElementById("tb");
+  if(tb.querySelector(".muted")) tb.innerHTML="";
+  const tr=document.createElement("tr");
+  tr.innerHTML="<td>"+nowHm()+"</td><td class='name'>"+esc(name)+"</td><td class='num'>"+kg(qty)+"</td><td class='num'>"+won(amt)+"</td>";
+  tb.insertBefore(tr, tb.firstChild);
+}
+</script>
+</body>
+</html>
