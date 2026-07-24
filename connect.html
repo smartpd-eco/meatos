@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>자동 판매연동</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  h1 { font-size:19px; margin:2px 0 4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:12px; }
+  .card { background:#fff; border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { font-size:15px; margin:0 0 10px; }
+  .acct { display:flex; align-items:center; gap:10px; background:#dcfce7; color:#166534; border-radius:10px; padding:12px; font-weight:800; }
+  .acct.out { background:#fef2f2; color:#b91c1c; }
+  .steps { counter-reset:s; list-style:none; padding:0; margin:0; }
+  .steps li { position:relative; padding:10px 0 10px 34px; border-bottom:1px solid #f1f5f9; font-size:14px; }
+  .steps li:before { counter-increment:s; content:counter(s); position:absolute; left:0; top:9px; width:24px; height:24px; background:#16a34a; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; }
+  .steps li:last-child { border-bottom:none; }
+  button.primary, a.primary { display:block; width:100%; text-align:center; padding:15px; font-size:16px; font-weight:800; border:none; border-radius:12px; background:#16a34a; color:#fff; cursor:pointer; text-decoration:none; margin-top:6px; }
+  a.ghost { display:inline-block; color:#2563eb; text-decoration:none; font-weight:700; font-size:14px; margin-top:8px; }
+  .stat { display:flex; gap:8px; }
+  .stat .b { flex:1; background:#f8fafc; border-radius:10px; padding:12px; text-align:center; }
+  .stat .b b { display:block; font-size:20px; } .stat .b span { color:#6b7280; font-size:12px; }
+  .warn { background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:10px 12px; font-size:13px; margin-top:10px; }
+  code { background:#f3f4f6; padding:1px 6px; border-radius:6px; }
+</style>
+</head>
+<body>
+  <h1>🔗 자동 판매연동</h1>
+  <div class="sub">계산대 바코드 스캔을 MEATOS와 연동합니다. 스캔하는 순간 <b>재고 자동 출고 + 매출 자동 기록</b>.</div>
+
+  <div class="card">
+    <div class="acct out" id="acct">로그인 후 이용하세요</div>
+    <a class="primary" id="dl" style="margin-top:12px">⬇️ 내 매장 연동 에이전트 다운로드</a>
+    <div class="sub" style="margin-top:8px">다운로드되는 프로그램에는 <b>사장님 매장 정보가 이미 연결</b>되어 있습니다. 설정 입력 필요 없음.</div>
+    <div class="warn" id="loginwarn" style="display:none">로그인해야 매장에 연결된 에이전트를 받을 수 있습니다. <a href="login.html" style="color:#92400e;font-weight:800">로그인 →</a></div>
+  </div>
+
+  <div class="card">
+    <h2>설치 방법 (1회만)</h2>
+    <ol class="steps">
+      <li><b>AutoHotkey v2</b> 설치 → <a class="ghost" href="https://www.autohotkey.com" target="_blank" rel="noopener">autohotkey.com 열기</a></li>
+      <li>위 버튼으로 받은 <code>meatos-scan-agent.ahk</code> 를 <b>더블클릭 실행</b> (트레이에 아이콘 표시)</li>
+      <li>MEATOS <b>판매 스캔</b>에서 품목 바코드를 <b>1회 등록</b> → <a class="ghost" href="sell.html">판매 스캔 열기</a></li>
+      <li>이제 계산대에서 스캔하면 <b>재고·매출 자동 반영</b> (아래에서 실시간 확인)</li>
+    </ol>
+    <div class="warn">부팅 시 자동 실행하려면: .ahk 바로가기를 <code>shell:startup</code> 폴더에 넣으세요. (다음 업데이트에서 설치형 .exe 제공 예정)</div>
+  </div>
+
+  <div class="card">
+    <h2>📡 연동 상태 (오늘)</h2>
+    <div class="stat">
+      <div class="b"><b id="s-cnt">-</b><span>스캔 처리</span></div>
+      <div class="b"><b id="s-pending">-</b><span>미등록 대기</span></div>
+      <div class="b"><b id="s-last">-</b><span>마지막 스캔</span></div>
+    </div>
+    <div class="sub" id="s-msg" style="margin-top:10px">상태 확인 중…</div>
+  </div>
+
+<script src="header.js"></script>
+<script>
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const DEFAULT_TENANT = "881f6cc1-b552-468c-b9b4-152edb464e61";
+const H = { apikey: ANON, Authorization: "Bearer " + ANON };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+
+(async () => { try {
+  if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
+  if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
+} catch(e){} })();
+
+// 로그인 계정 → 에이전트에 자동 바인딩
+let USER = null; try { USER = JSON.parse(localStorage.getItem("meatos_user_cache")||"null"); } catch(e){}
+const TENANT = (USER && USER.company_id) ? USER.company_id : DEFAULT_TENANT;
+const STORE_NAME = (USER && (USER.company_name||USER.name)) ? (USER.company_name||USER.name) : "내 매장";
+const DEVICE = STORE_NAME.replace(/[^0-9A-Za-z가-힣]/g,"").slice(0,20) || "POS01";
+
+const acct = document.getElementById("acct");
+if (USER) { acct.className="acct"; acct.textContent = "🏪 " + STORE_NAME + " · 연결됨"; document.getElementById("loginwarn").style.display="none"; }
+else { acct.className="acct out"; acct.textContent = "⚠ 로그인 안 됨 (기본 매장으로 연결)"; document.getElementById("loginwarn").style.display="block"; }
+
+// 계정이 박힌 에이전트(.ahk) 생성 → 다운로드
+const AGENT = `#Requires AutoHotkey v2.0
+#SingleInstance Force
+Persistent()
+; MEATOS 스캔 캡처 에이전트 (자동 생성 · ${STORE_NAME} 연결됨)
+global SUPA_URL := "${REST}/scan_event"
+global ANON_KEY := "${ANON}"
+global TENANT_ID := "${TENANT}"
+global DEVICE := "${DEVICE}"
+global DEBOUNCE_MS := 2000
+global lastCode := "", lastTick := 0, logCount := 0
+TrayTip("MEATOS 스캔 에이전트", "${STORE_NAME} 연동 실행 중", 1)
+Loop {
+    ih := InputHook("V", "{Enter}{Return}\`n\`r")
+    ih.Start()
+    ih.Wait()
+    ProcessScan(ih.Input)
+}
+ProcessScan(code) {
+    global lastCode, lastTick, DEBOUNCE_MS
+    code := Trim(code)
+    if !RegExMatch(code, "^2\\d{12}$")
+        return
+    now := A_TickCount
+    if (code = lastCode && (now - lastTick) < DEBOUNCE_MS)
+        return
+    lastCode := code, lastTick := now
+    SendToServer(code)
+}
+SendToServer(code) {
+    global SUPA_URL, ANON_KEY, TENANT_ID, DEVICE, logCount
+    body := '{"tenant_id":"' TENANT_ID '","barcode":"' code '","device":"' DEVICE '"}'
+    try {
+        req := ComObject("WinHttp.WinHttpRequest.5.1")
+        req.Open("POST", SUPA_URL, false)
+        req.SetRequestHeader("apikey", ANON_KEY)
+        req.SetRequestHeader("Authorization", "Bearer " ANON_KEY)
+        req.SetRequestHeader("Content-Type", "application/json")
+        req.SetRequestHeader("Prefer", "return=minimal")
+        req.Send(body)
+        logCount += 1
+        A_IconTip := "MEATOS 스캔 · 오늘 " logCount "건"
+        TrayTip("스캔 전송", code, 1)
+    } catch as e {
+        TrayTip("전송 실패(네트워크)", code, 3)
+    }
+}
+A_TrayMenu.Delete()
+A_TrayMenu.Add("MEATOS 스캔 에이전트 (${STORE_NAME})", (*) => 0)
+A_TrayMenu.Add()
+A_TrayMenu.Add("종료", (*) => ExitApp())
+`;
+document.getElementById("dl").addEventListener("click", (e)=>{
+  e.preventDefault();
+  const blob = new Blob([AGENT], { type:"text/plain;charset=utf-8" });
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="meatos-scan-agent.ahk"; document.body.appendChild(a); a.click(); a.remove();
+});
+
+// 실시간 연동 상태
+async function status(){
+  try{
+    const d=new Date(); const day=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    const r=await fetch(REST+"/scan_event?tenant_id=eq."+TENANT+"&scanned_at=gte."+day+"T00:00:00&select=status,matched_product,scanned_at&order=scanned_at.desc&limit=200",{headers:H});
+    if(!r.ok){ document.getElementById("s-msg").textContent="상태 테이블이 아직 없습니다(마이그레이션 실행 필요)."; return; }
+    const rows=await r.json();
+    const proc=rows.filter(x=>x.status==="PROCESSED"), pend=rows.filter(x=>x.status!=="PROCESSED");
+    document.getElementById("s-cnt").textContent=proc.length;
+    document.getElementById("s-pending").textContent=pend.length;
+    document.getElementById("s-last").textContent = rows[0] ? (rows[0].scanned_at||"").slice(11,16) : "-";
+    document.getElementById("s-msg").innerHTML = rows.length
+      ? ("최근: " + (rows[0].matched_product?("<b>"+esc(rows[0].matched_product)+"</b> 자동 출고"):"미등록 대기 — 판매 스캔에서 품목 지정"))
+      : "아직 스캔이 없습니다. 에이전트 실행 후 계산대에서 라벨을 찍어보세요.";
+  }catch(e){ document.getElementById("s-msg").textContent="상태 확인 실패."; }
+}
+status(); setInterval(status, 5000);
+</script>
+</body>
+</html>

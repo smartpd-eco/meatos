@@ -15,6 +15,7 @@
 
   var MENU = [
     ["🧾 판매 스캔", "sell.html"],
+    ["🔗 자동 판매연동", "connect.html"],
     ["📥 매입현황", "purchases.html"],
     ["💰 매출현황", "sales.html"],
     ["📦 재고현황", "stock.html"],
