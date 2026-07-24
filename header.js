@@ -20,8 +20,32 @@
     ["💰 매출현황", "sales.html"],
     ["📦 재고현황", "stock.html"],
     ["🔔 알림현황", "alerts.html"],
+    ["🏢 기업인증", "business-verify.html"],
     ["⚙️ 환경설정", "settings.html"]
   ];
+
+  // 역할별 메뉴 표시(클라이언트 UX; 실제 통제는 향후 RLS). 로그인/역할 없으면 전체 표시.
+  var HREF_PERM = { "sell.html":"sell.scan","connect.html":"connect.manage","purchases.html":"purchase.view","sales.html":"sales.view","stock.html":"stock.view","alerts.html":"alerts.view","settings.html":"settings.view","business-verify.html":"verify.submit" };
+  var ROLE_PERMS = {
+    COMPANY_OWNER:"*", OWNER:"*", COMPANY_ADMIN:"*",
+    STORE_MANAGER:["sell.scan","purchase.view","sales.view","stock.view","alerts.view","settings.view","verify.submit"],
+    MANAGER:["sell.scan","purchase.view","sales.view","stock.view","alerts.view","settings.view","verify.submit"],
+    PURCHASE_MANAGER:["purchase.view","stock.view","alerts.view","verify.submit"],
+    INVENTORY_MANAGER:["stock.view","alerts.view","sell.scan","purchase.view","verify.submit"],
+    POS_CASHIER:["sell.scan","sales.view","stock.view","verify.submit"],
+    ACCOUNTANT:["sales.view","purchase.view","alerts.view","verify.submit"],
+    AUDITOR:["purchase.view","sales.view","stock.view","alerts.view","verify.submit"],
+    READ_ONLY:["purchase.view","sales.view","stock.view","alerts.view","verify.submit"],
+    STAFF:["sell.scan","stock.view","verify.submit"], EMPLOYEE:["sell.scan","stock.view","verify.submit"]
+  };
+  function menuAllowed(href) {
+    var u = readUser(); var role = u && u.role;
+    if (!role) return true;                 // 비로그인/역할없음 → 전체(데모 유지)
+    var perms = ROLE_PERMS[role]; if (!perms || perms === "*") return true;
+    var need = HREF_PERM[href]; if (!need) return true;
+    return perms.indexOf(need) >= 0;
+  }
+  MENU = MENU.filter(function (m) { return menuAllowed(m[1]); });
 
   var style = document.createElement("style");
   style.textContent =
