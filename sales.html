@@ -37,6 +37,11 @@
   </div>
 
   <div class="card">
+    <h2>📊 채널별 매출 <span style="font-weight:400;color:#6b7280;font-size:13px">(이번 달)</span></h2>
+    <div id="chan-body" class="muted">불러오는 중…</div>
+  </div>
+
+  <div class="card">
     <h2>➕ 판매 입력</h2>
     <div class="frm">
       <div class="full"><label>품목명<input id="f-item" type="text" placeholder="예: 삼겹살" /></label></div>
@@ -44,6 +49,7 @@
       <div><label>단가(원)<input id="f-price" type="number" step="1" placeholder="0" /></label></div>
       <div><label>금액(원)<input id="f-amt" type="number" step="1" placeholder="자동 계산" /></label></div>
       <div><label>판매일<input id="f-date" type="date" /></label></div>
+      <div><label>채널<select id="f-channel"><option value="STORE">🏪 매장(POS)</option><option value="COUPANG">🛵 쿠팡이츠</option><option value="MEATBONGA">🥩 정육본가</option><option value="ETC">기타</option></select></label></div>
       <div class="full"><label>메모<input id="f-memo" type="text" placeholder="선택" /></label></div>
     </div>
     <button class="primary" id="saveBtn">💾 매출 저장</button>
@@ -53,8 +59,8 @@
   <div class="card">
     <h2>🧾 매출 내역 <span style="font-weight:400;color:#6b7280;font-size:13px">(최신순)</span></h2>
     <div style="overflow-x:auto"><table>
-      <thead><tr><th>날짜</th><th class="name">품목</th><th class="num">수량</th><th class="num">단가</th><th class="num">금액</th></tr></thead>
-      <tbody id="tb"><tr><td colspan="5" class="muted">불러오는 중…</td></tr></tbody>
+      <thead><tr><th>날짜</th><th>채널</th><th class="name">품목</th><th class="num">수량</th><th class="num">단가</th><th class="num">금액</th></tr></thead>
+      <tbody id="tb"><tr><td colspan="6" class="muted">불러오는 중…</td></tr></tbody>
     </table></div>
   </div>
 
@@ -67,6 +73,9 @@ const H = { apikey: ANON, Authorization: "Bearer " + ANON };
 const HW = { ...H, "Content-Type": "application/json" };
 const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+const CHAN = { STORE:{label:"🏪 매장",bg:"#dcfce7",fg:"#166534"}, COUPANG:{label:"🛵 쿠팡이츠",bg:"#e0f2fe",fg:"#075985"}, MEATBONGA:{label:"🥩 정육본가",bg:"#fce7f3",fg:"#9d174d"}, ETC:{label:"기타",bg:"#f3f4f6",fg:"#374151"} };
+function chanInfo(c){ return CHAN[c] || CHAN.ETC; }
+function chanBadge(c){ const i=chanInfo(c); return "<span style='background:"+i.bg+";color:"+i.fg+";padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap'>"+i.label+"</span>"; }
 function pad(n){ return String(n).padStart(2,"0"); }
 function fmt(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
 const today = fmt(new Date());
@@ -90,10 +99,10 @@ function monthStart(){ const d=new Date(); return d.getFullYear()+"-"+pad(d.getM
 let ALL = [];
 async function load(){
   try{
-    const r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,item_name,quantity,unit_price,amount,created_at&order=sale_date.desc,created_at.desc&limit=500",{headers:H});
-    if(!r.ok){ document.getElementById("tb").innerHTML="<tr><td colspan='5' class='muted'>매출 테이블이 아직 없습니다. 마이그레이션 실행 후 이용하세요.</td></tr>"; return; }
+    const r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,item_name,quantity,unit_price,amount,channel,created_at&order=sale_date.desc,created_at.desc&limit=500",{headers:H});
+    if(!r.ok){ document.getElementById("tb").innerHTML="<tr><td colspan='6' class='muted'>매출 테이블이 아직 없습니다. 마이그레이션 실행 후 이용하세요.</td></tr>"; return; }
     ALL = await r.json();
-    renderKpis(); renderList();
+    renderKpis(); renderList(); renderChannels();
   }catch(e){ document.getElementById("tb").innerHTML="<tr><td colspan='5' class='muted'>불러오기 실패: "+esc(e.message)+"</td></tr>"; }
 }
 async function jget(path){ try{ const r=await fetch(REST+path,{headers:H}); return r.ok?await r.json():null; }catch(e){ return null; } }
@@ -115,8 +124,26 @@ async function renderKpis(){
 }
 function renderList(){
   const tb=document.getElementById("tb");
-  if(!ALL.length){ tb.innerHTML="<tr><td colspan='5' class='muted'>매출 내역이 없습니다. 위에서 판매를 입력하세요.</td></tr>"; return; }
-  tb.innerHTML = ALL.map(x=>"<tr><td>"+esc(x.sale_date)+"</td><td class='name'>"+esc(x.item_name)+"</td><td class='num'>"+(x.quantity!=null?won(x.quantity):"-")+"</td><td class='num'>"+(x.unit_price!=null?won(x.unit_price):"-")+"</td><td class='num'>"+won(x.amount)+"</td></tr>").join("");
+  if(!ALL.length){ tb.innerHTML="<tr><td colspan='6' class='muted'>매출 내역이 없습니다. 위에서 판매를 입력하세요.</td></tr>"; return; }
+  tb.innerHTML = ALL.map(x=>"<tr><td>"+esc(x.sale_date)+"</td><td>"+chanBadge(x.channel)+"</td><td class='name'>"+esc(x.item_name)+"</td><td class='num'>"+(x.quantity!=null?won(x.quantity):"-")+"</td><td class='num'>"+(x.unit_price!=null?won(x.unit_price):"-")+"</td><td class='num'>"+won(x.amount)+"</td></tr>").join("");
+}
+function renderChannels(){
+  const host=document.getElementById("chan-body"); const m0=monthStart();
+  const rows=ALL.filter(x=>x.sale_date>=m0);
+  const order=["STORE","COUPANG","MEATBONGA","ETC"];
+  const agg={}; order.forEach(c=>agg[c]={cnt:0,amt:0});
+  rows.forEach(x=>{ const c=CHAN[x.channel]?x.channel:"ETC"; agg[c].cnt++; agg[c].amt+=Number(x.amount)||0; });
+  const total=order.reduce((s,c)=>s+agg[c].amt,0);
+  host.className="";
+  host.innerHTML =
+    "<div style='display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111827;padding-bottom:8px;margin-bottom:8px'><b style='font-size:15px'>통합 합계</b><b style='font-size:20px;color:#166534'>"+won(total)+"원</b></div>" +
+    order.map(c=>{ const i=chanInfo(c), a=agg[c]; const pct=total?Math.round(a.amt/total*100):0;
+      return "<div style='display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9'>"+
+        "<span style='flex:0 0 96px'>"+chanBadge(c)+"</span>"+
+        "<div style='flex:1;background:#f3f4f6;border-radius:999px;height:8px;overflow:hidden'><div style='width:"+pct+"%;height:100%;background:"+i.fg+"'></div></div>"+
+        "<span style='flex:0 0 auto;text-align:right;font-weight:700'>"+won(a.amt)+"원</span>"+
+        "<span style='flex:0 0 42px;text-align:right;color:#6b7280;font-size:12px'>"+a.cnt+"건</span>"+
+      "</div>"; }).join("");
 }
 load();
 
@@ -128,6 +155,7 @@ document.getElementById("saveBtn").addEventListener("click", async ()=>{
   const row={ tenant_id:TENANT, sale_date:document.getElementById("f-date").value||today, item_name:item,
     quantity: q!==""?Number(q):null, unit_price: p!==""?Number(p):null,
     amount: a!==""?Number(a):(q&&p?Math.round(Number(q)*Number(p)):0),
+    channel: document.getElementById("f-channel").value,
     memo:(document.getElementById("f-memo").value||"").trim()||null };
   msg.style.color="#6b7280"; msg.textContent="저장 중…";
   try{
