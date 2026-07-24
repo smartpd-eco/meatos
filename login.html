@@ -146,7 +146,7 @@ $("su-btn").addEventListener("click", async () => {
 });
 
 // 소셜 로그인 — 해당 provider를 Supabase Authentication에서 켠 뒤 아래 값을 true로 바꾸면 즉시 작동합니다.
-const PROVIDERS_ENABLED = { google:true, kakao:false, naver:false };
+const PROVIDERS_ENABLED = { google:true, kakao:true, naver:false };
 async function social(provider){
   if(!PROVIDERS_ENABLED[provider]){
     const label = { google:"Google", kakao:"카카오", naver:"네이버" }[provider] || provider;
