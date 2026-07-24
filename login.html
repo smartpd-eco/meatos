@@ -156,7 +156,9 @@ async function social(provider){
   }
   if(provider==="naver"){ msg("네이버로 이동 중…", true); location.href = NAVER_FN; return; }
   msg("이동 중…", true);
-  const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + "/login.html" } });
+  const opts = { redirectTo: location.origin + "/login.html" };
+  if(provider==="kakao") opts.scopes = "profile_nickname profile_image";  // 이메일 제외(비즈앱 전 KOE205 방지)
+  const { error } = await sb.auth.signInWithOAuth({ provider, options: opts });
   if(error){ msg(provider + " 간편로그인 설정이 필요합니다.(Supabase Auth Providers)"); }
 }
 </script>
