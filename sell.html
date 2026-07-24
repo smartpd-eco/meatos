@@ -50,12 +50,12 @@
     <label>품목 선택<input class="f" id="l-name" list="prodlist" placeholder="재고 품목명" /></label>
     <datalist id="prodlist"></datalist>
     <label>계산 방식<select class="f" id="l-type">
-      <option value="MANUAL">무게 직접 입력(가장 확실)</option>
-      <option value="PRICE_EMBED">바코드에 금액(원) 내장</option>
+      <option value="PRICE_EMBED">바코드에 금액 내장 (저울 라벨·가장 흔함)</option>
+      <option value="MANUAL">무게 직접 입력</option>
       <option value="WEIGHT_EMBED">바코드에 중량(g) 내장</option>
       <option value="FIXED">개당(포장상품)</option>
     </select></label>
-    <label>단가(원/kg 또는 개당)<input class="f" id="l-price" type="number" step="1" placeholder="예: 19500" /></label>
+    <label>100g당 단가(원) <span style="color:#9ca3af">· 개당상품은 개당가격</span><input class="f" id="l-price" type="number" step="1" placeholder="예: 12500" /></label>
     <button class="primary" id="l-save">등록하고 판매 처리</button>
     <button class="primary gray" id="l-cancel" style="margin-top:8px">취소</button>
   </div>
@@ -164,7 +164,8 @@ document.getElementById("l-save").addEventListener("click", async ()=>{
   const name=document.getElementById("l-name").value.trim();
   if(!name){ alert("품목을 선택/입력하세요."); return; }
   const weigh_type=document.getElementById("l-type").value;
-  const price=Number(document.getElementById("l-price").value)||null;
+  const p100=Number(document.getElementById("l-price").value)||null;   // 라벨의 100g당 단가(개당상품은 개당가격)
+  const price = p100==null ? null : (weigh_type==="FIXED" ? p100 : p100*10);  // 무게상품은 원/kg 로 환산
   const map={ tenant_id:TENANT, barcode_key:PENDING.key, raw_product_name:name, unit:"kg", default_price:price, weigh_type };
   try{
     const r=await fetch(REST+"/product_barcode",{method:"POST",headers:HW,body:JSON.stringify(map)});
