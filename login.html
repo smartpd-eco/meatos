@@ -147,12 +147,14 @@ $("su-btn").addEventListener("click", async () => {
 
 // 소셜 로그인 — 해당 provider를 Supabase Authentication에서 켠 뒤 아래 값을 true로 바꾸면 즉시 작동합니다.
 const PROVIDERS_ENABLED = { google:true, kakao:true, naver:false };
+const NAVER_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/naver-auth";
 async function social(provider){
   if(!PROVIDERS_ENABLED[provider]){
     const label = { google:"Google", kakao:"카카오", naver:"네이버" }[provider] || provider;
     msg(label + " 간편로그인은 준비 중입니다. 지금은 이메일로 로그인/가입해 주세요.");
     return;
   }
+  if(provider==="naver"){ msg("네이버로 이동 중…", true); location.href = NAVER_FN; return; }
   msg("이동 중…", true);
   const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + "/login.html" } });
   if(error){ msg(provider + " 간편로그인 설정이 필요합니다.(Supabase Auth Providers)"); }
