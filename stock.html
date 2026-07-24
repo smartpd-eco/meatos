@@ -30,6 +30,14 @@
   .in { color:#166534; font-weight:700; } .out { color:#b91c1c; font-weight:700; }
   .tracelink { color:#2563eb; text-decoration:none; font-weight:700; white-space:nowrap; }
   .prodhead { font-size:18px; font-weight:800; margin:4px 0 10px; }
+  .act { display:flex; gap:8px; margin:0 0 12px; }
+  .act button { flex:1; padding:12px; border:none; border-radius:10px; font-weight:800; font-size:15px; cursor:pointer; }
+  .act .b-out { background:#fee2e2; color:#b91c1c; } .act .b-adj { background:#e0f2fe; color:#075985; }
+  .actform { background:#fff; border-radius:12px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .actform label { font-size:12px; color:#6b7280; display:block; margin-top:8px; }
+  .actform input { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; margin-top:4px; }
+  .actform .save { width:100%; margin-top:12px; padding:12px; border:none; border-radius:10px; background:#16a34a; color:#fff; font-weight:800; cursor:pointer; }
+  .actform .amsg { font-size:13px; margin-top:8px; }
   #trace-print-area { display:none; }
   @media print {
     body.trace-printing > *:not(#trace-print-area) { display:none !important; }
@@ -63,6 +71,11 @@
       <div class="kpi"><b id="d-amt">-</b><span>재고 금액</span></div>
       <div class="kpi"><b id="d-cnt">-</b><span>입출고 건수</span></div>
     </div>
+    <div class="act">
+      <button class="b-out" id="btn-out">➖ 판매 출고</button>
+      <button class="b-adj" id="btn-adj">🧮 재고 실사(조정)</button>
+    </div>
+    <div class="actform" id="actform" style="display:none"></div>
     <div class="twrap">
       <table><thead><tr><th>날짜</th><th>구분</th><th class="num">중량(kg)</th><th class="num">단가</th><th class="num">금액</th><th>유통기한</th><th>공급처</th><th>품질이력</th></tr></thead>
       <tbody id="d-tb"></tbody></table>
@@ -284,6 +297,8 @@ function showDetail(key) {
     .sort((a, b) => String(b.movement_date || b.created_at || "").localeCompare(String(a.movement_date || a.created_at || "")));
   const qty = rows.reduce((s, m) => s + sign(m) * (Number(m.quantity) || 0), 0);
   const amt = rows.reduce((s, m) => s + sign(m) * (Number(m.amount) || 0), 0);
+  CURRENT = { key: key, qty: qty, avg: qty > 0 ? amt / qty : 0, origin: (rows[0] && rows[0].origin) || null, unit: (rows[0] && rows[0].unit) || "kg" };
+  document.getElementById("actform").style.display = "none";
   document.getElementById("d-name").innerHTML = colorName(key);
   document.getElementById("d-qty").textContent = kg(qty);
   document.getElementById("d-amt").textContent = won(amt);
@@ -309,6 +324,57 @@ document.getElementById("q").addEventListener("input", (e) => {
   const q = e.target.value.trim().toLowerCase();
   renderList(q ? GROUPS.filter((x) => x.name.toLowerCase().includes(q)) : GROUPS);
 });
+
+// ===== 출고 / 재고 실사(조정) — POS 없이 재고 차감 =====
+let CURRENT = null;
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function openAct(kind){
+  if(!CURRENT) return;
+  const isAdj = kind === "adj";
+  const f = document.getElementById("actform");
+  f.style.display = "block";
+  f.innerHTML =
+    "<div style='font-weight:800;margin-bottom:6px'>" + (isAdj ? "🧮 재고 실사(조정)" : "➖ 판매 출고") + " · " + colorName(CURRENT.key) + "</div>" +
+    (isAdj
+      ? "<div style='color:#6b7280;font-size:13px'>현재 재고 <b>" + kg(CURRENT.qty) + "kg</b>. 실제 남은 수량을 입력하면 차이만큼 자동 반영됩니다.</div><label>실제 남은 수량(kg)<input id='a-val' type='number' step='0.01' placeholder='" + kg(CURRENT.qty) + "'></label>"
+      : "<div style='color:#6b7280;font-size:13px'>현재 재고 <b>" + kg(CURRENT.qty) + "kg</b>. 판매/폐기 등으로 나간 수량을 입력하세요.</div><label>출고 수량(kg)<input id='a-val' type='number' step='0.01' placeholder='0'></label>") +
+    "<label>날짜<input id='a-date' type='date'></label>" +
+    "<label>메모<input id='a-memo' type='text' placeholder='" + (isAdj ? "재고 실사" : "판매 출고") + "'></label>" +
+    "<button class='save' id='a-save'>저장</button><div class='amsg' id='a-msg'></div>";
+  document.getElementById("a-date").value = todayStr();
+  document.getElementById("a-save").addEventListener("click", () => saveAct(kind));
+  f.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+async function saveAct(kind){
+  const msg = document.getElementById("a-msg");
+  const val = Number(document.getElementById("a-val").value);
+  if (isNaN(val) || val < 0) { msg.style.color = "#b91c1c"; msg.textContent = "수량을 입력하세요."; return; }
+  const date = document.getElementById("a-date").value || todayStr();
+  const memo = (document.getElementById("a-memo").value || "").trim() || (kind === "adj" ? "재고 실사" : "판매 출고");
+  let type, qty;
+  if (kind === "adj") {
+    const diff = CURRENT.qty - val;                 // (+)=줄어듦, (-)=늘어남
+    if (Math.abs(diff) < 1e-9) { msg.style.color = "#166534"; msg.textContent = "변동 없음."; return; }
+    type = diff > 0 ? "OUT" : "IN"; qty = Math.abs(diff);
+  } else { type = "OUT"; qty = val; }
+  if (type === "OUT" && qty > CURRENT.qty + 1e-9) {
+    if (!confirm("출고 수량이 현재고(" + kg(CURRENT.qty) + "kg)보다 많습니다. 계속할까요?")) return;
+  }
+  const price = Math.round(CURRENT.avg || 0);
+  const row = { tenant_id: TENANT_ID, movement_type: type, raw_product_name: CURRENT.key, origin: CURRENT.origin,
+    unit: CURRENT.unit || "kg", quantity: qty, unit_price: price, amount: Math.round(qty * (CURRENT.avg || 0)),
+    movement_date: date, memo: memo };
+  msg.style.color = "#6b7280"; msg.textContent = "저장 중…";
+  try {
+    const r = await fetch(REST + "/inventory_movement", { method: "POST", headers: { ...H, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify(row) });
+    if (!r.ok) throw new Error(r.status + ": " + (await r.text()).slice(0, 150));
+    msg.style.color = "#166534"; msg.textContent = "✓ 반영 완료";
+    const key = CURRENT.key;
+    await load(); showDetail(key);
+  } catch (e) { msg.style.color = "#b91c1c"; msg.textContent = "실패: " + e.message; }
+}
+document.getElementById("btn-out").addEventListener("click", () => openAct("out"));
+document.getElementById("btn-adj").addEventListener("click", () => openAct("adj"));
 
 load();
 </script>
