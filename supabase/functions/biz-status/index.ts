@@ -27,13 +27,18 @@ Deno.serve(async (req) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ b_no: [bno] }),
     });
-    const j = await res.json();
-    const d = (j.data && j.data[0]) || {};
-    // b_stt: 계속사업자/휴업자/폐업자,  b_stt_cd: 01/02/03
+    const j = await res.json().catch(() => ({}));
+    // 키 미승인/오류 → data 배열이 없음 → 사유 노출
+    if (!res.ok || !Array.isArray(j.data)) {
+      const msg = j && (j.msg || j.message || j.returnAuthMsg || j.errMsg);
+      return json({ ok: false, message: msg || ("인증 서비스 오류(키/승인 확인) HTTP " + res.status), raw: j });
+    }
+    const d = j.data[0] || {};
+    // b_stt: 계속사업자/휴업자/폐업자,  b_stt_cd: 01/02/03. 미등록이면 tax_type 에 안내문.
     const active = d.b_stt_cd === "01";
     return json({
       ok: true, b_no: bno, active,
-      b_stt: d.b_stt || (d.b_stt_cd ? "" : "국세청에 등록되지 않은 번호"),
+      b_stt: d.b_stt || d.tax_type || "미등록",
       b_stt_cd: d.b_stt_cd || null, tax_type: d.tax_type || null,
     });
   } catch (e) {
