@@ -154,6 +154,7 @@ $("su-btn").addEventListener("click", async () => {
 // 소셜 로그인 — 해당 provider를 Supabase Authentication에서 켠 뒤 아래 값을 true로 바꾸면 즉시 작동합니다.
 const PROVIDERS_ENABLED = { google:true, kakao:true, naver:true };
 const NAVER_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/naver-auth";
+const KAKAO_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/kakao-auth";
 async function social(provider){
   if(!PROVIDERS_ENABLED[provider]){
     const label = { google:"Google", kakao:"카카오", naver:"네이버", apple:"Apple" }[provider] || provider;
@@ -161,9 +162,9 @@ async function social(provider){
     return;
   }
   if(provider==="naver"){ msg("네이버로 이동 중…", true); location.href = NAVER_FN; return; }
+  if(provider==="kakao"){ msg("카카오로 이동 중…", true); location.href = KAKAO_FN; return; }  // Supabase 우회(이메일 미요청)
   msg("이동 중…", true);
   const opts = { redirectTo: location.origin + "/login.html" };
-  if(provider==="kakao") opts.scopes = "profile_nickname profile_image";  // 이메일 제외(비즈앱 전 KOE205 방지)
   const { error } = await sb.auth.signInWithOAuth({ provider, options: opts });
   if(error){ msg(provider + " 간편로그인 설정이 필요합니다.(Supabase Auth Providers)"); }
 }
