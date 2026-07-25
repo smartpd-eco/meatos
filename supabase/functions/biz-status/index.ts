@@ -21,17 +21,21 @@ Deno.serve(async (req) => {
     const key = Deno.env.get("DATA_GO_KR_KEY") ?? "";
     if (!key) return json({ ok: false, message: "DATA_GO_KR_KEY 미설정" }, 503);
 
-    const url = "https://api.odcloud.kr/api/nts-businessman/v1/status?serviceKey=" + encodeURIComponent(key);
+    const url = "https://api.odcloud.kr/api/nts-businessman/v1/status?returnType=JSON&serviceKey=" + encodeURIComponent(key);
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ b_no: [bno] }),
     });
-    const j = await res.json().catch(() => ({}));
-    // 키 미승인/오류 → data 배열이 없음 → 사유 노출
-    if (!res.ok || !Array.isArray(j.data)) {
-      const msg = j && (j.msg || j.message || j.returnAuthMsg || j.errMsg);
-      return json({ ok: false, message: msg || ("인증 서비스 오류(키/승인 확인) HTTP " + res.status), raw: j });
+    const text = await res.text();
+    let j: any;
+    try { j = JSON.parse(text); } catch {
+      // JSON이 아님(대개 XML/HTML) = 서비스키 미인증/전파지연/미승인
+      return json({ ok: false, message: "국세청 API 키가 아직 인증되지 않았습니다(승인 직후 전파 지연이거나 키 값/유형 확인 필요).", raw: text.slice(0, 300) });
+    }
+    if (!Array.isArray(j.data)) {
+      const msg = (j && (j.msg || j.message || j.returnAuthMsg || j.errMsg)) || "조회 실패";
+      return json({ ok: false, message: msg, raw: j });
     }
     const d = j.data[0] || {};
     // b_stt: 계속사업자/휴업자/폐업자,  b_stt_cd: 01/02/03. 미등록이면 tax_type 에 안내문.
