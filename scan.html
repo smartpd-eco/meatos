@@ -103,7 +103,7 @@ let LINES = [];
 let DOC = {};
 let FILE_NAME = "scan.jpg";
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
-const TENANT_ID = "881f6cc1-b552-468c-b9b4-152edb464e61"; // SMARTPD_DEV
+const TENANT_ID = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61"; // SMARTPD_DEV
 const won = (v) => v == null || v === "" ? "-" : Number(v).toLocaleString("ko-KR");
 const num = (s) => Number(String(s).replace(/[^0-9.]/g, "")) || 0;
 

@@ -97,7 +97,7 @@
 <script>
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
-const TENANT = "881f6cc1-b552-468c-b9b4-152edb464e61";
+const TENANT = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
 const H = { apikey: ANON, Authorization: "Bearer " + ANON };
 const HW = { ...H, "Content-Type": "application/json" };
 const won = (v) => Number(v||0).toLocaleString("ko-KR");

@@ -132,6 +132,8 @@ document.getElementById("link").addEventListener("click", async ()=>{
   const addr=((document.getElementById("f-addr").value||"")+" "+(document.getElementById("f-addr2").value||"")).trim();
   msg.style.color="#6b7280"; msg.textContent="연동 중…";
   try{
+    // 회사를 독립 테넌트로 등록(빈 DB로 시작 → 격리)
+    if(USER.company_id){ await fetch(REST+"/rpc/ensure_company_tenant",{method:"POST",headers:HW,body:JSON.stringify({p_company_id:USER.company_id,p_name:name})}).catch(()=>{}); }
     // 회사 정보 갱신
     if(USER.company_id){ await fetch(REST+"/company?id=eq."+USER.company_id,{method:"PATCH",headers:{...HW,Prefer:"return=minimal"},body:JSON.stringify({name:name, biz_no:bno})}); }
     // 인증 기록(승인)

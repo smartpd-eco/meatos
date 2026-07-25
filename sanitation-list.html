@@ -60,7 +60,7 @@
 <script>
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
-const TENANT_ID = "881f6cc1-b552-468c-b9b4-152edb464e61";
+const TENANT_ID = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
 const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 function pad(n){ return String(n).padStart(2,"0"); }

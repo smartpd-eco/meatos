@@ -112,7 +112,7 @@ async function finalize(session){
   // 회사명 캐시 보강
   let companyName = "";
   if(acct && acct.company_id){ const { data:c } = await sb.from("company").select("name").eq("id", acct.company_id).maybeSingle(); companyName = c && c.name || ""; }
-  const cache = { id:session.user.id, email:session.user.email, name:(acct&&acct.name)||"", company_id:(acct&&acct.company_id)||"", store_id:(acct&&acct.store_id)||"", role:(acct&&acct.role)||"OWNER", company_name:companyName };
+  const cache = { id:session.user.id, email:session.user.email, name:(acct&&acct.name)||"", company_id:(acct&&acct.company_id)||"", store_id:(acct&&acct.store_id)||"", role:(acct&&acct.role)||"OWNER", company_name:companyName, member_status:(acct&&acct.member_status)||"SOCIAL_VERIFIED" };
   localStorage.setItem("meatos_user_cache", JSON.stringify(cache));
   localStorage.setItem("meatos_access_token", session.access_token||"");
   localStorage.setItem("meatos_last_active", String(Date.now()));
