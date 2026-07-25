@@ -16,6 +16,7 @@
   .card h2 { font-size:15px; margin:0 0 10px; display:flex; justify-content:space-between; align-items:center; }
   .card h2 .r { font-weight:400; color:#6b7280; font-size:13px; }
   /* 월별 캘린더 */
+  .calnav { border:none; background:#f3f4f6; border-radius:8px; padding:4px 10px; font-weight:800; cursor:pointer; color:#374151; }
   .calwrap { overflow-x:auto; }
   table.cal { width:100%; border-collapse:collapse; font-size:12px; min-width:520px; }
   table.cal th, table.cal td { border:1px solid #e5e7eb; padding:4px; text-align:right; vertical-align:top; height:52px; }
@@ -62,7 +63,7 @@
   </div>
 
   <div class="card">
-    <h2>📅 월별 매출 <span class="r" id="cal-ym"></span></h2>
+    <h2>📅 월별 매출 <span class="r" style="display:flex;gap:6px;align-items:center"><button class="calnav" id="cal-prev">◀</button><b id="cal-ym" style="min-width:78px;text-align:center;color:#111827;font-size:14px"></b><button class="calnav" id="cal-next">▶</button></span></h2>
     <div class="calwrap"><div id="cal" class="muted">불러오는 중…</div></div>
   </div>
 
@@ -152,15 +153,19 @@ async function renderKpis(){
   setKpi(sumRange(monthStart()), sumRange(weekStart()), sumRange(today));
 }
 
-// 월별 매출 캘린더 (이번 달)
-function renderCalendar(){
-  const now=new Date(), y=now.getFullYear(), m=now.getMonth();
+// 월별 매출 캘린더 (좌우로 월 이동)
+let calDate = new Date(); calDate.setDate(1);
+async function renderCalendar(){
+  const y=calDate.getFullYear(), m=calDate.getMonth();
   const ym = y+"-"+pad(m+1);
-  document.getElementById("cal-ym").textContent = "("+ym+")";
+  document.getElementById("cal-ym").textContent = ym;
   const startDow=new Date(y,m,1).getDay();
   const dim=new Date(y,m+1,0).getDate();
+  // 표시 월 데이터 조회(없으면 로드된 ALL에서 필터)
+  let rows = await jget("/sales_record?tenant_id=eq."+TENANT+"&sale_date=gte."+ym+"-01&sale_date=lte."+ym+"-31&select=sale_date,amount&limit=3000");
+  if(!Array.isArray(rows)) rows = ALL.filter(x=>x.sale_date && x.sale_date.slice(0,7)===ym);
   const byDay={};
-  ALL.forEach(x=>{ if(x.sale_date && x.sale_date.slice(0,7)===ym){ byDay[x.sale_date]=(byDay[x.sale_date]||0)+(Number(x.amount)||0); } });
+  rows.forEach(x=>{ if(x.sale_date && x.sale_date.slice(0,7)===ym){ byDay[x.sale_date]=(byDay[x.sale_date]||0)+(Number(x.amount)||0); } });
   let html="<table class='cal'><thead><tr><th class='sun'>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class='sat'>토</th><th class='sumcol'>계</th></tr></thead><tbody>";
   let day=1, monthTotal=0;
   for(let w=0; w<6 && day<=dim; w++){
@@ -199,6 +204,10 @@ function renderList(rows){
   tb.innerHTML = rows.map(x=>"<tr><td>"+esc(x.sale_date)+"</td><td>"+chanBadge(x.channel)+"</td><td class='name'>"+esc(x.item_name)+"</td><td class='num'>"+(x.quantity!=null?won(x.quantity):"-")+"</td><td class='num'>"+(x.unit_price!=null?won(x.unit_price):"-")+"</td><td class='num'>"+won(x.amount)+"</td></tr>").join("");
 }
 load();
+
+// 월 이동
+document.getElementById("cal-prev").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); });
+document.getElementById("cal-next").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); });
 
 // ===== 판매 입력 모달 =====
 const modal=document.getElementById("inputModal");
