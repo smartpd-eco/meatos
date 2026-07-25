@@ -128,11 +128,13 @@ function monthStart(){ const d=new Date(); return d.getFullYear()+"-"+pad(d.getM
 let ALL = [];
 async function load(){
   try{
-    const r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,item_name,quantity,unit_price,amount,channel,created_at&order=sale_date.desc,created_at.desc&limit=1000",{headers:H});
-    if(!r.ok){ document.getElementById("tb").innerHTML="<tr><td colspan='6' class='muted'>매출 테이블이 아직 없습니다.</td></tr>"; return; }
-    ALL = await r.json();
-    renderKpis(); renderList(); renderCalendar();
-  }catch(e){ document.getElementById("tb").innerHTML="<tr><td colspan='6' class='muted'>불러오기 실패: "+esc(e.message)+"</td></tr>"; }
+    let r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,item_name,quantity,unit_price,amount,channel,created_at&order=sale_date.desc,created_at.desc&limit=1000",{headers:H});
+    if(!r.ok){ // channel 컬럼 미생성 등 → 없이 재시도
+      r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,item_name,quantity,unit_price,amount,created_at&order=sale_date.desc,created_at.desc&limit=1000",{headers:H});
+    }
+    ALL = r.ok ? await r.json() : [];
+  }catch(e){ ALL = []; }
+  renderKpis(); renderList(); renderCalendar();   // 실패해도 항상 렌더(로딩 멈춤 방지)
 }
 async function jget(path){ try{ const r=await fetch(REST+path,{headers:H}); return r.ok?await r.json():null; }catch(e){ return null; } }
 function setKpi(m,w,d){

@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Cache-Control" content="no-store" />
-<title>기업회원 인증</title>
+<title>사업장 연동</title>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
@@ -15,32 +15,48 @@
   label { font-size:12px; color:#6b7280; display:block; margin-top:10px; }
   input.f, select.f { width:100%; padding:11px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; margin-top:4px; }
   .row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .inline { display:flex; gap:8px; margin-top:4px; }
+  .inline input { flex:1; }
+  button.b { border:none; border-radius:8px; padding:11px 14px; font-weight:800; cursor:pointer; white-space:nowrap; }
+  .b-check { background:#2563eb; color:#fff; }
   button.primary { width:100%; margin-top:14px; padding:14px; font-size:16px; font-weight:800; border:none; border-radius:12px; background:#16a34a; color:#fff; cursor:pointer; }
-  .msg { font-size:13px; margin-top:8px; }
+  button.primary:disabled { opacity:.5; cursor:not-allowed; }
   .badge { display:inline-block; padding:4px 12px; border-radius:999px; font-weight:800; font-size:13px; }
-  .b-sub{background:#dbeafe;color:#1e40af;} .b-ok{background:#dcfce7;color:#166534;} .b-rej{background:#fee2e2;color:#b91c1c;} .b-none{background:#f3f4f6;color:#374151;}
-  .warn { background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:10px 12px; font-size:13px; }
+  .b-ok{background:#dcfce7;color:#166534;} .b-no{background:#fee2e2;color:#b91c1c;} .b-none{background:#f3f4f6;color:#374151;}
+  .msg { font-size:13px; margin-top:8px; }
 </style>
 </head>
 <body>
-  <h1>🏢 기업회원 인증</h1>
-  <div class="sub">간편로그인은 개인 계정 확인일 뿐입니다. 정육점 사업체 인증을 완료해야 매입·재고·POS·정산 기능을 정식 사용할 수 있습니다.</div>
+  <h1>🏢 사업장 연동</h1>
+  <div class="sub">사업자등록번호를 조회해 <b>계속사업자</b>로 확인되면 바로 사업장이 연동됩니다. 별도 심사·서류 제출은 없습니다.</div>
 
   <div class="card">
-    <div>현재 상태: <span class="badge b-none" id="status">확인 중…</span></div>
+    <div>연동 상태: <span class="badge b-none" id="status">확인 중…</span></div>
     <div class="msg" id="status-msg"></div>
   </div>
 
   <div class="card" id="form-card">
-    <h2>사업체 정보 신청</h2>
-    <label>사업자등록번호(10자리)<input class="f" id="f-bizno" inputmode="numeric" placeholder="0000000000" /></label>
+    <h2>사업자 정보</h2>
+    <label>사업자등록번호(10자리)</label>
+    <div class="inline">
+      <input class="f" id="f-bizno" inputmode="numeric" placeholder="0000000000" />
+      <button class="b b-check" id="check">국세청 조회</button>
+    </div>
+    <div class="msg" id="chk-msg"></div>
+
     <div class="row2">
       <div><label>상호<input class="f" id="f-name" placeholder="예: 벽산정육점" /></label></div>
       <div><label>대표자명<input class="f" id="f-rep" placeholder="대표자" /></label></div>
     </div>
-    <label>사업장 주소<input class="f" id="f-addr" placeholder="도로명 주소" /></label>
+
+    <label>사업장 주소</label>
+    <div class="inline">
+      <input class="f" id="f-addr" placeholder="주소 검색을 눌러주세요" readonly />
+      <button class="b b-check" id="addr-btn" style="background:#374151">주소 검색</button>
+    </div>
+    <input class="f" id="f-addr2" placeholder="상세주소(선택)" style="margin-top:6px" />
+
     <div class="row2">
-      <div><label>신청 유형<select class="f" id="f-type"><option value="OWNER">대표자</option><option value="EMPLOYEE">직원</option><option value="AGENT">대리인</option></select></label></div>
       <div><label>영업 종류<select class="f" id="f-lic">
         <option value="MEAT_RETAIL">식육판매업</option>
         <option value="MEAT_PROCESSING_RETAIL">식육즉석판매가공업</option>
@@ -48,73 +64,90 @@
         <option value="LIVESTOCK_DISTRIBUTION">축산물유통전문판매업</option>
         <option value="OTHER">기타</option>
       </select></label></div>
+      <div><label>축산물 영업신고번호<input class="f" id="f-licno" placeholder="선택" /></label></div>
     </div>
-    <label>축산물 영업신고번호<input class="f" id="f-licno" placeholder="신고번호" /></label>
-    <button class="primary" id="submit">인증 신청 제출</button>
+
+    <button class="primary" id="link" disabled>사업장 연동하기</button>
     <div class="msg" id="msg"></div>
-    <div class="warn" style="margin-top:12px">서류(사업자등록증·영업신고필증) 업로드와 관리자 심사·자동 진위확인은 다음 단계에서 추가됩니다. 지금은 신청 정보만 접수됩니다.</div>
   </div>
 
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script src="header.js"></script>
 <script>
 const REST="https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON="sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const BIZ_FN="https://pkrsiqjzllyiafwpskll.functions.supabase.co/biz-status";
 const H={apikey:ANON,Authorization:"Bearer "+ANON};
 const HW={...H,"Content-Type":"application/json"};
 const esc=(s)=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 let USER=null; try{USER=JSON.parse(localStorage.getItem("meatos_user_cache")||"null");}catch(e){}
+let VERIFIED=false;
 
 (async () => { try {
   if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
   if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
 } catch(e){} })();
 
-const STAT={ BUSINESS_SUBMITTED:["b-sub","신청 접수됨 · 심사 대기"], UNDER_REVIEW:["b-sub","심사 중"], SUPPLEMENT_REQUIRED:["b-rej","보완 요청"], APPROVED:["b-ok","승인 완료"], REJECTED:["b-rej","반려"], };
-function paint(row){
-  const el=document.getElementById("status");
-  if(!row){ el.className="badge b-none"; el.textContent="미신청"; document.getElementById("status-msg").textContent="아래에서 사업체 인증을 신청하세요."; return; }
-  const s=STAT[row.status]||["b-none",row.status];
-  el.className="badge "+s[0]; el.textContent=s[1];
-  document.getElementById("status-msg").innerHTML = "신청: <b>"+esc(row.business_name)+"</b> ("+esc(row.business_number)+") · "+ (row.submitted_at||"").slice(0,10) + (row.rejection_note?(" · 사유: "+esc(row.rejection_note)):"");
-  if(row.status==="APPROVED"){ document.getElementById("form-card").style.display="none"; }
-  // 폼 미리채움
-  document.getElementById("f-bizno").value=row.business_number||""; document.getElementById("f-name").value=row.business_name||"";
-  document.getElementById("f-rep").value=row.representative_name||""; document.getElementById("f-addr").value=row.business_address||"";
+function paintStatus(){
+  const el=document.getElementById("status"), sm=document.getElementById("status-msg");
+  if(!USER||!USER.id){ el.className="badge b-none"; el.textContent="로그인 필요"; sm.innerHTML="<a href='login.html'>로그인 →</a> 후 이용하세요."; document.getElementById("form-card").style.display="none"; return; }
+  if(USER.member_status==="APPROVED" && USER.company_name){ el.className="badge b-ok"; el.textContent="연동됨"; sm.innerHTML="사업장: <b>"+esc(USER.company_name)+"</b>"; }
+  else { el.className="badge b-none"; el.textContent="미연동"; sm.textContent="사업자번호를 조회하고 연동해 주세요."; }
+  if(USER.company_name) document.getElementById("f-name").value=USER.company_name;
 }
-async function load(){
-  if(USER&&USER.company_name){ document.getElementById("f-name").value=USER.company_name; }
-  if(!USER||!USER.id){ document.getElementById("status-msg").innerHTML="<b>로그인 후</b> 신청할 수 있습니다. <a href='login.html'>로그인 →</a>"; return; }
-  try{
-    const r=await fetch(REST+"/business_verification?applicant_user_id=eq."+USER.id+"&select=*&order=submitted_at.desc&limit=1",{headers:H});
-    const rows=r.ok?await r.json():[];
-    paint(rows[0]||null);
-  }catch(e){ paint(null); }
-}
-load();
+paintStatus();
 
-document.getElementById("submit").addEventListener("click", async ()=>{
+// 주소 간편검색 (Daum 우편번호)
+document.getElementById("addr-btn").addEventListener("click", ()=>{
+  new daum.Postcode({ oncomplete:function(d){
+    const addr=d.roadAddress || d.jibunAddress || d.address;
+    document.getElementById("f-addr").value=addr;
+    document.getElementById("f-addr2").focus();
+  }}).open();
+});
+
+// 국세청 사업자 상태 조회
+document.getElementById("check").addEventListener("click", async ()=>{
+  const m=document.getElementById("chk-msg");
+  const bno=(document.getElementById("f-bizno").value||"").replace(/\D/g,"");
+  if(bno.length!==10){ m.style.color="#b91c1c"; m.textContent="사업자번호 10자리를 입력하세요."; return; }
+  m.style.color="#6b7280"; m.textContent="국세청 조회 중…"; VERIFIED=false; document.getElementById("link").disabled=true;
+  try{
+    const r=await fetch(BIZ_FN,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({b_no:bno})});
+    const j=await r.json();
+    if(!j.ok){ m.style.color="#b91c1c"; m.textContent="조회 실패: "+(j.message||""); return; }
+    if(j.active){ m.style.color="#166534"; m.textContent="✓ 계속사업자 확인됨 ("+(j.tax_type||"")+"). 아래 정보 확인 후 연동하세요."; VERIFIED=true; document.getElementById("link").disabled=false; }
+    else { m.style.color="#b91c1c"; m.textContent="⚠ "+(j.b_stt||"휴업/폐업 또는 미등록")+" — 연동할 수 없습니다."; }
+  }catch(e){ m.style.color="#b91c1c"; m.textContent="조회 오류(함수 배포/키 확인): "+e.message; }
+});
+
+// 사업장 연동
+document.getElementById("link").addEventListener("click", async ()=>{
   const msg=document.getElementById("msg");
-  const bizno=(document.getElementById("f-bizno").value||"").replace(/\D/g,"");
+  if(!VERIFIED){ msg.style.color="#b91c1c"; msg.textContent="먼저 국세청 조회로 확인하세요."; return; }
   const name=(document.getElementById("f-name").value||"").trim();
   const rep=(document.getElementById("f-rep").value||"").trim();
-  if(bizno.length!==10){ msg.style.color="#b91c1c"; msg.textContent="사업자등록번호 10자리를 정확히 입력하세요."; return; }
+  const bno=(document.getElementById("f-bizno").value||"").replace(/\D/g,"");
   if(!name||!rep){ msg.style.color="#b91c1c"; msg.textContent="상호·대표자명을 입력하세요."; return; }
-  if(!USER||!USER.id){ msg.style.color="#b91c1c"; msg.textContent="로그인이 필요합니다."; return; }
-  const row={ applicant_user_id:USER.id, company_id:USER.company_id||null, business_number:bizno, business_name:name,
-    representative_name:rep, business_address:(document.getElementById("f-addr").value||"").trim()||null,
-    applicant_type:document.getElementById("f-type").value, license_type:document.getElementById("f-lic").value,
-    license_number:(document.getElementById("f-licno").value||"").trim()||null,
-    requested_role: document.getElementById("f-type").value==="OWNER"?"COMPANY_OWNER":"EMPLOYEE",
-    status:"BUSINESS_SUBMITTED" };
-  msg.style.color="#6b7280"; msg.textContent="제출 중…";
+  const addr=((document.getElementById("f-addr").value||"")+" "+(document.getElementById("f-addr2").value||"")).trim();
+  msg.style.color="#6b7280"; msg.textContent="연동 중…";
   try{
-    const r=await fetch(REST+"/business_verification",{method:"POST",headers:{...HW,Prefer:"return=minimal"},body:JSON.stringify(row)});
-    if(!r.ok) throw new Error(r.status+": "+(await r.text()).slice(0,150));
-    // 계정 상태 갱신
-    fetch(REST+"/account?auth_user_id=eq."+USER.id,{method:"PATCH",headers:{...HW,Prefer:"return=minimal"},body:JSON.stringify({member_status:"BUSINESS_SUBMITTED"})}).catch(()=>{});
-    msg.style.color="#166534"; msg.textContent="✓ 인증 신청이 접수되었습니다. 심사 후 알려드립니다.";
-    load();
-  }catch(e){ msg.style.color="#b91c1c"; msg.textContent="제출 실패: "+e.message; }
+    // 회사 정보 갱신
+    if(USER.company_id){ await fetch(REST+"/company?id=eq."+USER.company_id,{method:"PATCH",headers:{...HW,Prefer:"return=minimal"},body:JSON.stringify({name:name, biz_no:bno})}); }
+    // 인증 기록(승인)
+    await fetch(REST+"/business_verification",{method:"POST",headers:{...HW,Prefer:"return=minimal"},body:JSON.stringify({
+      applicant_user_id:USER.id, company_id:USER.company_id||null, business_number:bno, business_name:name,
+      representative_name:rep, business_address:addr||null, applicant_type:document.getElementById("f-name")?"OWNER":"OWNER",
+      license_type:document.getElementById("f-lic").value, license_number:(document.getElementById("f-licno").value||"").trim()||null,
+      requested_role:"COMPANY_OWNER", status:"APPROVED", reviewed_at:new Date().toISOString()
+    })}).catch(()=>{});
+    // 계정 상태
+    await fetch(REST+"/account?auth_user_id=eq."+USER.id,{method:"PATCH",headers:{...HW,Prefer:"return=minimal"},body:JSON.stringify({member_status:"APPROVED"})}).catch(()=>{});
+    // 캐시 갱신(헤더에 사업자명 표시)
+    USER.company_name=name; USER.member_status="APPROVED"; localStorage.setItem("meatos_user_cache", JSON.stringify(USER));
+    msg.style.color="#166534"; msg.textContent="✓ 사업장 연동 완료! 홈으로 이동합니다.";
+    setTimeout(()=>location.assign("/"), 800);
+  }catch(e){ msg.style.color="#b91c1c"; msg.textContent="연동 실패: "+e.message; }
 });
 </script>
 </body>

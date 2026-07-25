@@ -20,7 +20,7 @@
     ["💰 매출현황", "sales.html"],
     ["📦 재고현황", "stock.html"],
     ["🔔 알림현황", "alerts.html"],
-    ["🏢 기업인증", "business-verify.html"],
+    ["🏢 사업장 연동", "business-verify.html"],
     ["⚙️ 환경설정", "settings.html"]
   ];
 
@@ -121,10 +121,9 @@
   });
 
   var saleBtn = document.getElementById("mtSale");
-  saleBtn.addEventListener("click", function () {
-    if (/sales(\.html)?$/.test(location.pathname)) { document.dispatchEvent(new Event("meatos:openSaleInput")); }
-    else { location.assign("sales.html?input=1"); }
-  });
+  var onSales = /sales(\.html)?$/.test(location.pathname);
+  if (!onSales) { saleBtn.style.display = "none"; }   // 판매입력 버튼은 매출현황 페이지에서만
+  saleBtn.addEventListener("click", function () { document.dispatchEvent(new Event("meatos:openSaleInput")); });
 
   btn.addEventListener("click", function (e) { e.stopPropagation(); dd.classList.toggle("open"); });
   document.addEventListener("click", function (e) { if (dd.classList.contains("open") && !dd.contains(e.target) && e.target !== btn) dd.classList.remove("open"); });
