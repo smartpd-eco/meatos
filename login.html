@@ -21,8 +21,12 @@
   button.primary:disabled { opacity:.6; }
   .msg { font-size:13px; margin-top:10px; min-height:18px; text-align:center; }
   .divider { text-align:center; color:#9ca3af; font-size:12px; margin:16px 0 10px; position:relative; }
-  .social button { width:100%; padding:12px; font-size:15px; font-weight:700; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px; }
-  .social .g { border-color:#dadce0; } .social .k { background:#FEE500; border-color:#FEE500; } .social .n { background:#03C75A; color:#fff; border-color:#03C75A; }
+  .social button { position:relative; width:100%; padding:15px; font-size:16px; font-weight:800; border-radius:12px; border:1px solid transparent; cursor:pointer; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .social button .ic { position:absolute; left:18px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-weight:900; }
+  .social .g { background:#fff; color:#1f1f1f; border-color:#dadce0; }
+  .social .k { background:#FEE500; color:#191600; border-color:#FEE500; }
+  .social .n { background:#03C75A; color:#fff; border-color:#03C75A; }
+  .social .a { background:#111827; color:#fff; border-color:#111827; }
   .foot { margin-top:18px; }
   .foot a { color:#6b7280; font-size:13px; text-decoration:none; }
 </style>
@@ -57,9 +61,10 @@
 
     <div class="divider">간편 로그인</div>
     <div class="social">
-      <button class="g" onclick="social('google')">🟢 Google로 계속</button>
-      <button class="k" onclick="social('kakao')">💬 카카오로 계속</button>
-      <button class="n" onclick="social('naver')">N 네이버로 계속</button>
+      <button class="g" onclick="social('google')"><span class="ic">G</span>구글로 로그인</button>
+      <button class="k" onclick="social('kakao')"><span class="ic">💬</span>카카오로 로그인</button>
+      <button class="n" onclick="social('naver')"><span class="ic">N</span>네이버로 로그인</button>
+      <button class="a" onclick="social('apple')"><span class="ic"></span>Apple로 로그인</button>
     </div>
   </div>
 
@@ -150,7 +155,7 @@ const PROVIDERS_ENABLED = { google:true, kakao:true, naver:true };
 const NAVER_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/naver-auth";
 async function social(provider){
   if(!PROVIDERS_ENABLED[provider]){
-    const label = { google:"Google", kakao:"카카오", naver:"네이버" }[provider] || provider;
+    const label = { google:"Google", kakao:"카카오", naver:"네이버", apple:"Apple" }[provider] || provider;
     msg(label + " 간편로그인은 준비 중입니다. 지금은 이메일로 로그인/가입해 주세요.");
     return;
   }
