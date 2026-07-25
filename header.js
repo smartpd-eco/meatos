@@ -51,6 +51,8 @@
   style.textContent =
     "body{padding-top:64px !important;}" +
     ".mt-topbar{position:fixed;top:0;left:0;right:0;height:56px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:9000;box-shadow:0 1px 3px rgba(0,0,0,.06)}" +
+    ".mt-left{display:flex;align-items:center;gap:10px}" +
+    ".mt-sale{border:none;background:#16a34a;color:#fff;border-radius:999px;padding:7px 12px;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap}" +
     ".mt-brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:#111827}" +
     ".mt-logo{width:34px;height:34px;border-radius:9px;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}" +
     ".mt-title{font-weight:800;font-size:19px;letter-spacing:-.3px}" +
@@ -70,7 +72,10 @@
   var bar = document.createElement("header");
   bar.className = "mt-topbar";
   bar.innerHTML =
-    "<a class='mt-brand' href='/'><span class='mt-logo'>고</span><span class='mt-title'>고기장터</span></a>" +
+    "<div class='mt-left'>" +
+      "<a class='mt-brand' href='/'><span class='mt-logo'>고</span><span class='mt-title'>고기장터</span></a>" +
+      "<button class='mt-sale' id='mtSale' title='판매입력'>➕ 판매입력</button>" +
+    "</div>" +
     "<div class='mt-right'>" +
       "<a class='mt-auth out' id='mtAuth' href='login.html'>로그인</a>" +
       "<button class='mt-menu-btn' id='mtMenuBtn' aria-label='메뉴'><span class='mt-badge' id='mtBadge' style='display:none'></span>☰</button>" +
@@ -113,6 +118,12 @@
     e.preventDefault(); dd.classList.remove("open");
     if (readUser()) { if (confirm("로그아웃 하시겠어요?")) doLogout(); }
     else location.assign("login.html");
+  });
+
+  var saleBtn = document.getElementById("mtSale");
+  saleBtn.addEventListener("click", function () {
+    if (/sales(\.html)?$/.test(location.pathname)) { document.dispatchEvent(new Event("meatos:openSaleInput")); }
+    else { location.assign("sales.html?input=1"); }
   });
 
   btn.addEventListener("click", function (e) { e.stopPropagation(); dd.classList.toggle("open"); });
