@@ -780,10 +780,16 @@ body[data-view="dashboard"] .content-grid {
 
 .mobile-dashboard-brand {
   display: grid;
-  grid-template-columns: 44px 1fr 30px;
+  grid-template-columns: minmax(0, 1fr) 30px;
   gap: 12px;
   align-items: center;
   min-height: 58px;
+}
+
+.mobile-brand-logo {
+  display: block;
+  width: min(190px, 62vw);
+  height: auto;
 }
 
 .mobile-dashboard-brand > strong {
@@ -1136,7 +1142,7 @@ body[data-view="dashboard"] .content-grid {
 
   .mobile-dashboard-brand {
     display: grid;
-    grid-template-columns: 38px 1fr 28px;
+    grid-template-columns: minmax(0, 1fr) 28px;
     gap: 10px;
     align-items: center;
     min-height: 52px;

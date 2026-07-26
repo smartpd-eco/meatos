@@ -1,5 +1,5 @@
-const CACHE_NAME = "meatos-ai-scm-v11";
-const RUNTIME_CACHE_NAME = "meatos-ai-scm-runtime-v11";
+const CACHE_NAME = "jeongyuk-biseo-v12";
+const RUNTIME_CACHE_NAME = "jeongyuk-biseo-runtime-v12";
 const ASSETS = [
   "./",
   "./index.html",
@@ -42,7 +42,8 @@ const ASSETS = [
   "./src/plugins/pos-adapter.js",
   "./services/product/product-catalog-service.js",
   "./manifest.webmanifest",
-  "./icons/icon.svg"
+  "./icons/jeongyuk-biseo-logo.png",
+  "./icons/jeongyuk-biseo-icon.png"
 ];
 
 self.addEventListener("install", (event) => {

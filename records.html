@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Cache-Control" content="no-store" />
-<title>저장된 거래명세서</title>
+<title>명세서별 매입현황 · 정육비서</title>
 <style>
   * { box-sizing: border-box; }
   body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
@@ -42,7 +42,7 @@
 </head>
 <body>
 <script src="header.js"></script>
-  <h1>📋 저장된 거래명세서</h1>
+  <h1 id="page-title">📋 명세서별 매입현황</h1>
 
   <div id="listView">
     <input id="q" type="text" placeholder="공급자 또는 날짜로 검색 (예: 좋은축산 / 2026-07)" />
@@ -201,6 +201,7 @@ async function openTrace(no){
 document.addEventListener("click", function(e){ const a=e.target.closest && e.target.closest(".tracelink"); if(a){ e.preventDefault(); openTrace(a.dataset.no); } });
 
 let ALL = [];
+const INITIAL_DOCUMENT_ID = new URLSearchParams(location.search).get("id");
 
 async function load() {
   try {
@@ -210,6 +211,7 @@ async function load() {
     if (!r.ok) throw new Error("HTTP " + r.status);
     ALL = await r.json();
     renderList(ALL);
+    if (INITIAL_DOCUMENT_ID) showDetail(INITIAL_DOCUMENT_ID);
   } catch (e) {
     document.getElementById("list").innerHTML = "<p class='muted'>불러오기 실패: " + esc(e.message) + "</p>";
   }
@@ -261,6 +263,8 @@ function showDetail(id) {
   if (!posted) btn.addEventListener("click", () => postToInventory(d, items));
   document.getElementById("listView").style.display = "none";
   document.getElementById("detailView").style.display = "block";
+  document.getElementById("page-title").textContent = "📥 매입현황";
+  document.title = "매입현황 · 정육비서";
   window.scrollTo(0,0);
 }
 
@@ -290,8 +294,14 @@ async function postToInventory(d, items) {
 }
 
 document.getElementById("back").addEventListener("click", () => {
+  if (INITIAL_DOCUMENT_ID) {
+    location.assign("purchases.html");
+    return;
+  }
   document.getElementById("detailView").style.display = "none";
   document.getElementById("listView").style.display = "block";
+  document.getElementById("page-title").textContent = "📋 명세서별 매입현황";
+  document.title = "명세서별 매입현황 · 정육비서";
 });
 
 document.getElementById("q").addEventListener("input", (e) => {

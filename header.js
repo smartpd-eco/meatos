@@ -1,6 +1,12 @@
 /* MEATOS 통일 헤더 — 전 페이지 공통.
-   좌상단: 고기장터 로고/글자 → 홈. 우상단: 로그인칩 + ☰ 메뉴(+알림 배지). */
+   좌상단: 정육비서 로고 → 홈. 우상단: 로그인칩 + ☰ 메뉴(+알림 배지). */
 (function () {
+  var APP_NAME = "정육비서";
+  var currentTitle = String(document.title || "").trim();
+  document.title = !currentTitle || currentTitle === "고기장터"
+    ? APP_NAME
+    : (currentTitle.indexOf(APP_NAME) >= 0 ? currentTitle : currentTitle + " · " + APP_NAME);
+
   var SB_URL = "https://pkrsiqjzllyiafwpskll.supabase.co";
   var ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
   var REST = SB_URL + "/rest/v1";
@@ -56,9 +62,8 @@
     ".mt-topbar{position:fixed;top:0;left:0;right:0;height:56px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:9000;box-shadow:0 1px 3px rgba(0,0,0,.06)}" +
     ".mt-left{display:flex;align-items:center;gap:10px}" +
     ".mt-sale{border:none;background:#16a34a;color:#fff;border-radius:999px;padding:7px 12px;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap}" +
-    ".mt-brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:#111827}" +
-    ".mt-logo{width:34px;height:34px;border-radius:9px;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}" +
-    ".mt-title{font-weight:800;font-size:19px;letter-spacing:-.3px}" +
+    ".mt-brand{display:flex;align-items:center;text-decoration:none;color:#111827;min-width:0}" +
+    ".mt-logo-img{display:block;width:154px;height:auto;max-height:48px;object-fit:contain}" +
     ".mt-right{display:flex;align-items:center;gap:8px}" +
     ".mt-auth{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700;color:#166534;background:#dcfce7;border:none;border-radius:999px;padding:7px 12px;text-decoration:none;cursor:pointer}" +
     ".mt-auth.out{color:#374151;background:#f3f4f6}" +
@@ -69,14 +74,15 @@
     ".mt-dd a{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;text-decoration:none;color:#111827;font-weight:600;font-size:15px;border-bottom:1px solid #f1f5f9}" +
     ".mt-dd a:last-child{border-bottom:none}" +
     ".mt-dd a.auth{color:#16a34a;font-weight:800}" +
-    ".mt-dd a:active,.mt-dd a:hover{background:#f9fafb}";
+    ".mt-dd a:active,.mt-dd a:hover{background:#f9fafb}" +
+    "@media(max-width:420px){.mt-topbar{padding:0 10px}.mt-logo-img{width:118px}.mt-right{gap:5px}.mt-auth{max-width:80px;padding:7px 9px;font-size:12px}.mt-menu-btn{width:42px}}";
   document.head.appendChild(style);
 
   var bar = document.createElement("header");
   bar.className = "mt-topbar";
   bar.innerHTML =
     "<div class='mt-left'>" +
-      "<a class='mt-brand' href='/'><span class='mt-logo'>고</span><span class='mt-title'>고기장터</span></a>" +
+      "<a class='mt-brand' href='/' aria-label='정육비서 홈'><img class='mt-logo-img' src='icons/jeongyuk-biseo-logo.png' alt='정육비서' /></a>" +
       "<button class='mt-sale' id='mtSale' title='판매입력'>➕ 판매입력</button>" +
     "</div>" +
     "<div class='mt-right'>" +

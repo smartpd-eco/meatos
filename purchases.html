@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Cache-Control" content="no-store" />
-<title>매입현황</title>
+<title>매입현황 · 정육비서</title>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
@@ -27,7 +27,7 @@
 <body>
   <div class="htop">
     <h1>📥 매입현황</h1>
-    <a class="btn" href="records.html">🧾 거래명세서 보기</a>
+    <a class="btn" href="records.html">🧾 명세서별 매입현황</a>
   </div>
 
   <div class="kpis">
@@ -94,8 +94,14 @@ async function renderKpis(){
 function renderList(){
   const tb=document.getElementById("tb");
   if(!ALL.length){ tb.innerHTML="<tr><td colspan='4' class='muted'>매입 내역이 없습니다.</td></tr>"; return; }
-  tb.innerHTML = ALL.map(d=>"<tr class='clickable'><td>"+esc(dateOf(d))+"</td><td class='name'>"+esc(supplierOf(d))+"</td><td class='num'>"+itemsOf(d)+"</td><td class='num'>"+won(d.total_amount)+"</td></tr>").join("");
-  tb.querySelectorAll("tr.clickable").forEach((tr)=>tr.addEventListener("click",()=>location.assign("records.html")));
+  tb.innerHTML = ALL.map(d=>"<tr class='clickable' data-id='"+esc(d.id)+"' tabindex='0' role='link'><td>"+esc(dateOf(d))+"</td><td class='name'>"+esc(supplierOf(d))+"</td><td class='num'>"+itemsOf(d)+"</td><td class='num'>"+won(d.total_amount)+"</td></tr>").join("");
+  const openInvoice = (tr) => location.assign("records.html?id="+encodeURIComponent(tr.dataset.id));
+  tb.querySelectorAll("tr.clickable").forEach((tr)=>{
+    tr.addEventListener("click",()=>openInvoice(tr));
+    tr.addEventListener("keydown",(event)=>{
+      if(event.key==="Enter" || event.key===" "){ event.preventDefault(); openInvoice(tr); }
+    });
+  });
 }
 load();
 </script>

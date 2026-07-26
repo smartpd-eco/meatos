@@ -6,7 +6,8 @@ const runtimeRequiredFiles = [
   "app.js",
   "manifest.webmanifest",
   "sw.js",
-  "icons/icon.svg",
+  "icons/jeongyuk-biseo-logo.png",
+  "icons/jeongyuk-biseo-icon.png",
   "src/core/product-engine.js",
   "services/product/product-catalog-service.js",
   "src/data/alias-memory-store.js",
@@ -220,7 +221,7 @@ for (const check of [
   }
 }
 
-for (const check of ["start_url", "icons", "icons/icon.svg"]) {
+for (const check of ["start_url", "icons", "정육비서", "icons/jeongyuk-biseo-icon.png"]) {
   if (!String(JSON.stringify(manifest)).includes(check)) {
     throw new Error(`manifest.webmanifest missing ${check}`);
   }

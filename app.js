@@ -247,7 +247,7 @@ const mobileBackButton = document.querySelector("#mobile-back-button");
 const menuButtons = [...document.querySelectorAll("[data-view]")];
 
 const titles = {
-  dashboard: "고기장터",
+  dashboard: "정육비서",
   sales: "매출",
   services: "신고/부가서비스",
   more: "더보기",
@@ -280,10 +280,9 @@ function renderDashboard() {
   ];
 
   return `
-    <section class="mobile-dashboard span-12" aria-label="고기장터 모바일 대시보드">
+    <section class="mobile-dashboard span-12" aria-label="정육비서 모바일 대시보드">
       <header class="mobile-dashboard-brand">
-        <span class="mobile-brand-icon" aria-hidden="true">고</span>
-        <strong>고기장터</strong>
+        <img class="mobile-brand-logo" src="icons/jeongyuk-biseo-logo.png" alt="정육비서" />
         <span class="mobile-alert-icon" aria-label="알림 2건">2</span>
       </header>
 
@@ -323,13 +322,13 @@ function renderDashboard() {
         </button>
       </div>
 
-      <footer class="mobile-dashboard-footer">© 2026 MEATOS. All rights reserved.</footer>
+      <footer class="mobile-dashboard-footer">© 2026 정육비서 · Powered by MEATOS</footer>
     </section>
 
     <article class="card span-12 hero-home mobile-primary-section desktop-dashboard-card">
       <div class="toolbar">
         <div>
-          <p class="eyebrow">고기장터</p>
+          <p class="eyebrow">정육비서</p>
           <h3>AI 정육점 통합관리 시스템</h3>
         </div>
         <span class="label">3초 안에 상태를 보고, 버튼 하나만 누르면 됩니다.</span>
