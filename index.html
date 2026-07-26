@@ -12,12 +12,12 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, sans-serif; background: #f3f4f6; color: #111827; padding: 14px; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f3f4f6; color: #111827; padding: 14px; overflow-x: hidden; }
     .banner { background: #16a34a; color: #fff; border-radius: 18px; padding: 34px 20px; text-align: center; cursor: pointer; margin: 8px 0 16px; box-shadow: 0 4px 14px rgba(22,163,74,.28); }
     .banner h2 { margin: 0 0 6px; font-size: 26px; font-weight: 800; }
     .banner p { margin: 0; font-size: 14px; opacity: .95; }
-    .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .kcard { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); cursor: pointer; border: none; text-align: left; }
+    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .kcard { min-width:0; overflow:hidden; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); cursor: pointer; border: none; text-align: left; }
     .kcard .khead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
     .kcard .ktitle { font-size: 15px; font-weight: 800; }
     .kcard .ktag { font-size: 11px; color: #9ca3af; }
@@ -29,9 +29,22 @@
     .kcard.alert .kval.warn { color: #b91c1c; }
     @media (min-width: 720px) { .cards { grid-template-columns: repeat(4, 1fr); } }
     .foot { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 22px; }
+    .workspace { display:flex; justify-content:space-between; align-items:center; gap:12px; background:#fff; border-radius:12px; padding:11px 14px; margin:0 0 12px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+    .workspace strong { display:block; font-size:14px; }
+    .workspace span { display:block; color:#6b7280; font-size:12px; margin-top:2px; }
+    .workspace a { color:#166534; font-size:13px; font-weight:800; text-decoration:none; white-space:nowrap; }
+    @media (max-width: 420px) {
+      .banner { padding:28px 14px; }
+      .banner h2 { font-size:22px; }
+      .workspace { align-items:flex-start; flex-wrap:wrap; }
+      .workspace > div { min-width:0; flex:1 1 220px; }
+      .kcard { padding:14px; }
+      .kcard .kval { font-size:25px; overflow-wrap:anywhere; }
+    }
   </style>
 </head>
 <body>
+  <div class="workspace" id="workspace-mode"></div>
   <div class="banner" id="banner">
     <h2>🥩 고기가 들어왔어요!</h2>
     <p>사진 찍기 · 파일 불러오기 · 자동 인식</p>
@@ -76,8 +89,12 @@
     const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
     const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
     const TENANT = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
+    const CONTEXT = window.MEATOS_CONTEXT || { mode:"DEMO", companyName:"체험 공간", isBusiness:false };
     const H = { apikey: ANON, Authorization: "Bearer " + ANON };
     const won = (v) => Number(v || 0).toLocaleString("ko-KR");
+    document.getElementById("workspace-mode").innerHTML = CONTEXT.isBusiness
+      ? "<div><strong>🏢 "+String(CONTEXT.companyName||"내 사업장")+"</strong><span>회사 전용 데이터 공간 · 체험 데이터와 분리됨</span></div><a href='settings.html'>사업장 설정</a>"
+      : "<div><strong>🧪 체험 데이터</strong><span>기능을 확인하는 공용 테스트 공간입니다.</span></div><a href='business-verify.html'>사업장 연동</a>";
     function localToday() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
     function monthStart() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01"; }
 

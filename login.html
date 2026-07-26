@@ -99,7 +99,7 @@ async function loadAccount(user){
 }
 
 function saveSession(user, acct, token){
-  const cache = { id:user.id, email:user.email, name:(acct&&acct.name)||"", company_id:(acct&&acct.company_id)||"", store_id:(acct&&acct.store_id)||"", role:(acct&&acct.role)||"OWNER", company_name:"" };
+  const cache = { id:user.id, email:user.email, name:(acct&&acct.name)||"", company_id:(acct&&acct.company_id)||"", store_id:(acct&&acct.store_id)||"", role:(acct&&acct.role)||"OWNER", company_name:"", member_status:(acct&&acct.member_status)||"SOCIAL_VERIFIED" };
   localStorage.setItem("meatos_user_cache", JSON.stringify(cache));
   localStorage.setItem("meatos_access_token", token||"");
   localStorage.setItem("meatos_last_active", String(Date.now()));

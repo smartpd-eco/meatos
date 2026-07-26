@@ -10,13 +10,27 @@
   var SB_URL = "https://pkrsiqjzllyiafwpskll.supabase.co";
   var ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
   var REST = SB_URL + "/rest/v1";
-  var TENANT = window.MEATOS_TENANT;
   var H = { apikey: ANON, Authorization: "Bearer " + ANON };
   function localToday() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   function readUser() { try { return JSON.parse(localStorage.getItem("meatos_user_cache") || "null"); } catch (e) { return null; } }
   var DEMO_TENANT = "881f6cc1-b552-468c-b9b4-152edb464e61";
-  // 활성 테넌트: 사업장 연동 완료(APPROVED)면 자기 회사, 아니면 데모(체험). 전 페이지 공용.
-  (function () { var u = readUser(); window.MEATOS_TENANT = (u && u.member_status === "APPROVED" && u.company_id) ? u.company_id : DEMO_TENANT; })();
+  // 활성 테넌트: 승인 기업만 회사 전용 공간을 사용하고, 나머지는 공용 체험 데이터를 사용한다.
+  var activeUser = readUser();
+  var isBusinessWorkspace = Boolean(
+    activeUser &&
+    activeUser.member_status === "APPROVED" &&
+    activeUser.company_id
+  );
+  var TENANT = isBusinessWorkspace ? activeUser.company_id : DEMO_TENANT;
+  window.MEATOS_TENANT = TENANT;
+  window.MEATOS_CONTEXT = Object.freeze({
+    mode: isBusinessWorkspace ? "BUSINESS" : "DEMO",
+    tenantId: TENANT,
+    companyId: isBusinessWorkspace ? activeUser.company_id : null,
+    companyName: isBusinessWorkspace ? (activeUser.company_name || "내 사업장") : "체험 공간",
+    storeId: isBusinessWorkspace ? (activeUser.store_id || null) : null,
+    isBusiness: isBusinessWorkspace
+  });
   function doLogout() {
     Object.keys(localStorage).forEach(function (k) { if (k.indexOf("meatos_") === 0 || k.indexOf("sb-") === 0) localStorage.removeItem(k); });
     location.assign("/");

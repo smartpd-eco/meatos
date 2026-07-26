@@ -63,7 +63,6 @@
 <script>
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
-const DEFAULT_TENANT = "881f6cc1-b552-468c-b9b4-152edb464e61";
 const H = { apikey: ANON, Authorization: "Bearer " + ANON };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 
@@ -74,13 +73,14 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&l
 
 // 로그인 계정 → 에이전트에 자동 바인딩
 let USER = null; try { USER = JSON.parse(localStorage.getItem("meatos_user_cache")||"null"); } catch(e){}
-const TENANT = (USER && USER.company_id) ? USER.company_id : DEFAULT_TENANT;
+const TENANT = window.MEATOS_TENANT;
+const IS_BUSINESS = Boolean(window.MEATOS_CONTEXT && window.MEATOS_CONTEXT.isBusiness);
 const STORE_NAME = (USER && (USER.company_name||USER.name)) ? (USER.company_name||USER.name) : "내 매장";
 const DEVICE = STORE_NAME.replace(/[^0-9A-Za-z가-힣]/g,"").slice(0,20) || "POS01";
 
 const acct = document.getElementById("acct");
-if (USER) { acct.className="acct"; acct.textContent = "🏪 " + STORE_NAME + " · 연결됨"; document.getElementById("loginwarn").style.display="none"; }
-else { acct.className="acct out"; acct.textContent = "⚠ 로그인 안 됨 (기본 매장으로 연결)"; document.getElementById("loginwarn").style.display="block"; }
+if (IS_BUSINESS) { acct.className="acct"; acct.textContent = "🏪 " + STORE_NAME + " · 기업 공간"; document.getElementById("loginwarn").style.display="none"; }
+else { acct.className="acct out"; acct.textContent = "체험 공간 · 테스트 데이터"; document.getElementById("loginwarn").style.display="block"; }
 
 // 계정이 박힌 에이전트(.ahk) 생성 → 다운로드
 const AGENT = `#Requires AutoHotkey v2.0
