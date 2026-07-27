@@ -78,7 +78,12 @@ export async function runSupabaseHealthCheck({ adapter, config }) {
 async function probeApiReachable(config = {}) {
   const baseUrl = String(config.url ?? "").replace(/\/+$/, "");
   const anonKey = String(config.anonKey ?? "");
-  if (!baseUrl || !anonKey) {
+  const accessToken = String(
+    typeof config.getAccessToken === "function"
+      ? config.getAccessToken()
+      : globalThis.localStorage?.getItem("meatos_access_token") ?? ""
+  );
+  if (!baseUrl || !anonKey || !accessToken) {
     return { ok: false, code: "CONFIG", message: "Supabase config is missing" };
   }
 
@@ -87,7 +92,7 @@ async function probeApiReachable(config = {}) {
       method: "GET",
       headers: {
         apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`
+        Authorization: `Bearer ${accessToken}`
       }
     });
     return { ok: response.ok, code: response.status, message: response.statusText || "API probe completed" };

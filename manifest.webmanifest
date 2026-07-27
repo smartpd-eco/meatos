@@ -4,8 +4,8 @@
   "description": "매입부터 판매까지 한눈에 관리하는 정육점 AI 업무비서",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0f1218",
-  "theme_color": "#111827",
+  "background_color": "#F6F7F9",
+  "theme_color": "#FFFFFF",
   "icons": [
     {
       "src": "icons/jeongyuk-biseo-icon.png",

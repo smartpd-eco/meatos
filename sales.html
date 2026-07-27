@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>매출현황 · 정육비서</title>
 <style>
@@ -54,7 +55,7 @@
 </style>
 </head>
 <body>
-  <h1>💰 매출현황</h1>
+  <h1>매출현황</h1>
 
   <div class="kpis">
     <div class="kpi"><b id="k-m">-</b><div class="amt" id="k-m-amt">-</div><span>이번 달</span></div>
@@ -63,7 +64,7 @@
   </div>
 
   <div class="card">
-    <h2>📅 월별 매출 <span class="r" style="display:flex;gap:6px;align-items:center"><button class="calnav" id="cal-prev">◀</button><b id="cal-ym" style="min-width:78px;text-align:center;color:#111827;font-size:14px"></b><button class="calnav" id="cal-next">▶</button></span></h2>
+    <h2>📅 월별 매출 <span class="r" style="display:flex;gap:6px;align-items:center"><button class="calnav" id="cal-prev" aria-label="이전 달">◀</button><b id="cal-ym" style="min-width:78px;text-align:center;color:#111827;font-size:14px"></b><button class="calnav" id="cal-next" aria-label="다음 달">▶</button></span></h2>
     <div class="calwrap"><div id="cal" class="muted">불러오는 중…</div></div>
   </div>
 
@@ -71,8 +72,8 @@
     <h2>🧾 매출 내역 <span class="r" id="list-scope">(최신순)</span></h2>
     <div id="list-reset" style="margin-bottom:6px;display:none"><span class="link" id="reset-btn">← 전체 보기</span></div>
     <div style="overflow-x:auto"><table class="lst">
-      <thead><tr><th>날짜</th><th>채널</th><th class="name">품목</th><th class="num">수량</th><th class="num">단가</th><th class="num">금액</th></tr></thead>
-      <tbody id="tb"><tr><td colspan="6" class="muted">불러오는 중…</td></tr></tbody>
+      <thead><tr><th>판매일시</th><th>매장</th><th class="name">상품</th><th>바코드</th><th class="num">수량</th><th class="num">판매단가</th><th class="num">판매금액</th><th>POS 거래번호</th><th>상태</th></tr></thead>
+      <tbody id="tb"><tr><td colspan="9" class="muted">불러오는 중…</td></tr></tbody>
     </table></div>
   </div>
 
@@ -99,7 +100,7 @@
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const TENANT = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
-const H = { apikey: ANON, Authorization: "Bearer " + ANON };
+const H = window.MEATOS_API_HEADERS;
 const HW = { ...H, "Content-Type": "application/json" };
 const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
@@ -127,10 +128,13 @@ function weekStart(){ const d=new Date(); const dow=(d.getDay()+6)%7; d.setDate(
 function monthStart(){ const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-01"; }
 
 let ALL = [];
+let STORE_NAMES = {};
 async function load(){
   try{
-    let r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,item_name,quantity,unit_price,amount,channel,created_at&order=sale_date.desc,created_at.desc&limit=1000",{headers:H});
-    if(!r.ok){ // channel 컬럼 미생성 등 → 없이 재시도
+    const sr=await fetch(REST+"/store?company_id=eq."+TENANT+"&select=id,name",{headers:H});
+    if(sr.ok) (await sr.json()).forEach((store)=>STORE_NAMES[store.id]=store.name);
+    let r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,sold_at,store_id,item_name,barcode,quantity,unit_price,amount,channel,external_transaction_id,is_cancelled,created_at&order=sale_date.desc,created_at.desc&limit=1000",{headers:H});
+    if(!r.ok){ // POS 확장 컬럼 미적용 상태에서도 기존 매출은 표시
       r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,item_name,quantity,unit_price,amount,created_at&order=sale_date.desc,created_at.desc&limit=1000",{headers:H});
     }
     ALL = r.ok ? await r.json() : [];
@@ -200,8 +204,12 @@ document.getElementById("reset-btn").addEventListener("click", ()=>{
 function renderList(rows){
   rows = rows || ALL;
   const tb=document.getElementById("tb");
-  if(!rows.length){ tb.innerHTML="<tr><td colspan='6' class='muted'>매출 내역이 없습니다.</td></tr>"; return; }
-  tb.innerHTML = rows.map(x=>"<tr><td>"+esc(x.sale_date)+"</td><td>"+chanBadge(x.channel)+"</td><td class='name'>"+esc(x.item_name)+"</td><td class='num'>"+(x.quantity!=null?won(x.quantity):"-")+"</td><td class='num'>"+(x.unit_price!=null?won(x.unit_price):"-")+"</td><td class='num'>"+won(x.amount)+"</td></tr>").join("");
+  if(!rows.length){ tb.innerHTML="<tr><td colspan='9' class='muted'>매출 내역이 없습니다.</td></tr>"; return; }
+  tb.innerHTML = rows.map(x=>"<tr><td>"+esc(x.sold_at?new Date(x.sold_at).toLocaleString("ko-KR"):x.sale_date)+"</td>"+
+    "<td>"+esc(STORE_NAMES[x.store_id]||chanBadge(x.channel).replace(/<[^>]+>/g,""))+"</td><td class='name'>"+esc(x.item_name)+"</td>"+
+    "<td>"+esc(x.barcode||"-")+"</td><td class='num'>"+(x.quantity!=null?won(x.quantity):"-")+"</td>"+
+    "<td class='num'>"+(x.unit_price!=null?won(x.unit_price):"-")+"</td><td class='num'>"+won(x.amount)+"</td>"+
+    "<td>"+esc(x.external_transaction_id||"-")+"</td><td>"+(x.is_cancelled?"취소":"완료")+"</td></tr>").join("");
 }
 load();
 

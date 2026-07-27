@@ -1,3 +1,6 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
+/* 기존 app.js 화면 보호용 스타일. 아래 디자인 시스템 규칙이 공통 토큰을 최종 적용한다. */
 :root {
   color-scheme: light;
   --bg: #ffffff;
@@ -1980,4 +1983,237 @@ body[data-view="dashboard"] .content-grid {
     color: #b42318;
     font-weight: 700;
   }
+}
+
+:root {
+  /* Brand Colors */
+  --brand-red: #C51624;
+  --brand-red-dark: #9F101C;
+  --brand-red-soft: #FFF2F3;
+  --brand-red-border: #F2B8BE;
+
+  /* Info Colors */
+  --info-blue: #2463D4;
+  --success-green: #0F7A3B;
+  --warning-orange: #E58A00;
+  --danger-red: #D71F2B;
+
+  /* Neutral Colors */
+  --bg-page: #F6F7F9;
+  --bg-card: #FFFFFF;
+  --text-primary: #17191D;
+  --text-secondary: #50555D;
+  --text-muted: #6B7280;
+  --border-default: #E4E7EB;
+  --divider: #ECEEF1;
+  --disabled: #B8BDC5;
+
+  /* Radius */
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-panel: 16px;
+
+  /* Shadow */
+  --shadow-card: 0 4px 18px rgba(16, 24, 40, 0.06);
+  --shadow-hover: 0 8px 26px rgba(16, 24, 40, 0.10);
+  --shadow-modal: 0 18px 48px rgba(16, 24, 40, 0.16);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Transition */
+  --transition: all 0.2s ease-in-out;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 700;
+}
+
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+.text-brand { color: var(--brand-red); }
+.text-info { color: var(--info-blue); }
+.text-success { color: var(--success-green); }
+.text-warning { color: var(--warning-orange); }
+.text-danger { color: var(--danger-red); }
+
+/* KPI Typography */
+.kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+@media (min-width: 1024px) {
+  .kpi-value { font-size: 40px; }
+}
+
+/* Components */
+.ui-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+  transition: var(--transition);
+}
+
+.ui-card--hover:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 16px;
+  transition: var(--transition);
+  gap: var(--space-2);
+}
+
+.btn-primary {
+  background: var(--brand-red);
+  color: #FFFFFF;
+}
+
+.btn-primary:hover {
+  background: var(--brand-red-dark);
+}
+
+.btn-secondary {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-page);
+}
+
+.btn-danger {
+  background: #FFFFFF;
+  color: var(--danger-red);
+  border: 1px solid var(--danger-red);
+}
+
+.btn-danger:hover {
+  background: var(--brand-red-soft);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 6px;
+}
+
+.status-badge::before {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-badge--success { background: #dcfce7; color: var(--success-green); }
+.status-badge--success::before { background: var(--success-green); }
+
+.status-badge--warning { background: #ffedd5; color: var(--warning-orange); }
+.status-badge--warning::before { background: var(--warning-orange); }
+
+.status-badge--danger { background: #fee2e2; color: var(--danger-red); }
+.status-badge--danger::before { background: var(--danger-red); }
+
+.status-badge--info { background: #dbeafe; color: var(--info-blue); }
+.status-badge--info::before { background: var(--info-blue); }
+
+/* Layout Helpers */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.grid { display: grid; gap: var(--space-4); }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-4 { grid-template-columns: repeat(2, 1fr); }
+
+@media (min-width: 768px) {
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Page Header Overrides (for subpages) */
+.page-header {
+  padding: var(--space-6) 0 var(--space-4);
+}
+
+.page-title {
+  font-size: 24px;
+  margin-bottom: var(--space-2);
+}
+
+.page-sub {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Skeleton & Loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

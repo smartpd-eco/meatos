@@ -30,7 +30,9 @@
     "ocr:corpus:plan": "node scripts/plan-ocr-corpus-1000.mjs",
     "ocr:corpus:validate": "node scripts/validate-ocr-corpus-1000.mjs",
     "ocr:corpus:report": "node scripts/report-ocr-corpus-1000.mjs",
-    "db:apply": "node scripts/apply-supabase-migrations.mjs"
+    "db:apply": "node scripts/apply-supabase-migrations.mjs",
+    "db:rls:check": "node scripts/validate-auth-tenant-rls.mjs",
+    "db:rls:apply": "node scripts/validate-auth-tenant-rls.mjs --apply"
   },
   "dependencies": {
     "@paddleocr/paddleocr-js": "^0.4.2",

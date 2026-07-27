@@ -1,6 +1,13 @@
 // 사업자등록 상태 조회 (국세청 사업자등록정보 상태조회 API 프록시)
 // 브라우저에서 CORS로 직접 못 부르므로 이 함수가 대리 호출한다.
 // 배포: verify_jwt=false. 시크릿: DATA_GO_KR_KEY (공공데이터포털 활용신청 키)
+import { requireAuthenticatedUser } from "../_shared/tenant-auth.ts";
+
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (request: Request) => Response | Promise<Response>): void;
+};
+
 function cors() {
   return {
     "Access-Control-Allow-Origin": "*",
@@ -14,6 +21,8 @@ function json(o: unknown, s = 200) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors() });
+  const auth = await requireAuthenticatedUser(req);
+  if (auth.ok === false) return json({ ok: false, message: auth.message }, auth.status);
   try {
     const body = await req.json().catch(() => ({}));
     const bno = String(body.b_no ?? "").replace(/\D/g, "");

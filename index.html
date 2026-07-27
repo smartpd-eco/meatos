@@ -3,104 +3,388 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#16a34a" />
+  <meta name="theme-color" content="#C51624" />
   <meta http-equiv="Cache-Control" content="no-store" />
   <meta name="application-name" content="정육비서" />
   <meta name="apple-mobile-web-app-title" content="정육비서" />
   <meta name="description" content="매입부터 판매까지 한눈에 관리하는 정육점 AI 업무비서 · MEATOS" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta property="og:title" content="정육비서 · 매입부터 판매까지 한눈에 관리" />
+  <meta property="og:description" content="정육점의 매입, 매출, 재고, 유통기한과 위생업무를 한눈에 관리하는 AI 업무비서입니다." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://meatos.vercel.app/" />
+  <meta property="og:image" content="https://meatos.vercel.app/icons/jeongyuk-biseo-logo.png" />
+  <meta name="twitter:card" content="summary" />
   <title>정육비서</title>
+  <link rel="canonical" href="https://meatos.vercel.app/" />
   <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
   <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, sans-serif; background: #f3f4f6; color: #111827; padding: 14px; overflow-x: hidden; }
-    .banner { background: #16a34a; color: #fff; border-radius: 18px; padding: 34px 20px; text-align: center; cursor: pointer; margin: 8px 0 16px; box-shadow: 0 4px 14px rgba(22,163,74,.28); }
-    .banner h2 { margin: 0 0 6px; font-size: 26px; font-weight: 800; }
-    .banner p { margin: 0; font-size: 14px; opacity: .95; }
-    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .kcard { min-width:0; overflow:hidden; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); cursor: pointer; border: none; text-align: left; }
-    .kcard .khead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-    .kcard .ktitle { font-size: 15px; font-weight: 800; }
-    .kcard .ktag { font-size: 11px; color: #9ca3af; }
-    .kcard .kval { font-size: 28px; font-weight: 800; line-height: 1.15; }
-    .kcard .ksub { font-size: 12px; color: #6b7280; margin-top: 8px; }
-    .kcard .kline { height: 4px; border-radius: 999px; margin-top: 10px; background: #e5e7eb; }
-    .kcard.sales .kline { background: #16a34a; } .kcard.purchase .kline { background: #f59e0b; }
-    .kcard.inventory .kline { background: #2563eb; } .kcard.alert .kline { background: #f59e0b; }
-    .kcard.alert .kval.warn { color: #b91c1c; }
-    @media (min-width: 720px) { .cards { grid-template-columns: repeat(4, 1fr); } }
-    .foot { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 22px; }
-    .workspace { display:flex; justify-content:space-between; align-items:center; gap:12px; background:#fff; border-radius:12px; padding:11px 14px; margin:0 0 12px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-    .workspace strong { display:block; font-size:14px; }
-    .workspace span { display:block; color:#6b7280; font-size:12px; margin-top:2px; }
-    .workspace a { color:#166534; font-size:13px; font-weight:800; text-decoration:none; white-space:nowrap; }
-    @media (max-width: 420px) {
-      .banner { padding:28px 14px; }
-      .banner h2 { font-size:22px; }
-      .workspace { align-items:flex-start; flex-wrap:wrap; }
-      .workspace > div { min-width:0; flex:1 1 220px; }
-      .kcard { padding:14px; }
-      .kcard .kval { font-size:25px; overflow-wrap:anywhere; }
+    /* Dashboard Specific Styles */
+    .dashboard { padding: var(--space-5) 0 var(--space-8); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+    .section-title { font-size: 20px; font-weight: 700; margin-bottom: var(--space-4); display: flex; align-items: center; justify-content: space-between; }
+    .section-title small { font-size: 13px; color: var(--text-muted); font-weight: 400; margin-left: 8px; }
+
+    /* AI Briefing Card */
+    .ai-briefing { margin-bottom: var(--space-6); }
+    .ai-briefing__header { display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--space-4); margin-bottom: var(--space-5); border-bottom: 1px solid var(--divider); }
+    .ai-briefing__title { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+    .ai-briefing__meta { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+    .ai-briefing__refresh { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-primary); font-size: 24px; transition: var(--transition); }
+    .ai-briefing__refresh:hover { background: var(--border-default); }
+    .ai-briefing__refresh.is-loading { animation: refresh-spin .8s linear infinite; }
+
+    .briefing-content { display: flex; flex-direction: column; gap: var(--space-4); }
+
+    .management-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); padding-bottom: var(--space-4); border-bottom: 1px solid var(--divider); }
+    .management-item { display: flex; gap: var(--space-4); min-width: 0; padding: var(--space-3) 0; }
+    .management-item + .management-item { border-left: 1px solid var(--divider); padding-left: var(--space-5); }
+    .management-item__icon { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .management-item__icon svg, .status-row__icon svg, .kpi-card__icon svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    .management-item--sales .management-item__icon { background: var(--brand-red-soft); color: var(--brand-red); }
+    .management-item--purchase .management-item__icon { background: #dbeafe; color: var(--info-blue); }
+    .management-item__data { display: flex; flex-direction: column; gap: 2px; }
+    .management-item__label { font-size: 15px; color: var(--text-secondary); font-weight: 600; }
+    .management-item__value { font-size: clamp(24px, 3vw, 40px); font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; letter-spacing: -0.025em; }
+    .management-item__trend { font-size: 14px; font-weight: 700; margin-top: var(--space-2); }
+
+    .status-row { display: flex; justify-content: space-between; align-items: center; min-height: 64px; }
+    .status-row + .status-row { border-top: 1px solid var(--divider); }
+    .status-row__label { display: flex; align-items: center; gap: var(--space-3); font-size: 16px; font-weight: 700; }
+    .status-row__icon { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .status-row--expiry .status-row__icon { background: #fff7ed; color: var(--warning-orange); }
+    .status-row--sanitation .status-row__icon { background: #ecfdf3; color: var(--success-green); }
+    .status-row__value { font-size: 18px; font-weight: 800; }
+
+    /* CTA Card */
+    .meat-cta { background: var(--brand-red-soft); border: 1px solid var(--brand-red-border); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6); position: relative; overflow: hidden; }
+    .meat-cta__content { display: flex; align-items: center; gap: var(--space-4); }
+    .meat-cta__image { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: #fff; font-size: 38px; }
+    .meat-cta__text { display: flex; flex-direction: column; gap: 4px; }
+    .meat-cta__title { font-size: 18px; font-weight: 800; }
+    .meat-cta__sub { font-size: 13px; color: var(--text-secondary); }
+    .meat-cta__btn { min-height: 52px; background: var(--brand-red); color: #fff; padding: var(--space-3) var(--space-5); border-radius: var(--radius-sm); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(197, 22, 36, 0.2); }
+
+    /* KPI Cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+    .kpi-card { display: flex; flex-direction: column; min-height: 300px; gap: var(--space-3); cursor: pointer; }
+    .kpi-card__header { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+    .kpi-card__icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .kpi-card--purchase .kpi-card__icon { background: #ecfdf3; color: var(--success-green); }
+    .kpi-card--sales .kpi-card__icon { background: #eff6ff; color: var(--info-blue); }
+    .kpi-card--stock .kpi-card__icon { background: #fff7ed; color: var(--warning-orange); }
+    .kpi-card--alert .kpi-card__icon { background: #fff1f2; color: var(--danger-red); }
+    .kpi-card__title { font-size: 18px; font-weight: 800; color: var(--text-primary); }
+
+    .kpi-card__body { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; margin-bottom: var(--space-2); }
+    .kpi-card__label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .kpi-card__value { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; }
+    .kpi-card__sub { font-size: 14px; color: var(--text-secondary); }
+    .kpi-card__meta { font-size: 14px; font-weight: 700; margin-top: 4px; }
+
+    .kpi-card__graph { width: 100%; height: 40px; margin-top: auto; }
+
+    .dashboard-toast { position: fixed; right: var(--space-5); bottom: var(--space-5); z-index: 100001; padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--text-primary); color: #fff; box-shadow: var(--shadow-modal); font-size: 14px; font-weight: 700; opacity: 0; transform: translateY(12px); pointer-events: none; transition: var(--transition); }
+    .dashboard-toast.show { opacity: 1; transform: translateY(0); }
+
+    @keyframes refresh-spin { to { transform: rotate(360deg); } }
+
+    @media (min-width: 640px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
     }
+
+    @media (min-width: 1024px) {
+      .dashboard { padding: 12px 0 8px; }
+      .ai-briefing { min-height: 0; padding: 16px 24px; margin-bottom: 12px; }
+      .ai-briefing__header { min-height: 38px; padding-bottom: 8px; margin-bottom: 10px; }
+      .ai-briefing__title { font-size: 26px; line-height: 1.2; }
+      .briefing-content { gap: 0; }
+      .management-row { padding-bottom: 8px; }
+      .management-item { padding: 4px 0; gap: 12px; }
+      .management-item + .management-item { padding-left: 20px; }
+      .management-item__icon { width: 44px; height: 44px; }
+      .management-item__value { font-size: clamp(30px, 2.6vw, 36px); line-height: 1.08; }
+      .management-item__trend { margin-top: 4px; font-size: 13px; }
+      .status-row { min-height: 44px; }
+      .status-row__icon { width: 38px; height: 38px; }
+      .status-row__label { font-size: 15px; }
+      .status-row__value { font-size: 16px; }
+      .meat-cta { min-height: 84px; padding: 10px 20px; margin-bottom: 12px; gap: 18px; }
+      .meat-cta__image { width: 50px; height: 50px; font-size: 30px; }
+      .meat-cta__title { font-size: 18px; }
+      .meat-cta__sub { font-size: 13px; }
+      .meat-cta__btn { min-width: 190px; min-height: 48px; padding: 0 22px; }
+      .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+      .kpi-card { min-height: 230px; height: 230px; padding: 16px; gap: 8px; justify-content: flex-start; }
+      .kpi-card__header { flex-direction: row; justify-content: center; gap: 8px; }
+      .kpi-card__icon { width: 44px; height: 44px; flex: 0 0 44px; }
+      .kpi-card__body { gap: 3px; margin-bottom: 0; }
+      .kpi-card__value { font-size: 32px; line-height: 1.05; }
+      .kpi-card__sub, .kpi-card__meta { font-size: 13px; }
+      .kpi-card__graph { height: 32px; margin-top: 8px; }
+      .footer { padding: 8px 0 6px; line-height: 1.2; }
+    }
+
+    @media (min-width: 1024px) and (max-height: 800px) {
+      .dashboard { padding-top: 8px; padding-bottom: 0; }
+      .ai-briefing { padding: 12px 20px; margin-bottom: 8px; }
+      .ai-briefing__header { min-height: 34px; margin-bottom: 6px; }
+      .ai-briefing__title { font-size: 24px; }
+      .management-item__value { font-size: 30px; }
+      .management-item__icon { width: 40px; height: 40px; }
+      .status-row { min-height: 40px; }
+      .status-row__icon { width: 34px; height: 34px; }
+      .meat-cta { min-height: 72px; padding-top: 8px; padding-bottom: 8px; margin-bottom: 8px; }
+      .meat-cta__image { width: 46px; height: 46px; }
+      .meat-cta__btn { min-height: 44px; }
+      .kpi-card { min-height: 205px; height: 205px; padding: 12px 14px; gap: 6px; }
+      .kpi-card__icon { width: 40px; height: 40px; flex-basis: 40px; }
+      .kpi-card__value { font-size: 30px; }
+      .kpi-card__graph { height: 26px; margin-top: 4px; }
+      .footer { padding: 5px 0 4px; }
+    }
+
+    @media (max-width: 639px) {
+      .dashboard { padding: var(--space-4) 0 40px; }
+      .ai-briefing { padding: 20px; margin-bottom: 20px; border-radius: var(--radius-panel); }
+      .ai-briefing__header { align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
+      .ai-briefing__title { font-size: 22px; line-height: 1.25; }
+      .ai-briefing__meta { flex-shrink: 0; }
+      .briefing-content { gap: var(--space-3); }
+      .management-row { gap: var(--space-3); padding-bottom: var(--space-3); }
+      .management-item { flex-direction: column; gap: var(--space-2); }
+      .management-item + .management-item { padding-left: var(--space-3); }
+      .management-item__icon { width: 44px; height: 44px; font-size: 22px; }
+      .management-item__value { font-size: clamp(22px, 6.6vw, 28px); line-height: 1.15; }
+      .management-item__trend { font-size: 12px; }
+      .status-row { min-height: 58px; }
+      .status-row__label { gap: var(--space-2); font-size: 15px; }
+      .status-row__icon { width: 40px; height: 40px; }
+      .status-row__value { font-size: 16px; }
+      .meat-cta { flex-direction: column; align-items: stretch; padding: 20px; margin-bottom: 20px; gap: var(--space-3); box-shadow: none; }
+      .meat-cta__content { flex-direction: row; text-align: left; gap: var(--space-3); }
+      .meat-cta__image { width: 64px; height: 64px; flex: 0 0 64px; font-size: 34px; }
+      .meat-cta__title { font-size: 20px; }
+      .meat-cta__sub { font-size: 14px; line-height: 1.45; }
+      .meat-cta__btn { width: 100%; min-height: 50px; justify-content: center; box-shadow: none; }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .kpi-card { min-width: 0; min-height: 220px; height: auto; padding: 16px; gap: 8px; justify-content: flex-start; }
+      .kpi-card__header { flex-direction: row; justify-content: center; gap: 8px; }
+      .kpi-card__icon { width: 44px; height: 44px; flex: 0 0 44px; }
+      .kpi-card__title { font-size: 17px; }
+      .kpi-card__body { gap: 3px; margin-bottom: 0; }
+      .kpi-card__value { font-size: clamp(26px, 7.5vw, 30px); line-height: 1.1; }
+      .kpi-card__sub, .kpi-card__meta { font-size: 13px; }
+      .kpi-card__graph { height: 36px; margin-top: 8px; }
+      .dashboard-toast { right: var(--space-4); bottom: var(--space-4); left: var(--space-4); text-align: center; }
+      .footer { padding: 24px 0 32px; font-size: 13px; }
+    }
+
+    @media (max-width: 340px) {
+      .ai-briefing__meta { width: 100%; justify-content: space-between; }
+      .kpi-grid { grid-template-columns: 1fr; }
+      .kpi-card { min-height: 210px; }
+    }
+
+    .footer { text-align: center; padding: var(--space-6) 0; color: var(--text-muted); font-size: 12px; }
   </style>
 </head>
 <body>
-  <div class="workspace" id="workspace-mode"></div>
-  <div class="banner" id="banner">
-    <h2>🥩 고기가 들어왔어요!</h2>
-    <p>사진 찍기 · 파일 불러오기 · 자동 인식</p>
-  </div>
+  <div class="container">
+    <main class="dashboard">
+      <h1 class="sr-only">정육점 매입부터 판매까지, 정육비서로 한눈에 관리하세요.</h1>
 
-  <div class="cards">
-    <button class="kcard sales" data-go="sales.html">
-      <div class="khead"><span class="ktitle">매출현황</span><span class="ktag">이번 달</span></div>
-      <div class="kval" id="k-sales">-</div>
-      <div class="ksub" id="k-sales-sub">불러오는 중…</div>
-      <div class="kline"></div>
-    </button>
-    <button class="kcard purchase" data-go="purchases.html">
-      <div class="khead"><span class="ktitle">매입현황</span><span class="ktag">이번 달</span></div>
-      <div class="kval" id="k-buy">-</div>
-      <div class="ksub" id="k-buy-sub">불러오는 중…</div>
-      <div class="kline"></div>
-    </button>
-    <button class="kcard inventory" data-go="stock.html">
-      <div class="khead"><span class="ktitle">재고현황</span><span class="ktag">전체</span></div>
-      <div class="kval" id="k-stock">-</div>
-      <div class="ksub" id="k-stock-sub">불러오는 중…</div>
-      <div class="kline"></div>
-    </button>
-    <button class="kcard alert" data-go="alerts.html">
-      <div class="khead"><span class="ktitle">알림현황</span><span class="ktag">유통기한</span></div>
-      <div class="kval" id="k-alert">-</div>
-      <div class="ksub" id="k-alert-sub">불러오는 중…</div>
-      <div class="kline"></div>
-    </button>
-  </div>
+      <!-- Section 1: 오늘의 AI 브리핑 -->
+      <section class="ai-briefing ui-card">
+        <div class="ai-briefing__header">
+          <h2 class="ai-briefing__title">오늘의 AI 브리핑</h2>
+          <div class="ai-briefing__meta">
+            <span>기준일 <span id="f-today-fmt">2026.07.01</span></span>
+            <button class="ai-briefing__refresh" id="refresh-btn" type="button" aria-label="대시보드 새로고침" title="새로고침">↻</button>
+          </div>
+        </div>
 
-  <div class="foot">© 2026 정육비서 · Powered by MEATOS</div>
+        <div class="briefing-content">
+            <h3 class="section-title" style="font-size: 16px; margin-bottom: 8px;">당월 경영 현황</h3>
+
+            <div class="management-row">
+              <div class="management-item management-item--sales">
+                <div class="management-item__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 20h18"></path><path d="M5 16l4-5 4 3 6-8"></path><path d="M15 6h4v4"></path></svg></div>
+                <div class="management-item__data">
+                  <span class="management-item__label">매출</span>
+                  <strong class="management-item__value" id="ai-sales-val">0 원</strong>
+                  <span class="management-item__trend text-brand" id="ai-sales-trend">전월 대비 0%</span>
+                </div>
+              </div>
+              <div class="management-item management-item--purchase">
+                <div class="management-item__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.3 10.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 8H7"></path><circle cx="10" cy="20" r="1"></circle><circle cx="18" cy="20" r="1"></circle></svg></div>
+                <div class="management-item__data">
+                  <span class="management-item__label">매입</span>
+                  <strong class="management-item__value" id="ai-buy-val">0 원</strong>
+                  <span class="management-item__trend text-info" id="ai-buy-trend">전월 대비 0%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="status-row status-row--expiry">
+              <div class="status-row__label">
+                <span class="status-row__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span> 유통기한 임박
+              </div>
+              <div class="status-row__value"><span class="text-warning" id="ai-expiry-count">0</span> 건</div>
+            </div>
+
+            <div class="status-row status-row--sanitation">
+              <div class="status-row__label">
+                <span class="status-row__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 5h6"></path><path d="M9 3h6v4H9z"></path><path d="M7 5H5v16h14V5h-2"></path><path d="M8 14l2 2 5-5"></path></svg></span> 위생점검표
+              </div>
+              <div class="status-row__value" id="ai-sanitation-status">
+                <span class="status-badge status-badge--danger">미작성</span>
+              </div>
+            </div>
+        </div>
+      </section>
+
+      <!-- Section 2: 고기가 들어왔어요 CTA -->
+      <section class="meat-cta" id="meat-cta-banner">
+        <div class="meat-cta__content">
+          <span class="meat-cta__image" aria-hidden="true">🥩</span>
+          <div class="meat-cta__text">
+            <strong class="meat-cta__title">고기가 들어왔어요!</strong>
+            <span class="meat-cta__sub">거래명세서를 촬영해 입고를 시작합니다.</span>
+          </div>
+        </div>
+        <button class="meat-cta__btn" id="cta-scan-btn" type="button">
+          <span>📷 거래명세서 촬영</span>
+        </button>
+      </section>
+
+      <!-- Section 3: KPI Cards -->
+      <section class="kpi-grid">
+        <a class="ui-card ui-card--hover kpi-card kpi-card--purchase" href="purchases.html">
+          <div class="kpi-card__header">
+            <div class="kpi-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6h11v10H3z"></path><path d="M14 10h4l3 3v3h-7z"></path><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg></div>
+            <span class="kpi-card__title">매입현황</span>
+          </div>
+          <div class="kpi-card__body">
+            <span class="kpi-card__label">오늘</span>
+            <strong class="kpi-card__value" id="k-buy">0 건</strong>
+            <span class="kpi-card__sub" id="k-buy-sub">오늘 0원</span>
+            <div class="kpi-card__meta text-muted" id="k-buy-trend">전월 대비 0%</div>
+          </div>
+          <div class="kpi-card__graph">
+            <svg width="100%" height="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
+              <path d="M0 35 Q 25 35, 50 35 T 100 35" fill="none" stroke="var(--success-green)" stroke-width="2" />
+            </svg>
+          </div>
+        </a>
+
+        <a class="ui-card ui-card--hover kpi-card kpi-card--sales" href="sales.html">
+          <div class="kpi-card__header">
+            <div class="kpi-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg></div>
+            <span class="kpi-card__title">매출현황</span>
+          </div>
+          <div class="kpi-card__body">
+            <span class="kpi-card__label">오늘</span>
+            <strong class="kpi-card__value" id="k-sales">0 건</strong>
+            <span class="kpi-card__sub text-info" id="k-sales-sub">금액 ₩0</span>
+            <div class="kpi-card__meta text-brand" id="k-sales-trend">전월 대비 0%</div>
+          </div>
+          <div class="kpi-card__graph">
+            <svg width="100%" height="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
+              <path d="M0 35 Q 25 25, 50 30 T 100 10" fill="none" stroke="var(--info-blue)" stroke-width="2" />
+            </svg>
+          </div>
+        </a>
+
+        <a class="ui-card ui-card--hover kpi-card kpi-card--stock" href="stock.html">
+          <div class="kpi-card__header">
+            <div class="kpi-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7l8-4 8 4-8 4z"></path><path d="M4 7v10l8 4 8-4V7"></path><path d="M12 11v10"></path></svg></div>
+            <span class="kpi-card__title">재고현황</span>
+          </div>
+          <div class="kpi-card__body">
+            <span class="kpi-card__label">전체</span>
+            <strong class="kpi-card__value" id="k-stock">0 종</strong>
+            <span class="kpi-card__sub" id="k-stock-sub">재고금액 ₩0</span>
+            <div class="kpi-card__meta text-info" id="k-stock-trend">전월 대비 0%</div>
+          </div>
+          <div class="kpi-card__graph">
+            <svg width="100%" height="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
+              <path d="M0 30 Q 25 10, 50 20 T 100 25" fill="none" stroke="var(--warning-orange)" stroke-width="2" />
+            </svg>
+          </div>
+        </a>
+
+        <a class="ui-card ui-card--hover kpi-card kpi-card--alert" href="alerts.html">
+          <div class="kpi-card__header">
+            <div class="kpi-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg></div>
+            <span class="kpi-card__title">알림현황</span>
+          </div>
+          <div class="kpi-card__body">
+            <span class="kpi-card__label">확인 필요</span>
+            <strong class="kpi-card__value text-danger" id="k-alert">0 건</strong>
+            <div style="text-align: left; width: 100%; margin-top: 8px;">
+              <div class="kpi-card__sub" style="display: flex; align-items: center; gap: 4px;"><span style="color: var(--danger-red);">●</span> 유통기한 임박 <span id="k-alert-expiry">0</span>건</div>
+              <div class="kpi-card__sub" style="display: flex; align-items: center; gap: 4px;"><span style="color: var(--success-green);" id="k-alert-sanitation-dot">●</span> 위생일지 <span id="k-alert-sanitation">미작성</span></div>
+            </div>
+          </div>
+        </a>
+      </section>
+
+      <footer class="footer">
+        © 2026 MEATOS · 정육비서
+      </footer>
+
+    </main>
+  </div>
+  <div class="dashboard-toast" id="dashboard-toast" role="status" aria-live="polite"></div>
+
+  <!-- Camera/File Picker Logic (from old index.html) -->
+  <div id="picker-overlay" role="dialog" aria-modal="true" aria-labelledby="picker-title" style="position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px">
+    <div class="ui-card" style="width:100%;max-width:360px">
+      <div id="picker-title" style='font-size:18px;font-weight:800;margin-bottom:6px'>거래명세서 입력</div>
+      <div style='color:var(--text-secondary);font-size:13px;margin-bottom:14px'>입력 방식을 선택하세요</div>
+      <button id='oc' class="btn btn-primary" style="width:100%; margin-bottom:10px; height: 56px;">📷 사진 찍기</button>
+      <button id='of' class="btn btn-secondary" style="width:100%; margin-bottom:10px; height: 56px; color: var(--info-blue); border-color: var(--info-blue);">📁 파일 불러오기</button>
+      <button id='ox' class="btn btn-secondary" style="width:100%; height: 44px;">닫기</button>
+    </div>
+  </div>
 
   <script src="header.js"></script>
   <script>
-    (async () => { try {
-      if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x => x.unregister())); }
-      if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x => caches.delete(x))); }
-    } catch (e) {} })();
-
     const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
-    const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
     const TENANT = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
-    const CONTEXT = window.MEATOS_CONTEXT || { mode:"DEMO", companyName:"체험 공간", isBusiness:false };
-    const H = { apikey: ANON, Authorization: "Bearer " + ANON };
+    const H = window.MEATOS_API_HEADERS;
+    const IS_AUTHENTICATED = Boolean(window.MEATOS_IS_AUTHENTICATED);
     const won = (v) => Number(v || 0).toLocaleString("ko-KR");
-    document.getElementById("workspace-mode").innerHTML = CONTEXT.isBusiness
-      ? "<div><strong>🏢 "+String(CONTEXT.companyName||"내 사업장")+"</strong><span>회사 전용 데이터 공간 · 체험 데이터와 분리됨</span></div><a href='settings.html'>사업장 설정</a>"
-      : "<div><strong>🧪 체험 데이터</strong><span>기능을 확인하는 공용 테스트 공간입니다.</span></div><a href='business-verify.html'>사업장 연동</a>";
+
     function localToday() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
-    function monthStart() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01"; }
+    function monthKey(offset = 0) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + offset); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
+    function formatDate(date) { return date.getFullYear() + "." + String(date.getMonth() + 1).padStart(2, "0") + "." + String(date.getDate()).padStart(2, "0"); }
+    function sum(rows, key) { return (rows || []).reduce((total, row) => total + (Number(row[key]) || 0), 0); }
+    function showToast(message) {
+      const toast = document.getElementById("dashboard-toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2500);
+    }
+    function renderTrend(elementId, current, previous) {
+      const element = document.getElementById(elementId);
+      if (!previous) {
+        element.textContent = current ? "전월 비교 기준 없음" : "전월 대비 0%";
+        return;
+      }
+      const rate = ((current - previous) / previous) * 100;
+      const sign = rate > 0 ? "+" : "";
+      const arrow = rate > 0 ? " ↗" : rate < 0 ? " ↘" : "";
+      element.textContent = "전월 대비 " + sign + rate.toFixed(1) + "%" + arrow;
+    }
 
-    document.querySelectorAll(".kcard[data-go]").forEach(c => c.addEventListener("click", () => location.assign(c.dataset.go)));
+    document.getElementById("f-today-fmt").textContent = formatDate(new Date());
 
-    // 배너 → 카메라/파일 선택 → 스캔
+    // 스캔 기능 연동
     async function downscale(file) {
       const MAX = 1600; const bmp = await createImageBitmap(file);
       const s = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
@@ -120,76 +404,128 @@
       document.body.appendChild(i); return i;
     }
     const camIn = makeInput(true), fileIn = makeInput(false);
-    const ov = document.createElement("div");
-    ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px";
-    ov.innerHTML = "<div style='background:#fff;border-radius:16px;padding:20px;width:100%;max-width:360px'>" +
-      "<div style='font-size:18px;font-weight:800;margin-bottom:6px'>거래명세서 입력</div>" +
-      "<div style='color:#6b7280;font-size:13px;margin-bottom:14px'>입력 방식을 선택하세요</div>" +
-      "<button id='oc' style='display:block;width:100%;padding:18px;margin-bottom:10px;font-size:17px;font-weight:800;border:none;border-radius:12px;background:#16a34a;color:#fff'>📷 사진 찍기</button>" +
-      "<button id='of' style='display:block;width:100%;padding:18px;margin-bottom:10px;font-size:17px;font-weight:800;border:none;border-radius:12px;background:#2563eb;color:#fff'>📁 파일 불러오기</button>" +
-      "<button id='ox' style='display:block;width:100%;padding:12px;font-size:15px;border:none;border-radius:12px;background:#e5e7eb;color:#111827'>닫기</button></div>";
-    document.body.appendChild(ov);
-    document.getElementById("banner").addEventListener("click", () => ov.style.display = "flex");
-    ov.addEventListener("click", e => { if (e.target === ov) ov.style.display = "none"; });
-    ov.querySelector("#oc").addEventListener("click", () => { ov.style.display = "none"; camIn.value = ""; camIn.click(); });
-    ov.querySelector("#of").addEventListener("click", () => { ov.style.display = "none"; fileIn.value = ""; fileIn.click(); });
-    ov.querySelector("#ox").addEventListener("click", () => ov.style.display = "none");
+    const ov = document.getElementById("picker-overlay");
+    let pickerReturnFocus = null;
+    function openPicker() {
+      pickerReturnFocus = document.activeElement;
+      ov.style.display = "flex";
+      ov.querySelector("#oc").focus();
+    }
+    function closePicker() {
+      ov.style.display = "none";
+      if (pickerReturnFocus && typeof pickerReturnFocus.focus === "function") pickerReturnFocus.focus();
+    }
+    document.getElementById("cta-scan-btn").addEventListener("click", openPicker);
+    ov.addEventListener("click", e => { if (e.target === ov) closePicker(); });
+    ov.querySelector("#oc").addEventListener("click", () => { closePicker(); camIn.value = ""; camIn.click(); });
+    ov.querySelector("#of").addEventListener("click", () => { closePicker(); fileIn.value = ""; fileIn.click(); });
+    ov.querySelector("#ox").addEventListener("click", closePicker);
+    ov.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closePicker();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(ov.querySelectorAll("button:not([disabled])"));
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
 
-    // 대시보드 카드 — 집계 요약(Phase 2) 우선, 실패 시 원본 폴백
+    // 데이터 로드 로직
     async function jget(path) { try { const r = await fetch(REST + path, { headers: H }); return r.ok ? await r.json() : null; } catch (e) { return null; } }
-    (async function loadCards() {
-      const today = localToday(), m0 = monthStart(), ym = today.slice(0, 7);
 
-      // 매출: monthly_sales_summary → 폴백 sales_record
-      let ms = await jget("/monthly_sales_summary?company_id=eq." + TENANT + "&ym=eq." + ym + "&select=order_cnt,amount");
-      if (ms && ms.length) {
-        const cnt = ms.reduce((s, r) => s + (r.order_cnt || 0), 0), amt = ms.reduce((s, r) => s + (Number(r.amount) || 0), 0);
-        document.getElementById("k-sales").textContent = cnt + "건";
-        document.getElementById("k-sales-sub").textContent = "이번 달 " + won(amt) + "원";
-      } else {
-        const sr = await jget("/sales_record?tenant_id=eq." + TENANT + "&sale_date=gte." + m0 + "&select=amount");
-        if (sr) { const amt = sr.reduce((s, r) => s + (Number(r.amount) || 0), 0); document.getElementById("k-sales").textContent = sr.length + "건"; document.getElementById("k-sales-sub").textContent = "이번 달 " + won(amt) + "원"; }
-        else { document.getElementById("k-sales").textContent = "0건"; document.getElementById("k-sales-sub").textContent = "판매 입력 없음"; }
-      }
+    async function loadDashboardData() {
+      if (!IS_AUTHENTICATED) return;
+      const today = localToday(), ym = monthKey(), previousYm = monthKey(-1);
 
-      // 매입: monthly_purchase_summary → 폴백 ocr_document
-      let mp = await jget("/monthly_purchase_summary?company_id=eq." + TENANT + "&ym=eq." + ym + "&select=doc_cnt,amount");
-      if (mp && mp.length) {
-        const cnt = mp.reduce((s, r) => s + (r.doc_cnt || 0), 0), amt = mp.reduce((s, r) => s + (Number(r.amount) || 0), 0);
-        document.getElementById("k-buy").textContent = cnt + "건";
-        document.getElementById("k-buy-sub").textContent = "이번 달 " + won(amt) + "원";
-      } else {
-        const docs = await jget("/ocr_document?tenant_id=eq." + TENANT + "&document_status=eq.POSTED&select=total_amount,invoice_date,created_at&order=created_at.desc&limit=500") || [];
-        const md = docs.filter(d => ((d.invoice_date || (d.created_at || "").slice(0, 10)) >= m0));
-        const amt = md.reduce((s, d) => s + (Number(d.total_amount) || 0), 0);
-        document.getElementById("k-buy").textContent = md.length + "건";
-        document.getElementById("k-buy-sub").textContent = "이번 달 " + won(amt) + "원";
-      }
+      // 당월 브리핑, 오늘 KPI, 재고·알림 데이터를 각각의 기준으로 조회한다.
+      const [ms, previousMs, mp, previousMp, todaySales, todayPurchases, inv, logs, exp] = await Promise.all([
+        jget("/monthly_sales_summary?company_id=eq." + TENANT + "&ym=eq." + ym + "&select=order_cnt,amount"),
+        jget("/monthly_sales_summary?company_id=eq." + TENANT + "&ym=eq." + previousYm + "&select=amount"),
+        jget("/monthly_purchase_summary?company_id=eq." + TENANT + "&ym=eq." + ym + "&select=doc_cnt,amount"),
+        jget("/monthly_purchase_summary?company_id=eq." + TENANT + "&ym=eq." + previousYm + "&select=amount"),
+        jget("/sales_record?tenant_id=eq." + TENANT + "&sale_date=eq." + today + "&select=amount"),
+        jget("/ocr_document?tenant_id=eq." + TENANT + "&document_status=eq.POSTED&invoice_date=eq." + today + "&select=total_amount"),
+        jget("/inventory_summary?company_id=eq." + TENANT + "&select=on_hand_qty,low_stock,inventory_amount"),
+        jget("/daily_sanitation_logs?tenant_id=eq." + TENANT + "&work_date=eq." + today + "&select=id&limit=1"),
+        jget("/inventory_movement?tenant_id=eq." + TENANT + "&expiry_date=not.is.null&expiry_date=lte." + new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10) + "&select=id")
+      ]);
 
-      // 재고: inventory_summary → 폴백 inventory_movement
-      let inv = await jget("/inventory_summary?company_id=eq." + TENANT + "&select=on_hand_qty,low_stock");
+      const monthlySalesAmount = sum(ms, "amount");
+      const monthlyPurchaseAmount = sum(mp, "amount");
+      document.getElementById("ai-sales-val").textContent = won(monthlySalesAmount) + "원";
+      document.getElementById("ai-buy-val").textContent = won(monthlyPurchaseAmount) + "원";
+      renderTrend("ai-sales-trend", monthlySalesAmount, sum(previousMs, "amount"));
+      renderTrend("ai-buy-trend", monthlyPurchaseAmount, sum(previousMp, "amount"));
+
+      const todaySalesAmount = sum(todaySales, "amount");
+      document.getElementById("k-sales").textContent = (todaySales || []).length + " 건";
+      document.getElementById("k-sales-sub").textContent = "금액 ₩" + won(todaySalesAmount);
+      document.getElementById("k-sales-trend").textContent = "당월 " + sum(ms, "order_cnt") + "건";
+
+      const todayPurchaseAmount = sum(todayPurchases, "total_amount");
+      document.getElementById("k-buy").textContent = (todayPurchases || []).length + " 건";
+      document.getElementById("k-buy-sub").textContent = "금액 ₩" + won(todayPurchaseAmount);
+      document.getElementById("k-buy-trend").textContent = "당월 " + sum(mp, "doc_cnt") + "건";
+
+      // 재고 UI 반영
       if (inv) {
-        const low = inv.filter(r => r.low_stock).length;
-        document.getElementById("k-stock").textContent = inv.length + "개 품목";
-        document.getElementById("k-stock-sub").textContent = low > 0 ? ("부족 " + low + "개") : "정상";
-      } else {
-        const mv = await jget("/inventory_movement?tenant_id=eq." + TENANT + "&select=raw_product_name,movement_type,quantity&limit=5000") || [];
-        const bal = {}; mv.forEach(m => { const k = m.raw_product_name || "-"; const q = Number(m.quantity) || 0; bal[k] = (bal[k] || 0) + (m.movement_type === "OUT" ? -q : q); });
-        const names = Object.keys(bal), low = names.filter(k => bal[k] <= 0).length;
-        document.getElementById("k-stock").textContent = names.length + "개 품목";
-        document.getElementById("k-stock-sub").textContent = low > 0 ? ("부족 " + low + "개") : "정상";
+        const amt = sum(inv, "inventory_amount");
+        document.getElementById("k-stock").textContent = inv.length + " 종";
+        document.getElementById("k-stock-sub").textContent = "재고금액 ₩" + won(amt);
+        const lowStockCount = inv.filter((row) => row.low_stock).length;
+        document.getElementById("k-stock-trend").textContent = lowStockCount ? "재고 확인 " + lowStockCount + "종" : "재고 상태 정상";
       }
 
-      // 알림: 정육일지 미작성 / 유통기한 (원본 유지)
-      const logs = await jget("/daily_sanitation_logs?tenant_id=eq." + TENANT + "&work_date=eq." + today + "&select=id&limit=1");
-      const alertEl = document.getElementById("k-alert"), subEl = document.getElementById("k-alert-sub");
-      if (!logs || !logs.length) { alertEl.textContent = "미작성"; alertEl.classList.add("warn"); subEl.textContent = "정육일지 작성 필요"; }
-      else {
-        const lim = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
-        const exp = await jget("/inventory_movement?tenant_id=eq." + TENANT + "&expiry_date=not.is.null&expiry_date=lte." + lim + "&select=id") || [];
-        alertEl.textContent = exp.length + "건"; subEl.textContent = exp.length ? "임박·만료 확인" : "임박·만료 없음";
+      // 알림 및 위생 UI 반영
+      const expiryCount = exp ? exp.length : 0;
+      document.getElementById("ai-expiry-count").textContent = expiryCount;
+      document.getElementById("k-alert-expiry").textContent = expiryCount;
+
+      const sanitationDone = logs && logs.length > 0;
+      const sanitationEl = document.getElementById("ai-sanitation-status");
+      const kSanitationEl = document.getElementById("k-alert-sanitation");
+      const kSanitationDot = document.getElementById("k-alert-sanitation-dot");
+
+      if (sanitationDone) {
+        sanitationEl.innerHTML = '<span class="status-badge status-badge--success">작성 완료</span>';
+        kSanitationEl.textContent = "작성 완료";
+        kSanitationDot.style.color = "var(--success-green)";
+      } else {
+        sanitationEl.innerHTML = '<span class="status-badge status-badge--danger">미작성</span>';
+        kSanitationEl.textContent = "미작성";
+        kSanitationDot.style.color = "var(--danger-red)";
       }
-    })();
+
+      document.getElementById("k-alert").textContent = (expiryCount + (sanitationDone ? 0 : 1)) + " 건";
+    }
+
+    loadDashboardData();
+    document.getElementById("refresh-btn").addEventListener("click", async () => {
+      const button = document.getElementById("refresh-btn");
+      if (button.disabled) return;
+      button.disabled = true;
+      button.classList.add("is-loading");
+      button.setAttribute("aria-busy", "true");
+      await loadDashboardData();
+      button.disabled = false;
+      button.classList.remove("is-loading");
+      button.removeAttribute("aria-busy");
+      showToast("대시보드를 새로고침했습니다.");
+    });
+
+    // 구 서비스워커 및 캐시 제거 (기존 코드 유지)
+    (async () => { try {
+      if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x => x.unregister())); }
+      if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x => caches.delete(x))); }
+    } catch (e) {} })();
   </script>
 </body>
 </html>

@@ -1,3 +1,5 @@
+import { requireAuthenticatedUser, requireTenantMembership } from "../_shared/tenant-auth.ts";
+
 const DEFAULT_PROVIDER_HEADER = "X-OCR-SECRET";
 
 type AnalyzeOcrRequest = {
@@ -37,6 +39,8 @@ Deno.serve(async (request: Request) => {
   }
 
   if (request.method === "GET") {
+    const auth = await requireAuthenticatedUser(request);
+    if (auth.ok === false) return jsonResponse({ ok: false, message: auth.message }, auth.status);
     const providerUrl = Deno.env.get("CLOVA_OCR_API_URL") ?? "";
     const providerSecret = Deno.env.get("CLOVA_OCR_SECRET_KEY") ?? "";
     const providerMode = Deno.env.get("CLOVA_OCR_PROVIDER") ?? "clova";
@@ -54,6 +58,8 @@ Deno.serve(async (request: Request) => {
 
   try {
     const payload = (await request.json()) as AnalyzeOcrRequest;
+    const auth = await requireTenantMembership(request, String(payload.tenantId ?? ""));
+    if (auth.ok === false) return jsonResponse({ ok: false, message: auth.message }, auth.status);
     const providerUrl = Deno.env.get("CLOVA_OCR_API_URL") ?? "";
     const providerSecret = Deno.env.get("CLOVA_OCR_SECRET_KEY") ?? "";
     const providerMode = Deno.env.get("CLOVA_OCR_PROVIDER") ?? "clova";

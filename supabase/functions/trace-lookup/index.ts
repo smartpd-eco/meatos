@@ -1,5 +1,12 @@
 // 축산물통합이력정보 조회 프록시 (축산물품질평가원 OpenAPI)
 // 이력번호 -> 사육/도축/유통 정보. 키는 EKAPE_TRACE_KEY 시크릿에서 읽는다.
+import { requireAuthenticatedUser } from "../_shared/tenant-auth.ts";
+
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (request: Request) => Response | Promise<Response>): void;
+};
+
 const EKAPE_URL = "http://data.ekape.or.kr/openapi-data/service/user/animalTrace/traceNoSearch";
 
 function corsHeaders() {
@@ -32,6 +39,8 @@ function parseTags(xml: string): Record<string, string> {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders() });
+  const auth = await requireAuthenticatedUser(req);
+  if (auth.ok === false) return json({ ok: false, message: auth.message }, auth.status);
   const key = Deno.env.get("EKAPE_TRACE_KEY") ?? "";
   if (!key) return json({ ok: false, message: "EKAPE_TRACE_KEY not configured" }, 503);
 

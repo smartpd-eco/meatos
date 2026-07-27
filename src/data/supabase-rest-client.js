@@ -3,6 +3,9 @@ const DEFAULT_SCHEMA = "public";
 export function createSupabaseRestClient(config = {}) {
   const baseUrl = String(config.url ?? "").replace(/\/+$/, "");
   const anonKey = String(config.anonKey ?? "");
+  const getAccessToken = typeof config.getAccessToken === "function"
+    ? config.getAccessToken
+    : () => globalThis.localStorage?.getItem("meatos_access_token") ?? "";
   const defaultSchema = config.schema ?? DEFAULT_SCHEMA;
 
   if (!baseUrl || !anonKey) return null;
@@ -14,6 +17,7 @@ export function createSupabaseRestClient(config = {}) {
           return createQueryBuilder({
             baseUrl,
             anonKey,
+            getAccessToken,
             schemaName,
             tableName
           });
@@ -23,7 +27,7 @@ export function createSupabaseRestClient(config = {}) {
   };
 }
 
-function createQueryBuilder({ baseUrl, anonKey, schemaName, tableName }) {
+function createQueryBuilder({ baseUrl, anonKey, getAccessToken, schemaName, tableName }) {
   const state = {
     selectColumns: "*",
     filters: [],
@@ -52,6 +56,7 @@ function createQueryBuilder({ baseUrl, anonKey, schemaName, tableName }) {
       return executeQuery({
         baseUrl,
         anonKey,
+        getAccessToken,
         schemaName,
         tableName,
         state
@@ -60,7 +65,7 @@ function createQueryBuilder({ baseUrl, anonKey, schemaName, tableName }) {
   };
 }
 
-async function executeQuery({ baseUrl, anonKey, schemaName, tableName, state }) {
+async function executeQuery({ baseUrl, anonKey, getAccessToken, schemaName, tableName, state }) {
   const params = new URLSearchParams();
   params.set("select", state.selectColumns);
 
@@ -78,10 +83,11 @@ async function executeQuery({ baseUrl, anonKey, schemaName, tableName, state }) 
 
   const schemaPrefix = schemaName && schemaName !== "public" ? `${schemaName}.` : "";
   const url = `${baseUrl}/rest/v1/${schemaPrefix}${tableName}?${params.toString()}`;
+  const accessToken = String(getAccessToken?.() ?? "");
   const response = await fetch(url, {
     headers: {
       apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
+      Authorization: `Bearer ${accessToken}`,
       Accept: "application/json"
     }
   });

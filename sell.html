@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>판매 스캔 (자동 출고) · 정육비서</title>
 <style>
@@ -31,11 +32,11 @@
 </style>
 </head>
 <body>
-  <h1>🧾 판매 스캔 (자동 출고)</h1>
+  <h1>판매 스캔 (자동 출고)</h1>
   <div class="sub">저울 라벨/상품 바코드를 스캔하면 재고가 자동으로 빠지고 매출이 기록됩니다.</div>
 
   <div class="scan">
-    <input id="scan" type="text" inputmode="numeric" placeholder="여기를 누르고 바코드를 스캔하세요" autocomplete="off" />
+    <input id="scan" type="text" inputmode="numeric" aria-label="상품 바코드 스캔" placeholder="여기를 누르고 바코드를 스캔하세요" autocomplete="off" />
     <div class="hint">스캐너가 자동 입력합니다. 처음 보는 바코드는 품목을 한 번만 지정하면 이후 자동.</div>
   </div>
 
@@ -83,7 +84,9 @@
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const TENANT = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
-const H = { apikey: ANON, Authorization: "Bearer " + ANON };
+const COMPANY = window.MEATOS_CONTEXT?.companyId || TENANT;
+const STORE = window.MEATOS_CONTEXT?.storeId || null;
+const H = window.MEATOS_API_HEADERS;
 const HW = { ...H, "Content-Type": "application/json", Prefer: "return=minimal" };
 const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const kg = (v) => (Math.round((Number(v)||0)*1000)/1000).toLocaleString("ko-KR");
@@ -107,7 +110,8 @@ let today = { cnt:0, amt:0 };
 function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none", 1800); }
 
 async function loadMaps(){
-  try{ const r=await fetch(REST+"/product_barcode?tenant_id=eq."+TENANT+"&select=barcode_key,raw_product_name,unit,default_price,weigh_type&limit=5000",{headers:H});
+  try{ const storeFilter=STORE ? "&or=(store_id.eq."+encodeURIComponent(STORE)+",store_id.is.null)" : "&store_id=is.null";
+    const r=await fetch(REST+"/product_barcode?tenant_id=eq."+TENANT+storeFilter+"&select=barcode_key,raw_product_name,unit,default_price,weigh_type,company_id,store_id&limit=5000",{headers:H});
     if(r.ok){ (await r.json()).forEach(m=>MAPS[m.barcode_key]=m); } }catch(e){}
 }
 async function loadProducts(){
@@ -147,7 +151,7 @@ function handleScan(code){
   const map = MAPS[p.key];
   if(!map){ openLearn(p); return; }
   const c = compute(map, p.embedded);
-  if(c){ record(map, c.qty, c.amount); }
+  if(c){ record(map, c.qty, c.amount, p.raw); }
   else { openConfirm(map, p); }  // MANUAL
 }
 
@@ -166,15 +170,20 @@ document.getElementById("l-save").addEventListener("click", async ()=>{
   const weigh_type=document.getElementById("l-type").value;
   const p100=Number(document.getElementById("l-price").value)||null;   // 라벨의 100g당 단가(개당상품은 개당가격)
   const price = p100==null ? null : (weigh_type==="FIXED" ? p100 : p100*10);  // 무게상품은 원/kg 로 환산
-  const map={ tenant_id:TENANT, barcode_key:PENDING.key, raw_product_name:name, unit:"kg", default_price:price, weigh_type };
+  const map={ tenant_id:TENANT, company_id:COMPANY, store_id:STORE, barcode_key:String(PENDING.key), raw_product_name:name, unit:"kg", default_price:price, weigh_type };
   try{
-    const r=await fetch(REST+"/product_barcode",{method:"POST",headers:HW,body:JSON.stringify(map)});
+    const r=await fetch(REST+"/product_barcode?on_conflict=tenant_id,barcode_key",{
+      method:"POST",
+      headers:{...HW,Prefer:"resolution=merge-duplicates,return=representation"},
+      body:JSON.stringify(map)
+    });
     if(!r.ok) throw new Error(await r.text());
-    MAPS[PENDING.key]=map;
+    const saved=await r.json();
+    MAPS[PENDING.key]=saved[0]||map;
   }catch(e){ alert("등록 실패: "+e.message); return; }
   document.getElementById("learn").style.display="none";
   const c=compute(map, PENDING.embedded);
-  if(c) record(map, c.qty, c.amount); else openConfirm(map, PENDING);
+  if(c) record(map, c.qty, c.amount, PENDING.raw); else openConfirm(map, PENDING);
 });
 
 function openConfirm(map, p){
@@ -193,19 +202,28 @@ document.getElementById("c-save").addEventListener("click", ()=>{
   const amt=Number(document.getElementById("c-amt").value)||0;
   if(qty<=0){ alert("중량을 입력하세요."); return; }
   document.getElementById("confirm").style.display="none";
-  record(PENDING.map, qty, amt);
+  record(PENDING.map, qty, amt, PENDING.p.raw);
 });
 document.getElementById("c-qty").addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); document.getElementById("c-save").click(); } });
 
-async function record(map, qty, amount){
+async function record(map, qty, amount, barcode){
   const price = Number(map.default_price)|| (qty>0?Math.round(amount/qty):0);
-  const mv = { tenant_id:TENANT, movement_type:"OUT", raw_product_name:map.raw_product_name, unit:map.unit||"kg",
+  const externalTransactionId="WEB-"+Date.now()+"-"+String(barcode||"").slice(-12);
+  const mv = { tenant_id:TENANT, company_id:COMPANY, store_id:STORE, movement_type:"OUT", raw_product_name:map.raw_product_name, unit:map.unit||"kg",
     quantity:qty, unit_price:price, amount:amount, movement_date:todayStr(), memo:"판매 스캔" };
-  const sale = { tenant_id:TENANT, sale_date:todayStr(), item_name:map.raw_product_name, quantity:qty, unit_price:price, amount:amount, channel:"STORE", memo:"스캔 판매" };
+  const sale = { tenant_id:TENANT, company_id:COMPANY, store_id:STORE, sale_date:todayStr(), item_name:map.raw_product_name,
+    quantity:qty, unit_price:price, amount:amount, channel:"STORE", memo:"스캔 판매",
+    barcode:String(barcode||""), external_transaction_id:externalTransactionId, sold_at:new Date().toISOString(), source:"web-scan", is_cancelled:false };
   try{
     const r1=await fetch(REST+"/inventory_movement",{method:"POST",headers:HW,body:JSON.stringify(mv)});
     if(!r1.ok) throw new Error("재고 "+r1.status);
-    fetch(REST+"/sales_record",{method:"POST",headers:HW,body:JSON.stringify(sale)}).catch(()=>{});
+    let r2=await fetch(REST+"/sales_record",{method:"POST",headers:HW,body:JSON.stringify(sale)});
+    if(!r2.ok && r2.status===400){
+      const legacySale={ tenant_id:TENANT, company_id:COMPANY, store_id:STORE, sale_date:sale.sale_date, item_name:sale.item_name,
+        quantity:sale.quantity, unit_price:sale.unit_price, amount:sale.amount, channel:sale.channel, memo:sale.memo };
+      r2=await fetch(REST+"/sales_record",{method:"POST",headers:HW,body:JSON.stringify(legacySale)});
+    }
+    if(!r2.ok) throw new Error("매출 "+r2.status);
     today.cnt++; today.amt+=amount;
     document.getElementById("k-cnt").textContent=today.cnt;
     document.getElementById("k-amt").textContent=won(today.amt);

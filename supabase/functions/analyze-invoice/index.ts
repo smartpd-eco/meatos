@@ -1,3 +1,5 @@
+import { requireAuthenticatedUser, requireTenantMembership } from "../_shared/tenant-auth.ts";
+
 type VisionProviderId = "gemini-2.5-flash" | "gpt-4.1";
 
 type AnalyzeInvoiceRequest = {
@@ -93,6 +95,8 @@ Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders() });
 
   if (request.method === "GET") {
+    const auth = await requireAuthenticatedUser(request);
+    if (auth.ok === false) return jsonResponse({ ok: false, message: auth.message }, auth.status);
     const providerId = normalizeProviderId(new URL(request.url).searchParams.get("providerId"));
     const configured = isProviderConfigured(providerId);
     return jsonResponse({
@@ -109,6 +113,8 @@ Deno.serve(async (request: Request) => {
 
   try {
     const payload = await request.json() as AnalyzeInvoiceRequest;
+    const auth = await requireTenantMembership(request, String(payload.tenantId ?? ""));
+    if (auth.ok === false) return jsonResponse({ ok: false, message: auth.message }, auth.status);
     const providerId = normalizeProviderId(payload.providerId);
     if (!isProviderConfigured(providerId)) {
       return jsonResponse({ ok: false, providerId, message: "VISION_PROVIDER_NOT_CONFIGURED" }, 503);

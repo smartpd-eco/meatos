@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>명세서별 매입현황 · 정육비서</title>
 <style>
@@ -42,10 +43,10 @@
 </head>
 <body>
 <script src="header.js"></script>
-  <h1 id="page-title">📋 명세서별 매입현황</h1>
+  <h1 id="page-title">명세서별 매입현황</h1>
 
   <div id="listView">
-    <input id="q" type="text" placeholder="공급자 또는 날짜로 검색 (예: 좋은축산 / 2026-07)" />
+    <input id="q" type="text" aria-label="공급자 또는 날짜 검색" placeholder="공급자 또는 날짜로 검색 (예: 좋은축산 / 2026-07)" />
     <div id="list"><p class="muted">불러오는 중...</p></div>
   </div>
 
@@ -58,7 +59,7 @@
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const TENANT_ID = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61"; // SMARTPD_DEV
-const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
+const H = window.MEATOS_API_HEADERS;
 
 (async () => { try {
   if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
@@ -177,7 +178,7 @@ async function openTrace(no){
   body.innerHTML="<div style='color:#6b7280;padding:20px;text-align:center'>이력번호 "+esc(t)+"<br>조회 중...</div>";
   m.style.display="flex";
   try{
-    const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(t),{headers:{Authorization:"Bearer "+ANON_KEY,apikey:ANON_KEY},signal:AbortSignal.timeout(30000)});
+    const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(t),{headers:H,signal:AbortSignal.timeout(30000)});
     const b=await r.json(), i=b.info||{}; _curTraceInfo=i;
     if((b.source||i.source)==="import"){ body.innerHTML=_importBody(t,i); return; }
     if(!b.ok){
@@ -271,7 +272,7 @@ function showDetail(id) {
 async function postToInventory(d, items) {
   const btn = document.getElementById("post-btn"), msg = document.getElementById("post-msg");
   btn.disabled = true; msg.style.color = "#6b7280"; msg.textContent = "재고 반영 중...";
-  const HW = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY, "Content-Type": "application/json" };
+  const HW = { ...H, "Content-Type": "application/json" };
   const mv = items.map((it, i) => ({
     tenant_id: TENANT_ID, movement_type: "IN",
     raw_product_name: (it.rawProductName && String(it.rawProductName).trim()) || "-",

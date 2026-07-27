@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>유통기한 기준 설정 · 정육비서</title>
 <style>
@@ -29,7 +30,7 @@
 </head>
 <body>
 <script src="header.js"></script>
-  <h1>⚙️ 유통기한 기준 설정</h1>
+  <h1>유통기한 기준 설정</h1>
   <div class="sub">축종·부위·보관방법별 권장 유통기한(일)과 경고/위험일을 정합니다. 바꾸면 새 저장분부터 적용되고, "전체 재계산"으로 기존분도 갱신됩니다.</div>
 
   <div class="twrap">
@@ -41,10 +42,10 @@
 
   <div class="addbox">
     <div style="font-weight:800;margin-bottom:6px">＋ 기준 추가</div>
-    <select id="a-storage"><option value="냉장">냉장</option><option value="냉동">냉동</option></select>
-    <select id="a-species"><option value="소">소</option><option value="돼지">돼지</option><option value="닭">닭</option></select>
-    <input id="a-part" placeholder="부위 (예: 삼겹, 전부위)" />
-    <input id="a-days" type="number" placeholder="일수" style="width:80px" />
+    <select id="a-storage" aria-label="보관 상태"><option value="냉장">냉장</option><option value="냉동">냉동</option></select>
+    <select id="a-species" aria-label="축종"><option value="소">소</option><option value="돼지">돼지</option><option value="닭">닭</option></select>
+    <input id="a-part" aria-label="부위" placeholder="부위 (예: 삼겹, 전부위)" />
+    <input id="a-days" type="number" aria-label="유통기한 일수" placeholder="일수" style="width:80px" />
     <button class="primary" id="addBtn" style="margin-top:8px">추가</button>
     <div class="msg" id="addMsg"></div>
   </div>
@@ -56,7 +57,7 @@
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const TENANT_ID = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
-const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
+const H = window.MEATOS_API_HEADERS;
 const HW = { ...H, "Content-Type": "application/json" };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 

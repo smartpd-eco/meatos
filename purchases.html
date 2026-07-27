@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>매입현황 · 정육비서</title>
 <style>
@@ -26,7 +27,7 @@
 </head>
 <body>
   <div class="htop">
-    <h1>📥 매입현황</h1>
+    <h1>매입현황</h1>
     <a class="btn" href="records.html">🧾 명세서별 매입현황</a>
   </div>
 
@@ -49,7 +50,7 @@
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const TENANT = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
-const H = { apikey: ANON, Authorization: "Bearer " + ANON };
+const H = window.MEATOS_API_HEADERS;
 const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 function pad(n){ return String(n).padStart(2,"0"); }

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>자동 판매연동 · 정육비서</title>
 <style>
@@ -28,7 +29,7 @@
 </style>
 </head>
 <body>
-  <h1>🔗 자동 판매연동</h1>
+  <h1>자동 판매연동</h1>
   <div class="sub">계산대 바코드 스캔을 MEATOS와 연동합니다. 스캔하는 순간 <b>재고 자동 출고 + 매출 자동 기록</b>.</div>
 
   <div class="card">
@@ -63,7 +64,7 @@
 <script>
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
-const H = { apikey: ANON, Authorization: "Bearer " + ANON };
+const H = window.MEATOS_API_HEADERS;
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 
 (async () => { try {
@@ -75,6 +76,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&l
 let USER = null; try { USER = JSON.parse(localStorage.getItem("meatos_user_cache")||"null"); } catch(e){}
 const TENANT = window.MEATOS_TENANT;
 const IS_BUSINESS = Boolean(window.MEATOS_CONTEXT && window.MEATOS_CONTEXT.isBusiness);
+const STORE_ID = window.MEATOS_CONTEXT && window.MEATOS_CONTEXT.storeId;
 const STORE_NAME = (USER && (USER.company_name||USER.name)) ? (USER.company_name||USER.name) : "내 매장";
 const DEVICE = STORE_NAME.replace(/[^0-9A-Za-z가-힣]/g,"").slice(0,20) || "POS01";
 
@@ -82,62 +84,137 @@ const acct = document.getElementById("acct");
 if (IS_BUSINESS) { acct.className="acct"; acct.textContent = "🏪 " + STORE_NAME + " · 기업 공간"; document.getElementById("loginwarn").style.display="none"; }
 else { acct.className="acct out"; acct.textContent = "체험 공간 · 테스트 데이터"; document.getElementById("loginwarn").style.display="block"; }
 
+function ahkText(value){ return String(value ?? "").replace(/"/g, '""'); }
+
+// 로그인 사용자만 매장 전용 연동 키를 발급받는다. 원문 키는 다운로드 파일에만 포함되고 DB에는 해시만 저장된다.
+async function issueAgentKey(){
+  if(!IS_BUSINESS || !STORE_ID || !window.MEATOS_IS_AUTHENTICATED) throw new Error("로그인된 기업 매장 정보가 필요합니다.");
+  const r=await fetch(REST+"/rpc/issue_pos_agent_key",{
+    method:"POST",
+    headers:{...H,"Content-Type":"application/json"},
+    body:JSON.stringify({p_store_id:STORE_ID,p_device:DEVICE})
+  });
+  const body=await r.json().catch(()=>null);
+  if(!r.ok || !body?.ok || !body.agentKey) throw new Error(body?.message || body?.error || ("HTTP "+r.status));
+  return body;
+}
+
 // 계정이 박힌 에이전트(.ahk) 생성 → 다운로드
-const AGENT = `#Requires AutoHotkey v2.0
+function buildAgent(config){ return `#Requires AutoHotkey v2.0
 #SingleInstance Force
 Persistent()
-; MEATOS 스캔 캡처 에이전트 (자동 생성 · ${STORE_NAME} 연결됨)
-global SUPA_URL := "${REST}/scan_event"
+; MEATOS 스캔 캡처 에이전트 (자동 생성 · ${ahkText(STORE_NAME)} 연결됨)
+global RPC_URL := "${REST}/rpc/process_pos_sale_event"
 global ANON_KEY := "${ANON}"
-global TENANT_ID := "${TENANT}"
-global DEVICE := "${DEVICE}"
+global AGENT_KEY := "${ahkText(config.agentKey)}"
+global DEVICE := "${ahkText(config.device || DEVICE)}"
 global DEBOUNCE_MS := 2000
-global lastCode := "", lastTick := 0, logCount := 0
-TrayTip("MEATOS 스캔 에이전트", "${STORE_NAME} 연동 실행 중", 1)
+global MAX_SCAN_MS := 1200
+global lastCode := "", lastTick := 0, logCount := 0, scanStartTick := 0
+global LOG_DIR := A_AppData "\\MEATOS\\logs"
+global LOG_FILE := LOG_DIR "\\pos-agent.log"
+DirCreate(LOG_DIR)
+Log("AGENT_STARTED device=" DEVICE)
+TrayTip("MEATOS 스캔 에이전트", "${ahkText(STORE_NAME)} 연동 실행 중", 1)
 Loop {
-    ih := InputHook("V", "{Enter}{Return}\`n\`r")
+    scanStartTick := 0
+    ih := InputHook("V", "{Enter}{Tab}")
+    ih.OnChar := ScanChar
     ih.Start()
     ih.Wait()
-    ProcessScan(ih.Input)
+    ProcessScan(ih.Input, ih.EndKey)
 }
-ProcessScan(code) {
-    global lastCode, lastTick, DEBOUNCE_MS
+ScanChar(ih, char) {
+    global scanStartTick
+    if (scanStartTick = 0)
+        scanStartTick := A_TickCount
+}
+ProcessScan(code, endKey) {
+    global lastCode, lastTick, DEBOUNCE_MS, MAX_SCAN_MS, scanStartTick
     code := Trim(code)
-    if !RegExMatch(code, "^2\\d{12}$")
+    elapsed := scanStartTick ? A_TickCount - scanStartTick : 999999
+    if !RegExMatch(code, "^[0-9A-Za-z._-]{6,64}$") || elapsed > MAX_SCAN_MS
         return
     now := A_TickCount
     if (code = lastCode && (now - lastTick) < DEBOUNCE_MS)
         return
     lastCode := code, lastTick := now
+    Log("BARCODE_DETECTED code=" code " endKey=" endKey " elapsedMs=" elapsed)
     SendToServer(code)
 }
 SendToServer(code) {
-    global SUPA_URL, ANON_KEY, TENANT_ID, DEVICE, logCount
-    body := '{"tenant_id":"' TENANT_ID '","barcode":"' code '","device":"' DEVICE '"}'
+    global RPC_URL, ANON_KEY, AGENT_KEY, DEVICE, logCount
+    soldAt := FormatTime(A_NowUTC, "yyyy-MM-ddTHH:mm:ssZ")
+    txId := DEVICE "-" FormatTime(A_NowUTC, "yyyyMMddHHmmss") "-" A_TickCount "-" code
+    body := "{""p_agent_token"":""" . AGENT_KEY . """,""p_barcode"":""" . code . """,""p_quantity"":null,""p_sale_amount"":null,""p_sold_at"":""" . soldAt . """,""p_external_transaction_id"":""" . txId . """,""p_device"":""" . DEVICE . """}"
     try {
+        Log("SEND_STARTED code=" code " transaction=" txId)
         req := ComObject("WinHttp.WinHttpRequest.5.1")
-        req.Open("POST", SUPA_URL, false)
+        req.Open("POST", RPC_URL, false)
+        req.SetTimeouts(5000, 5000, 10000, 15000)
         req.SetRequestHeader("apikey", ANON_KEY)
         req.SetRequestHeader("Authorization", "Bearer " ANON_KEY)
         req.SetRequestHeader("Content-Type", "application/json")
-        req.SetRequestHeader("Prefer", "return=minimal")
         req.Send(body)
-        logCount += 1
-        A_IconTip := "MEATOS 스캔 · 오늘 " logCount "건"
-        TrayTip("스캔 전송", code, 1)
+        status := req.Status
+        response := req.ResponseText
+        if (status >= 200 && status < 300 && InStr(response, """ok"":true")) {
+            logCount += 1
+            A_IconTip := "MEATOS 스캔 · 오늘 " logCount "건"
+            Log("SEND_SUCCEEDED code=" code " status=" status " transaction=" txId)
+            TrayTip("판매 반영 완료", code, 1)
+        } else {
+            reason := FailureReason(response)
+            Log("SEND_FAILED code=" code " status=" status " reason=" reason " transaction=" txId)
+            TrayTip("판매 반영 실패", reason, 3)
+        }
     } catch as e {
+        Log("SEND_FAILED code=" code " status=NETWORK_ERROR reason=" e.Message)
         TrayTip("전송 실패(네트워크)", code, 3)
     }
 }
+FailureReason(response) {
+    if InStr(response, "AGENT_NOT_AUTHENTICATED")
+        return "연동 인증 오류"
+    if InStr(response, "STORE_NOT_FOUND")
+        return "매장 연결 오류"
+    if InStr(response, "BARCODE_NOT_MAPPED")
+        return "미등록 바코드"
+    if InStr(response, "INSUFFICIENT_STOCK")
+        return "재고 부족"
+    if InStr(response, "DUPLICATE_EVENT")
+        return "중복 거래"
+    if InStr(response, "SALE_VALUE_REQUIRED")
+        return "판매값 확인 필요"
+    return "서버 오류"
+}
+Log(message) {
+    global LOG_FILE
+    try FileAppend(FormatTime(, "yyyy-MM-dd HH:mm:ss") " " message "\`n", LOG_FILE, "UTF-8")
+}
 A_TrayMenu.Delete()
-A_TrayMenu.Add("MEATOS 스캔 에이전트 (${STORE_NAME})", (*) => 0)
+A_TrayMenu.Add("MEATOS 스캔 에이전트 (${ahkText(STORE_NAME)})", (*) => 0)
+A_TrayMenu.Add("로그 폴더 열기", (*) => Run(LOG_DIR))
 A_TrayMenu.Add()
 A_TrayMenu.Add("종료", (*) => ExitApp())
-`;
-document.getElementById("dl").addEventListener("click", (e)=>{
+`; }
+document.getElementById("dl").addEventListener("click", async (e)=>{
   e.preventDefault();
-  const blob = new Blob([AGENT], { type:"text/plain;charset=utf-8" });
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="meatos-scan-agent.ahk"; document.body.appendChild(a); a.click(); a.remove();
+  const button=e.currentTarget;
+  if(!IS_BUSINESS){ document.getElementById("loginwarn").style.display="block"; return; }
+  const original=button.textContent; button.textContent="연동 키 발급 중…"; button.setAttribute("aria-busy","true");
+  try{
+    const config=await issueAgentKey();
+    const blob = new Blob([buildAgent(config)], { type:"text/plain;charset=utf-8" });
+    const a=document.createElement("a"); const objectUrl=URL.createObjectURL(blob);
+    a.href=objectUrl; a.download="meatos-scan-agent.ahk"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+    document.getElementById("s-msg").textContent="매장 전용 에이전트를 발급했습니다. 기존 같은 매장·기기의 에이전트 키는 만료됩니다.";
+  }catch(error){
+    document.getElementById("s-msg").textContent="에이전트 발급 실패: "+error.message;
+  }finally{
+    button.textContent=original; button.removeAttribute("aria-busy");
+  }
 });
 
 // 실시간 연동 상태

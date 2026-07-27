@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>알림현황 · 정육비서</title>
 <style>
@@ -36,7 +37,7 @@
 </head>
 <body>
 <script src="header.js"></script>
-  <h1>🔔 알림현황</h1>
+  <h1>알림현황</h1>
   <div class="sub">유통기한 임박·만료 품목입니다. 도축일(없으면 입고일) 기준 자동 계산.</div>
 
   <div id="log-status" style="margin-bottom:12px"></div>
@@ -53,7 +54,7 @@
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const TENANT_ID = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
-const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
+const H = window.MEATOS_API_HEADERS;
 const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const kg = (v) => (Math.round((Number(v)||0)*100)/100).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
@@ -197,7 +198,7 @@ function _printTrace(){
   setTimeout(function(){ document.body.classList.remove("trace-printing"); document.title=old; }, 800);
 }
 async function openTrace(no){ const t=String(no||"").trim(); if(!t) return; _curTraceNo=t; const m=_tm(),body=m.querySelector("#trace-body"); body.innerHTML="<div style='color:#6b7280;padding:20px;text-align:center'>이력번호 "+esc(t)+"<br>조회 중...</div>"; m.style.display="flex";
-  try{ const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(t),{headers:{Authorization:"Bearer "+ANON_KEY,apikey:ANON_KEY},signal:AbortSignal.timeout(30000)}); const b=await r.json(),i=b.info||{}; _curTraceInfo=i;
+  try{ const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(t),{headers:H,signal:AbortSignal.timeout(30000)}); const b=await r.json(),i=b.info||{}; _curTraceInfo=i;
     if((b.source||i.source)==="import"){ body.innerHTML=_importBody(t,i); return; }
     if(!b.ok){ body.innerHTML="<div style='padding:6px 2px'>이 번호의 <b>국내</b> 이력정보가 없습니다.<div style='color:#6b7280;font-size:13px;margin-top:4px'>아래에서 이 번호로 바로 조회하세요.</div></div><div style='margin-top:12px;display:flex;gap:8px'><a href='http://www.meatwatch.go.kr/cs/dst/bdi/selectDistbHistInfoDetailAjaxPopup.do?searchWrd2="+encodeURIComponent(t)+"' target='_blank' rel='noopener' style='flex:1;text-align:center;padding:12px;border-radius:10px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700'>🌍 수입 이력</a><a href='https://www.mtrace.go.kr/search.do?mtraceNo="+encodeURIComponent(t)+"' target='_blank' rel='noopener' style='flex:1;text-align:center;padding:12px;border-radius:10px;background:#e5e7eb;color:#111827;text-decoration:none;font-weight:700'>🇰🇷 국내 이력제</a></div>"; return; }
     body.innerHTML="<div style='font-size:15px;font-weight:800;margin-bottom:6px'>이력번호 "+esc(t)+"</div>"+_trow("축종",_species(i.species))+_trow("🔪 도축장",i.butcheryPlaceNm)+_trow("도축장 주소",i.butcheryPlaceAddr)+_trow("도축일자",_ymd(i.butcheryYmd))+_trow("도축검사",i.butcheryResult==="Y"?"합격":i.butcheryResult)+_trow("등급",i.grade)+_trow("🏠 농장주소",i.farmAddr)+_trow("사육자",i.farmerNm)+_trow("포장처리업소",i.processPlaceNm);

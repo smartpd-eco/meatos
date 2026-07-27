@@ -4,23 +4,28 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Cache-Control" content="no-store" />
+<meta name="description" content="정육비서 회원 로그인 및 사업장 계정 등록 페이지입니다." />
+<meta name="robots" content="noindex,nofollow" />
 <title>로그인 · 정육비서</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 <style>
   * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:16px; display:flex; flex-direction:column; align-items:center; }
-  .brand { display:flex; align-items:center; justify-content:center; margin:20px 0 16px; width:min(100%,400px); }
+  body { margin:0; min-height:100vh; font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif; background:#F6F7F9; color:#17191D; padding:24px 16px 48px; display:flex; flex-direction:column; align-items:center; }
+  .brand { display:flex; align-items:center; justify-content:center; margin:16px 0 24px; width:min(100%,440px); }
   .brand img { display:block; width:min(100%,300px); height:auto; }
-  .card { background:#fff; border-radius:16px; padding:20px; width:100%; max-width:400px; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  .card { background:#fff; border:1px solid #E4E7EB; border-radius:16px; padding:24px; width:100%; max-width:420px; box-shadow:0 4px 18px rgba(16,24,40,.06); }
   .tabs { display:flex; margin-bottom:16px; border-bottom:2px solid #eef2f7; }
-  .tabs button { flex:1; padding:12px; border:none; background:none; font-size:16px; font-weight:800; color:#9ca3af; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; }
-  .tabs button.on { color:#16a34a; border-bottom-color:#16a34a; }
-  label { font-size:12px; color:#6b7280; display:block; margin-top:10px; }
-  input { width:100%; padding:12px; border:1px solid #d1d5db; border-radius:10px; font-size:15px; margin-top:4px; }
-  button.primary { width:100%; margin-top:16px; padding:14px; font-size:16px; font-weight:800; border:none; border-radius:12px; background:#16a34a; color:#fff; cursor:pointer; }
+  .tabs button { flex:1; min-height:48px; padding:12px; border:none; background:none; font-size:16px; font-weight:800; color:#6B7280; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; }
+  .tabs button.on { color:#C51624; border-bottom-color:#C51624; }
+  label { font-size:13px; color:#50555D; font-weight:700; display:block; margin-top:12px; }
+  input { width:100%; min-height:44px; padding:12px; border:1px solid #E4E7EB; border-radius:10px; font:inherit; font-size:15px; margin-top:6px; outline:none; }
+  input:focus { border-color:#C51624; box-shadow:0 0 0 3px rgba(197,22,36,.10); }
+  button.primary { width:100%; min-height:48px; margin-top:16px; padding:12px 16px; font-size:16px; font-weight:800; border:none; border-radius:10px; background:#C51624; color:#fff; cursor:pointer; }
+  button.primary:hover { background:#9F101C; }
   button.primary:disabled { opacity:.6; }
   .msg { font-size:13px; margin-top:10px; min-height:18px; text-align:center; }
   .divider { text-align:center; color:#9ca3af; font-size:12px; margin:16px 0 10px; position:relative; }
-  .social button { position:relative; width:100%; padding:15px; font-size:16px; font-weight:800; border-radius:12px; border:1px solid transparent; cursor:pointer; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .social button { position:relative; width:100%; min-height:48px; padding:12px 16px; font:inherit; font-size:16px; font-weight:800; border-radius:10px; border:1px solid transparent; cursor:pointer; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px; }
   .social button .ic { position:absolute; left:18px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-weight:900; }
   .social .g { background:#fff; color:#1f1f1f; border-color:#dadce0; }
   .social .k { background:#FEE500; color:#191600; border-color:#FEE500; }
@@ -32,7 +37,7 @@
 </style>
 </head>
 <body>
-  <a class="brand" href="/" aria-label="정육비서 홈"><img src="icons/jeongyuk-biseo-logo.png" alt="정육비서 · 매입부터 판매까지, 한눈에 관리" /></a>
+  <a class="brand" href="/" aria-label="정육비서 홈"><img src="icons/jeongyuk-biseo-logo.png" width="1289" height="507" alt="정육비서 · 매입부터 판매까지, 한눈에 관리" /></a>
 
   <div class="card">
     <div class="tabs">
@@ -115,7 +120,9 @@ async function finalize(session){
   localStorage.setItem("meatos_user_cache", JSON.stringify(cache));
   localStorage.setItem("meatos_access_token", session.access_token||"");
   localStorage.setItem("meatos_last_active", String(Date.now()));
-  location.assign("/");
+  const requested = new URLSearchParams(location.search).get("next") || "/";
+  const next = requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+  location.assign(next);
   return true;
 }
 

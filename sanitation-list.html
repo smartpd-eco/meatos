@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>정육일지 목록 · 정육비서</title>
 <style>
@@ -36,7 +37,7 @@
 </head>
 <body>
 <script src="header.js"></script>
-  <h1>📚 정육일지 목록</h1>
+  <h1>정육일지 목록</h1>
   <div class="bar noprint"><a href="sanitation.html" class="g">📋 오늘 작성</a></div>
 
   <div id="listView">
@@ -46,8 +47,8 @@
       <button data-p="month">이번달</button>
       <button data-p="all">전체</button>
     </div>
-    <div class="range noprint"><input id="from" type="date"><input id="to" type="date"><button onclick="applyRange()" style="padding:8px 12px;border:none;border-radius:8px;background:#111827;color:#fff;font-weight:700">조회</button></div>
-    <input id="q" class="noprint" placeholder="담당자 검색" />
+    <div class="range noprint"><input id="from" type="date" aria-label="조회 시작일"><input id="to" type="date" aria-label="조회 종료일"><button onclick="applyRange()" style="padding:8px 12px;border:none;border-radius:8px;background:#111827;color:#fff;font-weight:700">조회</button></div>
+    <input id="q" class="noprint" aria-label="담당자 검색" placeholder="담당자 검색" />
     <div id="list"><p class="muted">불러오는 중...</p></div>
   </div>
 
@@ -61,7 +62,7 @@
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const TENANT_ID = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
-const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
+const H = window.MEATOS_API_HEADERS;
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 function pad(n){ return String(n).padStart(2,"0"); }
 function fmt(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }

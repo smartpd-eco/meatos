@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>거래명세서 스캔 · 정육비서</title>
 <style>
@@ -51,7 +52,7 @@
 </head>
 <body>
 <script src="header.js"></script>
-  <h1>📄 거래명세서 스캔</h1>
+  <h1>거래명세서 스캔</h1>
 
   <div class="card">
     <label class="filebtn" for="file">📷 사진 찍기 / 파일 선택</label>
@@ -92,6 +93,7 @@
 <script>
 const FUNCTION_URL = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/analyze-invoice";
 const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const AUTH_HEADERS = window.MEATOS_API_HEADERS;
 const MAX_DIM = 1600, TIMEOUT_MS = 60000;
 
 (async () => { try {
@@ -125,7 +127,7 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   const btn = document.getElementById("saveBtn"), msg = document.getElementById("saveMsg");
   if (!LINES.length) { msg.style.color = "#b91c1c"; msg.textContent = "저장할 품목이 없습니다."; return; }
   btn.disabled = true; msg.style.color = "#6b7280"; msg.textContent = "저장 중...";
-  const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY, "Content-Type": "application/json" };
+  const H = { ...AUTH_HEADERS, "Content-Type": "application/json" };
   const code = "SCAN-" + Date.now();
   const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(DOC.invoiceDate || "");
   const docRow = {
@@ -282,7 +284,7 @@ async function openTrace(no){
   body.innerHTML="<div style='color:#6b7280;padding:20px;text-align:center'>이력번호 "+esc(t)+"<br>조회 중...</div>";
   m.style.display="flex";
   try{
-    const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(t),{headers:{Authorization:"Bearer "+ANON_KEY,apikey:ANON_KEY},signal:AbortSignal.timeout(30000)});
+    const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(t),{headers:AUTH_HEADERS,signal:AbortSignal.timeout(30000)});
     const b=await r.json(), i=b.info||{}; _curTraceInfo=i;
     if((b.source||i.source)==="import"){ body.innerHTML=_importBody(t,i); return; }
     if(!b.ok){
@@ -310,7 +312,7 @@ let EXPIRY_POLICY = null;
 async function loadExpiryPolicy(){
   if (EXPIRY_POLICY) return EXPIRY_POLICY;
   try {
-    const r = await fetch(REST+"/expiry_policy?tenant_id=eq."+TENANT_ID+"&enabled=eq.true&select=species,part_name,storage_type,default_days",{headers:{apikey:ANON_KEY,Authorization:"Bearer "+ANON_KEY}});
+    const r = await fetch(REST+"/expiry_policy?tenant_id=eq."+TENANT_ID+"&enabled=eq.true&select=species,part_name,storage_type,default_days",{headers:AUTH_HEADERS});
     EXPIRY_POLICY = r.ok ? await r.json() : [];
   } catch(e){ EXPIRY_POLICY = []; }
   return EXPIRY_POLICY;
@@ -331,7 +333,7 @@ async function computeExpiryForLines(lines, invoiceDate){
   const slaughter = await Promise.all(lines.map(async (it)=>{
     if(!it.traceOrImportNo) return null;
     try {
-      const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(it.traceOrImportNo),{headers:{Authorization:"Bearer "+ANON_KEY,apikey:ANON_KEY},signal:AbortSignal.timeout(12000)});
+      const r=await fetch(TRACE_FN+"?traceNo="+encodeURIComponent(it.traceOrImportNo),{headers:AUTH_HEADERS,signal:AbortSignal.timeout(12000)});
       const b=await r.json(); const y=b.info&&b.info.butcheryYmd;
       return (y&&/^\d{8}$/.test(y)) ? y.slice(0,4)+"-"+y.slice(4,6)+"-"+y.slice(6,8) : null;
     } catch(e){ return null; }
@@ -364,8 +366,8 @@ async function recognize(dataUrl, fileName) {
   step("s3","wait");
   try {
     const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), TIMEOUT_MS);
-    const res=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+ANON_KEY,"apikey":ANON_KEY},signal:ctrl.signal,
-      body:JSON.stringify({providerId:"gemini-2.5-flash",imageDataUrl:dataUrl,documentId:"scan",tenantId:"SMARTPD_DEV",supplierName:"",localOcrText:"",unresolvedFields:[]})});
+    const res=await fetch(FUNCTION_URL,{method:"POST",headers:{...AUTH_HEADERS,"Content-Type":"application/json"},signal:ctrl.signal,
+      body:JSON.stringify({providerId:"gemini-2.5-flash",imageDataUrl:dataUrl,documentId:"scan",tenantId:TENANT_ID,supplierName:"",localOcrText:"",unresolvedFields:[]})});
     clearTimeout(to);
     const t=await res.text(); let b; try{b=JSON.parse(t);}catch{b={raw:t};}
     if(!res.ok || b.ok===false){ step("s3","err"); document.getElementById("raw").textContent=t; document.getElementById("resultCard").style.display="block"; alert("서버 오류 "+res.status+": "+(b.message||t).slice(0,150)); return; }

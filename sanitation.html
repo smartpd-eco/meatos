@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>금일 정육일지 · 정육비서</title>
 <style>
@@ -32,7 +33,7 @@
 </head>
 <body>
 <script src="header.js"></script>
-  <h1>📋 금일 정육일지</h1>
+  <h1>금일 정육일지</h1>
   <div class="sub">매일 위생·작업 점검을 기록합니다. 저장하면 홈 알림현황에 "작성 완료"로 표시됩니다.</div>
   <div class="bar noprint"><a href="sanitation-list.html">📚 지난 일지</a></div>
 
@@ -57,7 +58,7 @@
 
   <div class="card">
     <h2>⑧ 특이사항</h2>
-    <textarea id="f-memo" placeholder="특이사항을 입력하세요"></textarea>
+    <textarea id="f-memo" aria-label="특이사항" placeholder="특이사항을 입력하세요"></textarea>
   </div>
 
   <div class="card">
@@ -76,7 +77,7 @@
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const TENANT_ID = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
-const H = { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
+const H = window.MEATOS_API_HEADERS;
 const HW = { ...H, "Content-Type": "application/json" };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 function localToday(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
