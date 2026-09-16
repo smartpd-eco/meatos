@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>카드 입금예정 · 정육비서</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  h1 { font-size:19px; margin:2px 0 4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:12px; line-height:1.55; }
+  .kpis { display:flex; gap:8px; margin-bottom:14px; }
+  .kpi { flex:1; background:#fff; border-radius:12px; padding:14px 8px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .kpi b { display:block; font-size:18px; color:#111827; } .kpi span { font-size:12px; color:#6b7280; }
+  .kpi.hl b { color:#166534; }
+  .card { background:#fff; border-radius:14px; padding:14px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { font-size:15px; margin:0 0 10px; display:flex; justify-content:space-between; align-items:center; }
+  .card h2 .r { font-weight:400; color:#6b7280; font-size:13px; }
+  .btn-add { border:none; background:#16a34a; color:#fff; border-radius:9px; padding:8px 12px; font-weight:800; cursor:pointer; font-size:13px; }
+  /* 캘린더 */
+  .calnav { border:none; background:#f3f4f6; border-radius:8px; padding:4px 10px; font-weight:800; cursor:pointer; color:#374151; }
+  .calwrap { overflow-x:auto; }
+  table.cal { width:100%; border-collapse:collapse; font-size:12px; min-width:520px; }
+  table.cal th, table.cal td { border:1px solid #e5e7eb; padding:4px; text-align:right; vertical-align:top; height:52px; }
+  table.cal thead th { background:#374151; color:#fff; text-align:center; height:auto; padding:6px; font-weight:700; }
+  table.cal thead th.sun { color:#fecaca; } table.cal thead th.sat { color:#bfdbfe; }
+  table.cal td.empty { background:#fafafa; }
+  table.cal td.daycell { cursor:pointer; }
+  table.cal td.daycell:hover { background:#eff6ff; }
+  table.cal td.today { background:#fef9c3; }
+  table.cal td.hol { background:#fef2f2; }
+  table.cal td .dn { text-align:left; color:#6b7280; font-weight:700; }
+  table.cal td.sun .dn, table.cal td.hol .dn { color:#dc2626; }
+  table.cal td .da { color:#166534; font-weight:800; font-size:12px; margin-top:6px; }
+  table.cal .sumcol { background:#f8fafc; font-weight:800; text-align:right; color:#111827; }
+  table.cal tfoot td { background:#111827; color:#fff; font-weight:800; }
+  table.cal tfoot .mtot-l { text-align:center; }
+  /* 목록 */
+  table.lst { width:100%; border-collapse:collapse; font-size:14px; }
+  table.lst th, table.lst td { border-bottom:1px solid #eef2f7; padding:9px 6px; text-align:left; white-space:nowrap; }
+  table.lst th { background:#f8fafc; color:#374151; } table.lst td.num,table.lst th.num { text-align:right; }
+  .muted { color:#6b7280; padding:12px; text-align:center; }
+  .link { color:#2563eb; cursor:pointer; font-weight:700; font-size:13px; }
+  .cc { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:800; white-space:nowrap; }
+  .st { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:800; }
+  .st.SCHEDULED { background:#dbeafe; color:#1e40af; } .st.PAID { background:#dcfce7; color:#166534; } .st.HOLD { background:#fef3c7; color:#92400e; }
+  .paybtn { min-height:32px; padding:5px 10px; border:1px solid #16a34a; border-radius:8px; background:#fff; color:#166534; font-size:12px; font-weight:800; cursor:pointer; }
+  .paybtn:disabled { border-color:#d1d5db; color:#9ca3af; cursor:not-allowed; }
+  .notice { background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:11px 12px; font-size:13px; line-height:1.55; margin-bottom:12px; }
+  .notice a { color:#b45309; font-weight:800; }
+  .frm { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .frm .full { grid-column:1 / -1; }
+  label { font-size:12px; color:#6b7280; display:block; }
+  input, select { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; margin-top:4px; }
+  button.primary { display:block; width:100%; margin-top:12px; padding:14px; font-size:16px; font-weight:800; border:none; border-radius:12px; background:#16a34a; color:#fff; cursor:pointer; }
+  button.primary:disabled { background:#9ca3af; cursor:not-allowed; }
+  .msg { font-size:13px; margin-top:8px; }
+  /* 옥토버 연결 탭(계정 있음/신규 가입) */
+  .imp-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+  .imp-row .mini { border:0; background:#e5e7eb; border-radius:8px; padding:8px 12px; font-weight:700; cursor:pointer; font-size:13px; }
+  .imp-row .go { background:#16a34a; color:#fff; }
+</style>
+</head>
+<body>
+  <h1>💳 카드 입금예정</h1>
+  <div class="sub">여신금융협회 <b>통합조회(cardsales.or.kr·무료)</b>에서 확인한 카드사별 매출을 입력하면, 정산주기·수수료·공휴일을 반영해 <b>입금예정일과 실입금액</b>을 자동 계산합니다.</div>
+
+  <div class="notice" id="demoNotice" style="display:none">
+    지금은 <b>체험(샘플) 모드</b>라 저장은 되지 않고 예시만 보입니다. 실제 입력·저장은 <a href="business-verify.html">사업장 연동</a> 후 이용하세요.
+  </div>
+
+  <div class="kpis">
+    <div class="kpi hl"><b id="k-today">-</b><span>오늘 입금예정</span></div>
+    <div class="kpi"><b id="k-week">-</b><span>이번 주 입금예정</span></div>
+    <div class="kpi"><b id="k-unpaid">-</b><span>미입금 잔액</span></div>
+  </div>
+
+  <div class="card">
+    <h2>📅 입금예정 캘린더 <span class="r" style="display:flex;gap:6px;align-items:center"><button class="calnav" id="cal-prev" aria-label="이전 달">◀</button><b id="cal-ym" style="min-width:78px;text-align:center;color:#111827;font-size:14px"></b><button class="calnav" id="cal-next" aria-label="다음 달">▶</button></span></h2>
+    <div class="calwrap"><div id="cal" class="muted">불러오는 중…</div></div>
+  </div>
+
+  <div class="card" id="listCard">
+    <h2>🧾 입금예정 내역 <span class="r" id="list-scope">(예정일순)</span></h2>
+    <div id="list-reset" style="margin-bottom:6px;display:none"><span class="link" id="reset-btn">← 전체 보기</span></div>
+    <div style="overflow-x:auto"><table class="lst">
+      <thead><tr><th>입금예정일</th><th>카드사</th><th>매출일</th><th class="num">승인금액</th><th class="num">수수료</th><th class="num">입금예정액</th><th>상태</th></tr></thead>
+      <tbody id="tb"><tr><td colspan="7" class="muted">불러오는 중…</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <div class="card" id="octoverCard">
+    <h2>🔄 카드매출 자동조회 <span class="r">Octover 연동 · 여신협회 통합조회 대행</span></h2>
+    <div class="sub" id="ov-intro" style="margin:0 0 8px">여신금융협회 통합조회 계정을 <b>최초 1회만</b> 연결해두면, 이후에는 아이디·비밀번호를 다시 입력할 필요 없이 버튼 한 번으로 조회합니다. 비밀번호는 옥토버 공개키로 암호화해서만 저장하며, 원문은 저장하지 않습니다.</div>
+    <div id="ov-loading" class="muted">연결 상태 확인 중…</div>
+
+    <!-- 연결 안 됨: 선택 탭 -->
+    <div id="ov-setup" style="display:none">
+      <div class="imp-row" style="margin:0 0 10px">
+        <button class="mini go" id="ov-tab-existing" type="button">이미 계정이 있어요</button>
+        <button class="mini" id="ov-tab-signup" type="button">계정이 없어요 (신규 가입)</button>
+      </div>
+
+      <div id="ov-pane-existing">
+        <div class="sub" style="margin:0 0 8px">기존 여신협회 통합조회(cardsales.or.kr) 로그인 정보를 <b>한 번만</b> 입력해서 연결합니다.</div>
+        <div class="frm" style="margin-bottom:8px">
+          <div><label>통합조회 아이디<input id="reg-id" type="text" autocomplete="off" placeholder="여신협회 통합조회 로그인 ID" /></label></div>
+          <div><label>통합조회 비밀번호<input id="reg-pw" type="password" autocomplete="off" placeholder="비밀번호" /></label></div>
+        </div>
+        <button class="primary" id="reg-run">🔗 계정 연결하기</button>
+        <div class="msg" id="reg-msg"></div>
+      </div>
+
+      <div id="ov-pane-signup" style="display:none">
+        <div class="notice">주민등록번호 앞 7자리 등 <b>대표자 본인인증 정보</b>가 필요합니다(옥토버 회원가입 절차상 필수). 입력한 정보는 가입 처리에만 사용되고 MEATOS DB에는 저장하지 않습니다.</div>
+        <div class="sub" style="margin:0 0 6px;font-weight:800;color:#374151">본인인증 (대표자)</div>
+        <div class="frm" style="margin-bottom:8px">
+          <div><label>대표자 성명<input id="su-name" type="text" autocomplete="off" /></label></div>
+          <div><label>주민번호 앞 7자리<input id="su-regno" type="text" maxlength="7" placeholder="예: 8001011" autocomplete="off" /></label></div>
+          <div><label>휴대폰번호<input id="su-phone" type="text" placeholder="01012345678" autocomplete="off" /></label></div>
+          <div><label>통신사<select id="su-telecom"><option value="0">SKT</option><option value="1">KT</option><option value="2">LGU+</option><option value="3">알뜰SK</option><option value="4">알뜰KT</option><option value="5">알뜰LGU+</option></select></label></div>
+          <div class="full"><label>이메일<input id="su-email" type="email" autocomplete="off" /></label></div>
+        </div>
+        <div class="sub" style="margin:0 0 6px;font-weight:800;color:#374151">새 통합조회 계정</div>
+        <div class="frm" style="margin-bottom:8px">
+          <div><label>사용할 아이디<input id="su-id" type="text" autocomplete="off" /></label></div>
+          <div><label>사용할 비밀번호<input id="su-pw" type="password" autocomplete="off" /></label></div>
+        </div>
+        <div class="sub" style="margin:0 0 6px;font-weight:800;color:#374151">가맹점(사업자) 정보</div>
+        <div class="frm" style="margin-bottom:8px">
+          <div><label>사업자번호(10자리)<input id="su-bizno" type="text" maxlength="10" autocomplete="off" /></label></div>
+          <div><label>법인번호(13자리, 개인사업자는 생년월일8자리+뒤5자리 등 사업자등록증 참고)<input id="su-bubin" type="text" maxlength="13" autocomplete="off" /></label></div>
+          <div><label>가맹점명<input id="su-mername" type="text" autocomplete="off" /></label></div>
+          <div><label>대표자명<input id="su-ownername" type="text" autocomplete="off" /></label></div>
+          <div><label>대표자 생년월일(YYMMDD)<input id="su-ownerbirth" type="text" maxlength="6" placeholder="예: 800101" autocomplete="off" /></label></div>
+          <div><label>주 카드사<select id="su-cardcd">
+            <option value="01">KB카드</option><option value="03">신한카드</option><option value="04">BC카드</option>
+            <option value="11">롯데카드</option><option value="12">현대카드</option><option value="13">삼성카드</option>
+            <option value="18">씨티카드</option><option value="19">NH농협카드</option><option value="21">하나카드</option><option value="23">우리카드</option>
+          </select></label></div>
+          <div><label>결제은행<select id="su-bankcd">
+            <option value="004">국민은행</option><option value="088">신한은행</option><option value="020">우리은행</option>
+            <option value="081">하나은행</option><option value="003">기업은행</option><option value="011">농협중앙회</option>
+            <option value="012">농협회원조합</option><option value="045">새마을금고</option><option value="048">신협중앙회</option>
+            <option value="071">우체국</option><option value="089">케이뱅크</option><option value="090">카카오뱅크</option><option value="092">토스뱅크</option>
+            <option value="031">대구은행</option><option value="032">부산은행</option><option value="034">광주은행</option>
+            <option value="035">제주은행</option><option value="037">전북은행</option><option value="039">경남은행</option>
+            <option value="023">SC제일은행</option><option value="027">한국씨티은행</option>
+          </select></label></div>
+          <div class="full"><label>결제계좌번호<input id="su-acctno" type="text" autocomplete="off" /></label></div>
+        </div>
+        <button class="primary" id="su-run">📝 가입하고 연결하기</button>
+        <div class="msg" id="su-msg"></div>
+      </div>
+    </div>
+
+    <!-- 연결됨 -->
+    <div id="ov-linked" style="display:none">
+      <div class="sub" style="margin:0 0 8px">✅ <b id="ov-linked-id"></b> 계정으로 연결되어 있습니다. <span class="link" id="ov-relink">계정 변경</span></div>
+      <div class="frm" style="margin-bottom:8px">
+        <div><label>조회 시작일<input id="ov-start" type="date" /></label></div>
+        <div><label>조회 종료일<input id="ov-end" type="date" /></label></div>
+      </div>
+      <button class="primary" id="ov-run">🔍 지금 조회하기</button>
+      <div class="msg" id="ov-msg"></div>
+    </div>
+  </div>
+
+<script src="header.js"></script>
+<script>
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const TENANT = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
+const STORE_ID = (window.MEATOS_CONTEXT && window.MEATOS_CONTEXT.storeId) || null;
+const CAN_PERSIST = !!window.MEATOS_CAN_PERSIST;
+const H = window.MEATOS_API_HEADERS;
+const HW = { ...H, "Content-Type": "application/json", "Prefer": "return=representation" };
+const won = (v) => Number(v||0).toLocaleString("ko-KR");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+function pad(n){ return String(n).padStart(2,"0"); }
+function fmt(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+const today = fmt(new Date());
+
+const CARD_COLORS = {
+  "신한":{bg:"#e0f2fe",fg:"#075985"}, "삼성":{bg:"#dbeafe",fg:"#1e3a8a"}, "KB국민":{bg:"#fef9c3",fg:"#854d0e"},
+  "현대":{bg:"#f3f4f6",fg:"#111827"}, "롯데":{bg:"#fee2e2",fg:"#991b1b"}, "BC":{bg:"#fce7f3",fg:"#9d174d"},
+  "하나":{bg:"#dcfce7",fg:"#166534"}, "우리":{bg:"#e0e7ff",fg:"#3730a3"}, "NH농협":{bg:"#ecfccb",fg:"#3f6212"}
+};
+function cardBadge(c){ const i=CARD_COLORS[c]||{bg:"#f3f4f6",fg:"#374151"}; return "<span class='cc' style='background:"+i.bg+";color:"+i.fg+"'>"+esc(c)+"</span>"; }
+
+let HOLIDAYS = new Set(); // 'YYYY-MM-DD'
+let ROWS = [];
+
+if(!CAN_PERSIST){ document.getElementById("demoNotice").style.display="block"; }
+
+async function jget(path){ try{ const r=await fetch(REST+path,{headers:H}); return r.ok?await r.json():null; }catch(e){ return null; } }
+
+async function loadHolidays(){
+  const rows = await jget("/kr_holiday?select=holiday_date");
+  HOLIDAYS = new Set((rows||[]).map(r=>r.holiday_date));
+}
+async function loadRows(){
+  const storeFilter = STORE_ID ? "&store_id=eq."+encodeURIComponent(STORE_ID) : "";
+  const rows = await jget("/card_settlement?company_id=eq."+TENANT+storeFilter+"&select=*&order=deposit_date.asc,card_company.asc&limit=3000");
+  ROWS = Array.isArray(rows)?rows:[];
+  renderKpis(); renderCalendar(); renderList();
+}
+
+function weekStart(){ const d=new Date(); const dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow); return fmt(d); }
+function weekEnd(){ const d=new Date(weekStart()+"T00:00:00"); d.setDate(d.getDate()+6); return fmt(d); }
+
+function renderKpis(){
+  const sched = ROWS.filter(r=>r.status==="SCHEDULED");
+  const sum = (arr)=>arr.reduce((s,r)=>s+(Number(r.deposit_amt)||0),0);
+  document.getElementById("k-today").textContent  = won(sum(sched.filter(r=>r.deposit_date===today)))+"원";
+  const ws=weekStart(), we=weekEnd();
+  document.getElementById("k-week").textContent   = won(sum(sched.filter(r=>r.deposit_date>=ws && r.deposit_date<=we)))+"원";
+  document.getElementById("k-unpaid").textContent = won(sum(sched))+"원";
+}
+
+// 입금예정 캘린더 (입금예정일 기준)
+let calDate = new Date(); calDate.setDate(1);
+function renderCalendar(){
+  const y=calDate.getFullYear(), m=calDate.getMonth();
+  const ym = y+"-"+pad(m+1);
+  document.getElementById("cal-ym").textContent = ym;
+  const startDow=new Date(y,m,1).getDay();
+  const dim=new Date(y,m+1,0).getDate();
+  const byDay={};
+  ROWS.forEach(r=>{ if(r.status!=="PAID" && r.deposit_date && r.deposit_date.slice(0,7)===ym){ byDay[r.deposit_date]=(byDay[r.deposit_date]||0)+(Number(r.deposit_amt)||0); } });
+  let html="<table class='cal'><thead><tr><th class='sun'>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class='sat'>토</th><th class='sumcol'>계</th></tr></thead><tbody>";
+  let day=1, monthTotal=0;
+  for(let w=0; w<6 && day<=dim; w++){
+    html+="<tr>"; let weekTotal=0;
+    for(let dow=0; dow<7; dow++){
+      if((w===0 && dow<startDow) || day>dim){ html+="<td class='empty'></td>"; }
+      else{
+        const dsv=ym+"-"+pad(day), amt=byDay[dsv]||0;
+        const isHol=HOLIDAYS.has(dsv);
+        weekTotal+=amt; monthTotal+=amt;
+        html+="<td class='daycell"+(dsv===today?" today":"")+(dow===0?" sun":"")+(isHol?" hol":"")+"' data-d='"+dsv+"'><div class='dn'>"+day+"</div>"+(amt?"<div class='da'>"+won(amt)+"</div>":"")+"</td>";
+        day++;
+      }
+    }
+    html+="<td class='sumcol'>"+(weekTotal?won(weekTotal):"")+"</td></tr>";
+  }
+  html+="</tbody><tfoot><tr><td colspan='7' class='mtot-l'>월 입금예정 합계</td><td class='sumcol'>"+won(monthTotal)+"</td></tr></tfoot></table>";
+  const host=document.getElementById("cal"); host.className=""; host.innerHTML=html;
+  host.querySelectorAll("td.daycell").forEach(td=>td.addEventListener("click",()=>filterDay(td.dataset.d)));
+}
+function filterDay(dsv){
+  document.getElementById("list-scope").textContent="(입금예정 "+dsv+")";
+  document.getElementById("list-reset").style.display="block";
+  renderList(ROWS.filter(r=>r.deposit_date===dsv));
+  document.getElementById("listCard").scrollIntoView({behavior:"smooth", block:"start"});
+}
+document.getElementById("reset-btn").addEventListener("click", ()=>{
+  document.getElementById("list-scope").textContent="(예정일순)";
+  document.getElementById("list-reset").style.display="none";
+  renderList();
+});
+
+function renderList(rows){
+  rows = rows || ROWS;
+  const tb=document.getElementById("tb");
+  if(!rows.length){ tb.innerHTML="<tr><td colspan='7' class='muted'>입금예정 내역이 없습니다. 위 ‘카드매출 자동조회’로 가져오세요.</td></tr>"; return; }
+  tb.innerHTML = rows.map(r=>"<tr><td><b>"+esc(r.deposit_date)+"</b></td><td>"+cardBadge(r.card_company)+"</td>"+
+    "<td>"+esc(r.sale_date)+"</td><td class='num'>"+won(r.approve_amt)+"</td>"+
+    "<td class='num'>"+won(r.fee_amt)+"</td><td class='num'><b>"+won(r.deposit_amt)+"</b></td>"+
+    "<td>"+(r.status==="SCHEDULED"
+      ? "<button class='paybtn' data-id='"+esc(r.id)+"'"+(CAN_PERSIST?"":" disabled")+">입금완료</button>"
+      : "<span class='st "+esc(r.status)+"'>"+(r.status==="PAID"?"입금완료":"보류")+"</span>")+"</td></tr>").join("");
+}
+document.getElementById("tb").addEventListener("click", async (e)=>{
+  const b=e.target.closest(".paybtn"); if(!b||b.disabled) return;
+  const row=ROWS.find(r=>String(r.id)===b.dataset.id); if(!row) return;
+  if(!confirm(row.deposit_date+" "+row.card_company+" "+won(row.deposit_amt)+"원 입금완료 처리할까요?")) return;
+  b.disabled=true; b.textContent="처리 중…";
+  try{
+    const r=await fetch(REST+"/card_settlement?id=eq."+encodeURIComponent(row.id),{method:"PATCH",headers:HW,body:JSON.stringify({status:"PAID"})});
+    if(!r.ok){ const j=await r.json().catch(()=>({})); throw new Error(j.message||"HTTP "+r.status); }
+    await loadRows();
+  }catch(err){ alert("처리 실패: "+err.message); b.disabled=false; b.textContent="입금완료"; }
+});
+
+document.getElementById("cal-prev").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); });
+document.getElementById("cal-next").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); });
+
+// ===================== Octover 자동조회 (최초 1회 연결 → 이후 재사용) =====================
+const FUNCTIONS_BASE = "https://pkrsiqjzllyiafwpskll.supabase.co/functions/v1";
+
+async function octoverCall(action, extra){
+  const r = await fetch(FUNCTIONS_BASE+"/octover-collect", {
+    method:"POST", headers:{...H,"Content-Type":"application/json"},
+    body: JSON.stringify({ action, companyId:TENANT, storeId:STORE_ID, ...extra })
+  });
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok || !j.ok) throw new Error(j.error || ("HTTP "+r.status));
+  return j;
+}
+
+function ovShowSetup(){
+  document.getElementById("ov-loading").style.display="none";
+  document.getElementById("ov-linked").style.display="none";
+  document.getElementById("ov-setup").style.display="";
+}
+function ovShowLinked(octoverId){
+  document.getElementById("ov-loading").style.display="none";
+  document.getElementById("ov-setup").style.display="none";
+  document.getElementById("ov-linked").style.display="";
+  document.getElementById("ov-linked-id").textContent = octoverId || "";
+}
+
+(function initOctoverDates(){
+  const s=document.getElementById("ov-start"), e=document.getElementById("ov-end");
+  if(!s||!e) return;
+  const start=new Date(); start.setDate(start.getDate()-6);
+  s.value=fmt(start); e.value=today;
+})();
+
+// 탭 전환 (계정 있음 / 신규 가입)
+const ovTabExisting=document.getElementById("ov-tab-existing");
+const ovTabSignup=document.getElementById("ov-tab-signup");
+if(ovTabExisting && ovTabSignup){
+  ovTabExisting.addEventListener("click", ()=>{
+    ovTabExisting.classList.add("go"); ovTabSignup.classList.remove("go");
+    document.getElementById("ov-pane-existing").style.display="";
+    document.getElementById("ov-pane-signup").style.display="none";
+  });
+  ovTabSignup.addEventListener("click", ()=>{
+    ovTabSignup.classList.add("go"); ovTabExisting.classList.remove("go");
+    document.getElementById("ov-pane-signup").style.display="";
+    document.getElementById("ov-pane-existing").style.display="none";
+  });
+}
+
+// 상태 확인 (페이지 로드 시 1회)
+async function ovCheckStatus(){
+  if(!CAN_PERSIST){
+    document.getElementById("ov-loading").textContent="체험 모드에서는 사용할 수 없습니다. 사업장 연동 후 이용하세요.";
+    return;
+  }
+  try{
+    const j = await octoverCall("status", {});
+    if(j.linked) ovShowLinked(j.octoverId);
+    else ovShowSetup();
+  }catch(e){
+    document.getElementById("ov-loading").textContent="연결 상태 확인 실패: "+e.message;
+  }
+}
+
+// 기존 계정 연결하기
+const regRunBtn=document.getElementById("reg-run");
+if(regRunBtn) regRunBtn.addEventListener("click", async ()=>{
+  const msg=document.getElementById("reg-msg");
+  const idEl=document.getElementById("reg-id"), pwEl=document.getElementById("reg-pw");
+  const octoverId=idEl.value.trim(), octoverPw=pwEl.value;
+  if(!octoverId||!octoverPw){ msg.style.color="#b91c1c"; msg.textContent="아이디·비밀번호를 모두 입력하세요."; return; }
+  regRunBtn.disabled=true; regRunBtn.textContent="연결 중…";
+  msg.style.color="#6b7280"; msg.textContent="계정 확인 중…";
+  try{
+    const j = await octoverCall("register", { octoverId, octoverPw });
+    msg.style.color="#166534"; msg.textContent="✓ 연결 완료.";
+    ovShowLinked(j.octoverId || octoverId);
+  }catch(e){
+    msg.style.color="#b91c1c"; msg.textContent="연결 실패: "+e.message;
+  }finally{
+    pwEl.value="";
+    regRunBtn.disabled=false; regRunBtn.textContent="🔗 계정 연결하기";
+  }
+});
+
+// 신규 가입하고 연결하기
+const suRunBtn=document.getElementById("su-run");
+if(suRunBtn) suRunBtn.addEventListener("click", async ()=>{
+  const msg=document.getElementById("su-msg");
+  const val=id=>{ const el=document.getElementById(id); return el ? el.value.trim() : ""; };
+  const payload={
+    wantId: val("su-id"), wantPw: document.getElementById("su-pw").value,
+    name: val("su-name"), regNo7: val("su-regno"), email: val("su-email"),
+    phoneNum: val("su-phone"), telecomType: val("su-telecom"),
+    bizNo: val("su-bizno"), bubinNo: val("su-bubin"),
+    merchantName: val("su-mername"), ownerName: val("su-ownername"), ownerBirth: val("su-ownerbirth"),
+    cardCd: val("su-cardcd"), bankCd: val("su-bankcd"), acctNo: val("su-acctno")
+  };
+  const required=["wantId","wantPw","name","regNo7","email","phoneNum","bizNo","bubinNo","merchantName","ownerName","ownerBirth","acctNo"];
+  const missing=required.filter(k=>!payload[k]);
+  if(missing.length){ msg.style.color="#b91c1c"; msg.textContent="모든 항목을 입력하세요. (미입력: "+missing.join(", ")+")"; return; }
+  suRunBtn.disabled=true; suRunBtn.textContent="가입 처리 중…";
+  msg.style.color="#6b7280"; msg.textContent="여신협회 통합조회 회원가입 진행 중… (최대 1분 정도 걸릴 수 있습니다)";
+  try{
+    const j = await octoverCall("signup", payload);
+    msg.style.color="#166534"; msg.textContent="✓ 가입 및 연결 완료.";
+    ovShowLinked(j.octoverId || payload.wantId);
+  }catch(e){
+    msg.style.color="#b91c1c"; msg.textContent="가입 실패: "+e.message;
+  }finally{
+    document.getElementById("su-pw").value="";
+    suRunBtn.disabled=false; suRunBtn.textContent="📝 가입하고 연결하기";
+  }
+});
+
+// 계정 변경 (다시 설정 화면으로)
+const ovRelink=document.getElementById("ov-relink");
+if(ovRelink) ovRelink.addEventListener("click", (e)=>{ e.preventDefault(); ovShowSetup(); });
+
+// 지금 조회하기 (연결된 계정으로)
+const ovRunBtn=document.getElementById("ov-run");
+if(ovRunBtn) ovRunBtn.addEventListener("click", async ()=>{
+  const msg=document.getElementById("ov-msg");
+  const startDate=document.getElementById("ov-start").value, endDate=document.getElementById("ov-end").value;
+  if(!startDate||!endDate){ msg.style.color="#b91c1c"; msg.textContent="조회 기간을 입력하세요."; return; }
+  ovRunBtn.disabled=true; ovRunBtn.textContent="조회 중…";
+  msg.style.color="#6b7280"; msg.textContent="여신협회 통합조회 접속 중… (최대 1분 정도 걸릴 수 있습니다)";
+  try{
+    const j = await octoverCall("query", { startDate, endDate });
+    msg.style.color="#166534";
+    msg.textContent="✓ "+j.collected+"건 조회 · "+j.saved+"건 등록/갱신 완료.";
+    await loadRows();
+  }catch(e){
+    msg.style.color="#b91c1c"; msg.textContent="조회 실패: "+e.message;
+  }finally{
+    ovRunBtn.disabled=false; ovRunBtn.textContent="🔍 지금 조회하기";
+  }
+});
+
+ovCheckStatus();
+
+// 초기 로드
+(async ()=>{ await loadHolidays(); await loadRows(); })();
+</script>
+</body>
+</html>
