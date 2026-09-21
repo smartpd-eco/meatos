@@ -10,10 +10,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 <style>
   * { box-sizing:border-box; }
-  body { margin:0; min-height:100vh; font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif; background:#F6F7F9; color:#17191D; padding:24px 16px 48px; display:flex; flex-direction:column; align-items:center; }
-  .brand { display:flex; align-items:center; justify-content:center; margin:16px 0 24px; width:min(100%,440px); }
-  .brand img { display:block; width:min(100%,300px); height:auto; }
-  .card { background:#fff; border:1px solid #E4E7EB; border-radius:16px; padding:24px; width:100%; max-width:420px; box-shadow:0 4px 18px rgba(16,24,40,.06); }
+  body { margin:0; min-height:100vh; font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif; background:#F6F7F9; color:#17191D; padding:20px 24px 48px; display:flex; flex-direction:column; align-items:center; }
+  .brand { display:flex; align-items:center; align-self:center; margin:0 0 20px; padding:0 12px; width:100%; max-width:520px; min-height:64px; background:#fff; border-radius:10px; overflow:hidden; }
+  .brand img { display:block; width:160px; max-width:46vw; height:auto; object-fit:contain; }
+  .card { background:#fff; border:1px solid #E4E7EB; border-radius:16px; padding:26px; width:100%; max-width:520px; box-shadow:0 4px 18px rgba(16,24,40,.06); }
   .tabs { display:flex; margin-bottom:16px; border-bottom:2px solid #eef2f7; }
   .tabs button { flex:1; min-height:48px; padding:12px; border:none; background:none; font-size:16px; font-weight:800; color:#6B7280; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; }
   .tabs button.on { color:#C51624; border-bottom-color:#C51624; }
@@ -24,26 +24,52 @@
   button.primary:hover { background:#9F101C; }
   button.primary:disabled { opacity:.6; }
   .msg { font-size:13px; margin-top:10px; min-height:18px; text-align:center; }
-  .divider { text-align:center; color:#9ca3af; font-size:12px; margin:16px 0 10px; position:relative; }
-  .social button { position:relative; width:100%; min-height:48px; padding:12px 16px; font:inherit; font-size:16px; font-weight:800; border-radius:10px; border:1px solid transparent; cursor:pointer; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px; }
-  .social button .ic { position:absolute; left:18px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-weight:900; }
+  .divider { display:flex; align-items:center; gap:12px; text-align:center; color:#9ca3af; font-size:12px; margin:18px 0 6px; white-space:nowrap; }
+  .divider::before, .divider::after { content:""; height:1px; flex:1; background:#E4E7EB; }
+  .social { display:grid; gap:10px; }
+  .social button { position:relative; width:100%; min-height:56px; padding:12px 16px; font:inherit; font-size:16px; font-weight:800; border-radius:14px; border:1px solid transparent; cursor:pointer; margin:0; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .social button .ic { position:absolute; left:16px; width:32px; height:32px; border-radius:999px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .social button .ic svg { display:block; width:20px; height:20px; }
+  .social .g .ic { background:#fff; box-shadow:0 0 0 1px #E5E7EB; }
+  .social .k .ic { background:rgba(255,255,255,.42); }
+  .social .n .ic { background:rgba(0,0,0,.08); }
+  .social .a .ic { background:rgba(255,255,255,.16); }
   .social .g { background:#fff; color:#1f1f1f; border-color:#dadce0; }
   .social .k { background:#FEE500; color:#191600; border-color:#FEE500; }
   .social .n { background:#03C75A; color:#fff; border-color:#03C75A; }
   .social .a { background:#6b7280; color:#fff; border-color:#6b7280; }
-  .social button .ic { font-size:17px; line-height:1; }
   .foot { margin-top:18px; }
   .foot a { color:#6b7280; font-size:13px; text-decoration:none; }
+  .social-guide { margin:10px 2px 0; color:#6b7280; font-size:12px; line-height:1.55; text-align:center; }
+  @media (max-width:639px) {
+    body { padding:12px 12px 32px; }
+    .brand { margin-bottom:12px; padding:0 8px; min-height:52px; border-radius:8px; }
+    .brand img { width:132px; max-width:50vw; }
+    .card { max-width:none; padding:18px 16px; border-radius:14px; }
+    .tabs { margin-bottom:14px; }
+    .social button { min-height:52px; border-radius:12px; }
+    .foot { margin-top:14px; }
+  }
 </style>
 </head>
 <body>
-  <a class="brand" href="/" aria-label="정육비서 홈"><img src="icons/jeongyuk-biseo-logo.png" width="1289" height="507" alt="정육비서 · 매입부터 판매까지, 한눈에 관리" /></a>
+  <a class="brand" href="index.html" aria-label="정육비서 메인 화면"><img src="icons/jeongyuk-biseo-logo.png" width="1289" height="507" alt="정육비서 · 매입부터 판매까지, 한눈에 관리" /></a>
 
   <div class="card">
     <div class="tabs">
       <button id="tab-login" class="on" onclick="showTab('login')">로그인</button>
       <button id="tab-signup" onclick="showTab('signup')">회원가입</button>
     </div>
+
+    <div class="social">
+      <button class="g" onclick="social('google')"><span class="ic" aria-hidden="true"><svg viewBox="0 0 18 18" focusable="false"><path fill="#4285F4" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.797 2.716v2.258h2.909c1.702-1.567 2.684-3.878 2.684-6.614Z"/><path fill="#34A853" d="M9 18c2.43 0 4.468-.806 5.956-2.181l-2.909-2.258c-.806.54-1.835.859-3.047.859-2.344 0-4.328-1.585-5.037-3.714H.956v2.332A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.963 10.706A5.41 5.41 0 0 1 3.682 9c0-.592.102-1.167.281-1.706V4.962H.956A9 9 0 0 0 0 9c0 1.45.347 2.824.956 4.038l3.007-2.332Z"/><path fill="#EA4335" d="M9 3.58c1.322 0 2.508.454 3.441 1.346l2.581-2.581C13.464.892 11.426 0 9 0A9 9 0 0 0 .956 4.962l3.007 2.332C4.672 5.165 6.656 3.58 9 3.58Z"/></svg></span>구글로 로그인</button>
+      <button class="k" onclick="social('kakao')"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path fill="#191600" d="M12 3C6.48 3 2 6.48 2 10.78c0 2.74 1.82 5.15 4.57 6.54l-1.16 4.24a.45.45 0 0 0 .69.48l5.08-3.4c.27.02.54.03.82.03 5.52 0 10-3.48 10-7.89S17.52 3 12 3Z"/></svg></span>카카오로 로그인</button>
+      <button class="n" onclick="social('naver')"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path fill="#fff" d="M5 4h5.1l4.8 7.08V4H19v16h-5.1L9.1 12.92V20H5V4Z"/></svg></span>네이버로 로그인</button>
+      <button class="a" onclick="social('apple')"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path fill="#fff" d="M15.65 5.19c.9-1.08.82-2.06.8-2.41-1.39.08-3 1-3.91 2.04-.8.88-1.5 1.97-1.39 3.01 1.51.12 3.48-.76 4.5-2.64ZM18.94 12.42c-.02-2.3 1.88-3.4 1.97-3.45-1.08-1.58-2.76-1.8-3.35-1.83-1.42-.15-2.78.84-3.5.84-.73 0-1.84-.82-3.02-.8-1.55.02-2.98.9-3.78 2.29-1.62 2.8-.41 6.94 1.16 9.21.77 1.11 1.68 2.35 2.88 2.3 1.15-.05 1.59-.74 2.98-.74 1.38 0 1.78.74 3 .72 1.24-.02 2.03-1.12 2.79-2.24.89-1.29 1.25-2.54 1.27-2.61-.03-.01-2.38-.92-2.4-3.69Z"/></svg></span>Apple로 로그인</button>
+    </div>
+    <p class="social-guide" id="social-guide">처음 이용하는 분은 간편로그인으로 바로 가입되며, 기존 회원은 가입한 로그인으로 연결됩니다.</p>
+
+    <div class="divider" id="auth-divider">또는 이메일로 로그인</div>
 
     <!-- 로그인 -->
     <div id="panel-login">
@@ -63,17 +89,9 @@
     </div>
 
     <div class="msg" id="msg"></div>
-
-    <div class="divider">간편 로그인</div>
-    <div class="social">
-      <button class="g" onclick="social('google')"><span class="ic">G</span>구글로 로그인</button>
-      <button class="k" onclick="social('kakao')"><span class="ic">💬</span>카카오로 로그인</button>
-      <button class="n" onclick="social('naver')"><span class="ic">N</span>네이버로 로그인</button>
-      <button class="a" onclick="social('apple')"><span class="ic"></span>Apple로 로그인</button>
-    </div>
   </div>
 
-  <div class="foot"><a href="/">← 둘러보기(로그인 없이)</a></div>
+  <div class="foot"><a href="index.html">메인 화면으로 이동</a></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -82,25 +100,111 @@ const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const sb = supabase.createClient(SB_URL, ANON, { auth: { persistSession: true, detectSessionInUrl: true } });
 const $ = (id) => document.getElementById(id);
 const msg = (t, ok) => { const m=$("msg"); m.textContent=t; m.style.color = ok ? "#166534" : "#b91c1c"; };
+const SOCIAL_INTENT_KEY = "meatos_social_auth_intent";
+let authMode = "login";
 
 function showTab(t){
+  authMode = t;
   $("tab-login").classList.toggle("on", t==="login");
   $("tab-signup").classList.toggle("on", t==="signup");
   $("panel-login").style.display = t==="login" ? "block" : "none";
   $("panel-signup").style.display = t==="signup" ? "block" : "none";
+  $("auth-divider").textContent = t==="login" ? "또는 이메일로 로그인" : "또는 이메일로 회원가입";
+  $("social-guide").textContent = t==="login"
+    ? "처음 이용하는 분은 간편로그인으로 바로 가입되며, 기존 회원은 가입한 로그인으로 연결됩니다."
+    : "간편가입은 아래 회사명과 담당자명을 먼저 입력한 뒤 원하는 로그인을 선택하세요.";
   msg("");
 }
 
+function readSocialIntent(){
+  try {
+    const value = JSON.parse(sessionStorage.getItem(SOCIAL_INTENT_KEY)||"null");
+    if(!value || Date.now() - Number(value.createdAt||0) > 15*60*1000) return null;
+    return value;
+  } catch(e){ return null; }
+}
+
+function clearSocialIntent(){ sessionStorage.removeItem(SOCIAL_INTENT_KEY); }
+
+function providerFromUser(user){
+  return String(user && user.app_metadata && user.app_metadata.provider
+    || user && user.user_metadata && user.user_metadata.provider || "email").toLowerCase();
+}
+
+function userHasProvider(user, provider){
+  if(provider === "naver"
+    && String(user && user.user_metadata && user.user_metadata.provider || "").toLowerCase() === "naver"){
+    return true;
+  }
+  return Array.isArray(user && user.identities)
+    && user.identities.some(function(identity){ return identity.provider === provider; });
+}
+
 async function loadAccount(user){
-  // 계정 조회, 없으면 생성(소셜 첫 로그인 등)
-  let { data: acct } = await sb.from("account").select("*").eq("auth_user_id", user.id).maybeSingle();
+  let { data: acct, error: accountError } = await sb.from("account").select("*").eq("auth_user_id", user.id).maybeSingle();
+  if(accountError) throw accountError;
   if(!acct){
-    const nm = user.user_metadata && (user.user_metadata.name || user.user_metadata.full_name) || (user.email||"").split("@")[0];
-    const co = user.user_metadata && user.user_metadata.company_name || "";
-    const { data } = await sb.rpc("signup_company_account", { p_auth_user_id: user.id, p_email: user.email, p_name: nm, p_company_name: co });
+    const intent = readSocialIntent();
+    const provider = intent && intent.provider || providerFromUser(user);
+    if(!userHasProvider(user, provider)){
+      throw new Error("SOCIAL_ACCOUNT_NOT_REGISTERED|" + provider);
+    }
+    const nm = intent.name || user.user_metadata && (user.user_metadata.name || user.user_metadata.full_name) || (user.email||"").split("@")[0];
+    const co = intent.company || "";
+    const { data, error } = await sb.rpc("signup_company_account", { p_auth_user_id: user.id, p_email: user.email, p_name: nm, p_company_name: co });
+    if(error) throw error;
     acct = Array.isArray(data) ? data[0] : data;
   }
+  if(!acct) throw new Error("ACCOUNT_SETUP_FAILED");
   return acct;
+}
+
+function providerLabel(provider){
+  return { google:"Google", kakao:"카카오", naver:"네이버", email:"이메일" }[provider] || "";
+}
+
+function requiresLinkedProviderApproval(account, intent){
+  if(!intent || intent.mode !== "login" || !intent.provider || intent.provider === "email") return false;
+  const attemptedProvider = String(intent.provider || "").toLowerCase();
+  const signupProvider = String(account && account.signup_provider || "unknown").toLowerCase();
+  return attemptedProvider !== signupProvider;
+}
+
+async function handleAccountSetupError(error){
+  const errorText = [error && error.message, error && error.details, String(error || "")].filter(Boolean).join(" ");
+  const duplicate = errorText.match(/ACCOUNT_ALREADY_REGISTERED\|([a-z]+)/i);
+  const unregistered = errorText.match(/SOCIAL_ACCOUNT_NOT_REGISTERED\|([a-z]+)/i);
+  const providerBlocked = errorText.match(/SOCIAL_PROVIDER_NOT_ALLOWED\|([a-z]+)\|([a-z]+)/i);
+  const emailConsentRequired = /AUTH_EMAIL_REQUIRED|AUTH_EMAIL_MISMATCH/.test(errorText);
+  try { await sb.auth.signOut(); } catch(e){}
+  clearSocialIntent();
+  localStorage.removeItem("meatos_user_cache");
+  localStorage.removeItem("meatos_access_token");
+  localStorage.removeItem("meatos_last_active");
+  showTab("login");
+  if(providerBlocked){
+    const attempted = providerLabel(String(providerBlocked[1]||"").toLowerCase()) || "해당 간편로그인";
+    const primary = providerLabel(String(providerBlocked[2]||"").toLowerCase()) || "처음 가입한 간편로그인";
+    msg(attempted + " 로그인은 현재 허용되지 않습니다. " + primary + "으로 로그인한 뒤 계정 연결 관리에서 허용해 주세요.");
+    return;
+  }
+  if(unregistered){
+    const attempted = providerLabel(String(unregistered[1]||"").toLowerCase()) || "해당 간편로그인";
+    msg("등록되지 않은 " + attempted + " 로그인입니다. 기존 가입 수단으로 로그인하거나 회원가입 탭에서 신규 가입해 주세요.");
+    return;
+  }
+  if(duplicate){
+    const originalProvider = providerLabel(String(duplicate[1] || "").toLowerCase());
+    msg(originalProvider
+      ? "이미 가입된 이메일입니다. 처음 가입한 " + originalProvider + " 로그인으로 진행해 주세요."
+      : "이미 가입된 이메일입니다. 처음 가입한 간편로그인으로 진행해 주세요.");
+    return;
+  }
+  if(emailConsentRequired){
+    msg("간편로그인에서 이메일 제공 동의가 필요합니다. 동의 후 다시 시도해 주세요.");
+    return;
+  }
+  msg("계정 정보를 확인하지 못했습니다. 잠시 후 다시 로그인해 주세요.");
 }
 
 function saveSession(user, acct, token){
@@ -113,32 +217,51 @@ function saveSession(user, acct, token){
 async function finalize(session){
   if(!session || !session.user) return false;
   const acct = await loadAccount(session.user);
+  const intent = readSocialIntent();
+  if(requiresLinkedProviderApproval(acct, intent)){
+    const allowedResult = await sb.rpc("is_account_login_provider_enabled", { p_provider:intent.provider });
+    if(allowedResult.error) throw allowedResult.error;
+    if(!allowedResult.data){
+      throw new Error("SOCIAL_PROVIDER_NOT_ALLOWED|" + intent.provider + "|" + (acct.signup_provider||"unknown"));
+    }
+  }
   // 회사명 캐시 보강
   let companyName = "";
   if(acct && acct.company_id){ const { data:c } = await sb.from("company").select("name").eq("id", acct.company_id).maybeSingle(); companyName = c && c.name || ""; }
   const cache = { id:session.user.id, email:session.user.email, name:(acct&&acct.name)||"", company_id:(acct&&acct.company_id)||"", store_id:(acct&&acct.store_id)||"", role:(acct&&acct.role)||"OWNER", company_name:companyName, member_status:(acct&&acct.member_status)||"SOCIAL_VERIFIED" };
   localStorage.setItem("meatos_user_cache", JSON.stringify(cache));
   localStorage.setItem("meatos_access_token", session.access_token||"");
+  localStorage.setItem("meatos_refresh_token", session.refresh_token||"");
   localStorage.setItem("meatos_last_active", String(Date.now()));
-  const requested = new URLSearchParams(location.search).get("next") || "/";
-  const next = requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
-  location.assign(next);
+  clearSocialIntent();
+  const requested = new URLSearchParams(location.search).get("next") || "/index.html";
+  const next = requested.startsWith("/") && !requested.startsWith("//") ? requested : "/index.html";
+  // 로그인 화면을 히스토리에 남기지 않아, 로그인 후 뒤로가기가 홈으로 튀거나
+  // 로그인 화면으로 되돌아오는 현상을 방지한다.
+  location.replace(next);
   return true;
 }
 
 // 진입 시: 이미 로그인/소셜 콜백 세션이면 마무리
 (async () => {
-  try { const { data } = await sb.auth.getSession(); if(data && data.session){ await finalize(data.session); } } catch(e){}
+  try {
+    const { data } = await sb.auth.getSession();
+    if(data && data.session){ await finalize(data.session); }
+  } catch(e){
+    await handleAccountSetupError(e);
+  }
 })();
 
 // 이메일 로그인
 $("li-btn").addEventListener("click", async () => {
   const email = $("li-email").value.trim(), pw = $("li-pw").value;
   if(!email || !pw){ msg("이메일과 비밀번호를 입력하세요."); return; }
+  clearSocialIntent();
   $("li-btn").disabled = true; msg("로그인 중…", true);
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
   if(error){ $("li-btn").disabled=false; msg(error.message.includes("Invalid") ? "이메일 또는 비밀번호가 올바르지 않습니다." : error.message); return; }
-  await finalize(data.session);
+  try { await finalize(data.session); }
+  catch(e){ $("li-btn").disabled=false; await handleAccountSetupError(e); }
 });
 
 // 회원가입
@@ -148,31 +271,49 @@ $("su-btn").addEventListener("click", async () => {
   if(!company || !name || !email || !pw){ msg("모든 항목을 입력하세요."); return; }
   if(pw.length < 6){ msg("비밀번호는 6자 이상이어야 합니다."); return; }
   if(pw !== pw2){ msg("비밀번호가 일치하지 않습니다."); return; }
+  clearSocialIntent();
   $("su-btn").disabled = true; msg("가입 처리 중…", true);
   const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { name, company_name: company } } });
   if(error){ $("su-btn").disabled=false; msg(error.message.includes("registered") ? "이미 가입된 이메일입니다. 로그인해 주세요." : error.message); return; }
   const user = data.user;
   if(user){ try { await sb.rpc("signup_company_account", { p_auth_user_id: user.id, p_email: email, p_name: name, p_company_name: company }); } catch(e){} }
-  if(data.session){ await finalize(data.session); }
+  if(data.session){
+    try { await finalize(data.session); }
+    catch(e){ $("su-btn").disabled=false; await handleAccountSetupError(e); }
+  }
   else { $("su-btn").disabled=false; showTab("login"); msg("가입 완료! 이메일 인증이 필요할 수 있습니다. 인증 후 로그인하세요.", true); }
 });
 
-// 소셜 로그인 — 해당 provider를 Supabase Authentication에서 켠 뒤 아래 값을 true로 바꾸면 즉시 작동합니다.
+// 소셜 로그인 — Supabase Authentication에 활성화된 provider를 사용합니다.
 const PROVIDERS_ENABLED = { google:true, kakao:true, naver:true };
 const NAVER_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/naver-auth";
-const KAKAO_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/kakao-auth";
 async function social(provider){
   if(!PROVIDERS_ENABLED[provider]){
     const label = { google:"Google", kakao:"카카오", naver:"네이버", apple:"Apple" }[provider] || provider;
     msg(label + " 간편로그인은 준비 중입니다. 지금은 이메일로 로그인/가입해 주세요.");
     return;
   }
+  const intent = { mode:authMode, provider:provider, createdAt:Date.now() };
+  if(authMode === "signup"){
+    intent.company = $("su-company").value.trim();
+    intent.name = $("su-name").value.trim();
+    if(!intent.company || !intent.name){
+      msg("간편가입을 시작하려면 회사명과 담당자명을 먼저 입력하세요.");
+      return;
+    }
+  }
+  sessionStorage.setItem(SOCIAL_INTENT_KEY, JSON.stringify(intent));
   if(provider==="naver"){ msg("네이버로 이동 중…", true); location.href = NAVER_FN; return; }
-  if(provider==="kakao"){ msg("카카오로 이동 중…", true); location.href = KAKAO_FN; return; }  // Supabase 우회(이메일 미요청)
-  msg("이동 중…", true);
-  const opts = { redirectTo: location.origin + "/login.html" };
+  const label = { google:"Google", kakao:"카카오" }[provider] || provider;
+  msg(label + " 로그인으로 이동 중…", true);
+  const callback = new URL("/login.html", location.origin);
+  const requested = new URLSearchParams(location.search).get("next");
+  if(requested && requested.startsWith("/") && !requested.startsWith("//")){
+    callback.searchParams.set("next", requested);
+  }
+  const opts = { redirectTo: callback.toString() };
   const { error } = await sb.auth.signInWithOAuth({ provider, options: opts });
-  if(error){ msg(provider + " 간편로그인 설정이 필요합니다.(Supabase Auth Providers)"); }
+  if(error){ clearSocialIntent(); msg(label + " 로그인 연결에 실패했습니다. 잠시 후 다시 시도해 주세요."); }
 }
 </script>
 </body>
