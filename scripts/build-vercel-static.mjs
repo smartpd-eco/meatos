@@ -1,48 +1,44 @@
-import { cp, mkdir, rm } from "node:fs/promises";
-import path from "node:path";
+// scripts/build-vercel-static.mjs
+// Aug 19 정적 배포 재현 빌드. dist 를 만들어 라이브(Aug 19)와 동일한 정적 사이트 +
+// 최신 POS 설치본(downloads/)을 담는다.
+// 레거시 브라우저 OCR(paddle/tesseract/onnx)과 app.js 는 배포에서 제외한다.
+// 실행: npm run build:vercel  (vercel.json 의 buildCommand)
 
-process.env.MEATOS_DEPLOY_BUILD = "1";
-await import("./validate-static.mjs");
+import { cp, mkdir, rm, access } from "node:fs/promises";
+import path from "node:path";
 
 const root = process.cwd();
 const dist = path.join(root, "dist");
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 
-const copy = async (source, target = source) => {
-  await mkdir(path.dirname(path.join(dist, target)), { recursive: true });
-  await cp(path.join(root, source), path.join(dist, target), { recursive: true });
+const exists = async (rel) => {
+  try { await access(path.join(root, rel)); return true; } catch { return false; }
+};
+const copy = async (rel) => {
+  if (!(await exists(rel))) { console.log("skip(없음): " + rel); return; }
+  const dest = path.join(dist, rel);
+  await mkdir(path.dirname(dest), { recursive: true });
+  await cp(path.join(root, rel), dest, { recursive: true });
+  console.log("copied : " + rel);
 };
 
-for (const file of [
-  "index.html", "scan.html", "records.html", "stock.html", "alerts.html", "policy.html", "sanitation.html", "sanitation-list.html", "sales.html", "purchases.html", "settings.html", "login.html", "sell.html", "connect.html", "business-verify.html", "header.js", "app.js", "styles.css", "runtime-config.js", "manifest.webmanifest", "sw.js",
-]) await copy(file);
+// 페이지 (app.js 를 부르는 페이지는 없음 → app.js 제외)
+const pages = [
+  "index.html", "scan.html", "records.html", "stock.html", "sales.html", "purchases.html",
+  "settings.html", "login.html", "sell.html", "connect.html", "business-verify.html",
+  "delivery-sales.html", "delivery-connect.html", "account-link.html", "settlement.html",
+  "safety-stock.html", "auto-order.html", "sanitation.html", "sanitation-list.html",
+  "policy.html", "alerts.html", "fresh-stock-settings.html",
+];
+// 공통 자원 (app.js 제외)
+const assets = [
+  "header.js", "styles.css", "runtime-config.js", "sw.js", "manifest.webmanifest",
+  "fresh-stock.css", "fresh-stock-page.js", "fresh-stock-settings.js",
+];
+// 디렉터리 (페이지들이 참조하는 스크립트/아이콘 + POS 설치본)
+const dirs = ["src", "services/product", "icons", "downloads"];
 
-for (const directory of [
-  "src",
-  "services/product",
-  "icons",
-  "ocr-models/paddle",
-  "ocr-models/tesseract/lang-data",
-]) {
-  await copy(directory);
-}
+for (const rel of [...pages, ...assets, ...dirs]) await copy(rel);
 
-for (const asset of [
-  "node_modules/@paddleocr/paddleocr-js/dist/index.mjs",
-  "node_modules/@paddleocr/paddleocr-js/dist/viz.mjs",
-  "node_modules/@paddleocr/paddleocr-js/dist/assets/worker-entry-C9UNuyOJ.js",
-  "node_modules/js-yaml/dist/js-yaml.mjs",
-  "node_modules/onnxruntime-web/dist/ort.min.mjs",
-  "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs",
-  "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm",
-  "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.mjs",
-  "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.wasm",
-  "node_modules/tesseract.js/dist/tesseract.esm.min.js",
-  "node_modules/tesseract.js/dist/worker.min.js",
-  "node_modules/tesseract.js-core",
-  "node_modules/@techstark/opencv-js/dist",
-  "node_modules/clipper-lib/clipper.js",
-]) await copy(asset);
-
-console.log("Created Vercel static output with browser OCR runtime assets.");
+console.log("\n=== dist 생성 완료: Aug 19 정적본 + 최신 POS 설치본 ===");
