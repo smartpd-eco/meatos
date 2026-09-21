@@ -2,65 +2,107 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>카드 입금예정 · 정육비서</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 <style>
-  * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
-  h1 { font-size:19px; margin:2px 0 4px; }
-  .sub { color:#6b7280; font-size:13px; margin-bottom:12px; line-height:1.55; }
+  :root{
+    --brand-red:#C51624; --brand-red-dark:#9F101C; --brand-red-soft:#FFF2F3; --brand-red-border:#F2B8BE;
+    --info-blue:#2463D4; --success-green:#0F7A3B; --warning-orange:#E58A00; --danger-red:#D71F2B;
+    --bg-page:#F6F7F9; --bg-card:#FFFFFF; --text-primary:#17191D; --text-secondary:#50555D; --text-muted:#6B7280;
+    --border-default:#E4E7EB; --divider:#ECEEF1; --radius-sm:10px; --radius-md:12px; --radius-lg:14px; --radius-panel:16px;
+    --shadow-card:0 4px 18px rgba(16,24,40,.06); --safe-b:env(safe-area-inset-bottom,0px);
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif; background:var(--bg-page); color:var(--text-primary); padding:14px 14px 24px; line-height:1.5; word-break:keep-all; }
+  h1 { font-size:20px; margin:2px 0 4px; font-weight:800; letter-spacing:-.02em; }
+  .sub { color:var(--text-secondary); font-size:13.5px; margin-bottom:14px; line-height:1.6; }
   .kpis { display:flex; gap:8px; margin-bottom:14px; }
-  .kpi { flex:1; background:#fff; border-radius:12px; padding:14px 8px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .kpi b { display:block; font-size:18px; color:#111827; } .kpi span { font-size:12px; color:#6b7280; }
-  .kpi.hl b { color:#166534; }
-  .card { background:#fff; border-radius:14px; padding:14px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .card h2 { font-size:15px; margin:0 0 10px; display:flex; justify-content:space-between; align-items:center; }
-  .card h2 .r { font-weight:400; color:#6b7280; font-size:13px; }
-  .btn-add { border:none; background:#16a34a; color:#fff; border-radius:9px; padding:8px 12px; font-weight:800; cursor:pointer; font-size:13px; }
+  .kpi { flex:1; background:var(--bg-card); border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:14px 8px; text-align:center; box-shadow:var(--shadow-card); }
+  .kpi b { display:block; font-size:18px; color:var(--text-primary); } .kpi span { font-size:12px; color:var(--text-muted); }
+  .kpi.hl b { color:var(--brand-red); }
+  .card { background:var(--bg-card); border:1px solid var(--border-default); border-radius:var(--radius-panel); padding:16px; margin-bottom:14px; box-shadow:var(--shadow-card); }
+  .card h2 { font-size:15.5px; margin:0 0 10px; display:flex; justify-content:space-between; align-items:center; font-weight:800; }
+  .card h2 .r { font-weight:500; color:var(--text-muted); font-size:12.5px; }
+  .btn-add { border:none; background:var(--brand-red); color:#fff; border-radius:9px; padding:8px 12px; font-weight:800; cursor:pointer; font-size:13px; }
   /* 캘린더 */
-  .calnav { border:none; background:#f3f4f6; border-radius:8px; padding:4px 10px; font-weight:800; cursor:pointer; color:#374151; }
+  .calnav { border:none; background:var(--bg-page); border-radius:8px; padding:6px 11px; font-weight:800; cursor:pointer; color:var(--text-secondary); min-height:32px; }
   .calwrap { overflow-x:auto; }
   table.cal { width:100%; border-collapse:collapse; font-size:12px; min-width:520px; }
-  table.cal th, table.cal td { border:1px solid #e5e7eb; padding:4px; text-align:right; vertical-align:top; height:52px; }
+  table.cal th, table.cal td { border:1px solid var(--divider); padding:4px; text-align:right; vertical-align:top; height:52px; }
   table.cal thead th { background:#374151; color:#fff; text-align:center; height:auto; padding:6px; font-weight:700; }
   table.cal thead th.sun { color:#fecaca; } table.cal thead th.sat { color:#bfdbfe; }
   table.cal td.empty { background:#fafafa; }
   table.cal td.daycell { cursor:pointer; }
-  table.cal td.daycell:hover { background:#eff6ff; }
+  table.cal td.daycell:hover { background:var(--brand-red-soft); }
   table.cal td.today { background:#fef9c3; }
-  table.cal td.hol { background:#fef2f2; }
-  table.cal td .dn { text-align:left; color:#6b7280; font-weight:700; }
-  table.cal td.sun .dn, table.cal td.hol .dn { color:#dc2626; }
-  table.cal td .da { color:#166534; font-weight:800; font-size:12px; margin-top:6px; }
-  table.cal .sumcol { background:#f8fafc; font-weight:800; text-align:right; color:#111827; }
+  table.cal td.hol { background:var(--brand-red-soft); }
+  table.cal td .dn { text-align:left; color:var(--text-muted); font-weight:700; }
+  table.cal td.sun .dn, table.cal td.hol .dn { color:var(--danger-red); }
+  table.cal td .da { color:var(--success-green); font-weight:800; font-size:12px; margin-top:6px; }
+  table.cal .sumcol { background:#f8fafc; font-weight:800; text-align:right; color:var(--text-primary); }
   table.cal tfoot td { background:#111827; color:#fff; font-weight:800; }
   table.cal tfoot .mtot-l { text-align:center; }
   /* 목록 */
   table.lst { width:100%; border-collapse:collapse; font-size:14px; }
-  table.lst th, table.lst td { border-bottom:1px solid #eef2f7; padding:9px 6px; text-align:left; white-space:nowrap; }
-  table.lst th { background:#f8fafc; color:#374151; } table.lst td.num,table.lst th.num { text-align:right; }
-  .muted { color:#6b7280; padding:12px; text-align:center; }
-  .link { color:#2563eb; cursor:pointer; font-weight:700; font-size:13px; }
+  table.lst th, table.lst td { border-bottom:1px solid var(--divider); padding:10px 6px; text-align:left; white-space:nowrap; }
+  table.lst th { background:#f8fafc; color:var(--text-secondary); } table.lst td.num,table.lst th.num { text-align:right; }
+  .muted { color:var(--text-muted); padding:14px; text-align:center; font-size:13.5px; }
+  .link { color:var(--info-blue); cursor:pointer; font-weight:700; font-size:13px; }
   .cc { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:800; white-space:nowrap; }
   .st { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:800; }
   .st.SCHEDULED { background:#dbeafe; color:#1e40af; } .st.PAID { background:#dcfce7; color:#166534; } .st.HOLD { background:#fef3c7; color:#92400e; }
-  .paybtn { min-height:32px; padding:5px 10px; border:1px solid #16a34a; border-radius:8px; background:#fff; color:#166534; font-size:12px; font-weight:800; cursor:pointer; }
+  .paybtn { min-height:34px; padding:6px 12px; border:1px solid var(--success-green); border-radius:8px; background:#fff; color:var(--success-green); font-size:12px; font-weight:800; cursor:pointer; }
   .paybtn:disabled { border-color:#d1d5db; color:#9ca3af; cursor:not-allowed; }
   .notice { background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:11px 12px; font-size:13px; line-height:1.55; margin-bottom:12px; }
   .notice a { color:#b45309; font-weight:800; }
-  .frm { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .notice.blue { background:#eff6ff; border-color:#bfdbfe; color:#1e40af; } .notice.blue a{ color:#1d4ed8; }
+
+  /* ---- 폼 공통 (모바일 최적화: 큰 터치영역, 16px 입력폰트로 iOS 확대 방지) ---- */
+  .field { margin-bottom:12px; }
+  .field label { font-size:13px; color:var(--text-secondary); font-weight:700; display:block; margin-bottom:5px; }
+  .field .hint { font-size:11.5px; color:var(--text-muted); margin-top:4px; line-height:1.5; }
+  .field .err { font-size:11.5px; color:var(--danger-red); margin-top:4px; display:none; }
+  .field.invalid input, .field.invalid select { border-color:var(--danger-red) !important; background:#fff8f8; }
+  .field.invalid .err { display:block; }
+  .frm { display:grid; grid-template-columns:1fr 1fr; gap:0 10px; }
   .frm .full { grid-column:1 / -1; }
-  label { font-size:12px; color:#6b7280; display:block; }
-  input, select { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; margin-top:4px; }
-  button.primary { display:block; width:100%; margin-top:12px; padding:14px; font-size:16px; font-weight:800; border:none; border-radius:12px; background:#16a34a; color:#fff; cursor:pointer; }
-  button.primary:disabled { background:#9ca3af; cursor:not-allowed; }
-  .msg { font-size:13px; margin-top:8px; }
-  /* 옥토버 연결 탭(계정 있음/신규 가입) */
+  input, select { width:100%; min-height:48px; padding:12px; border:1px solid var(--border-default); border-radius:var(--radius-sm); font-size:16px; font-family:inherit; background:#fff; color:var(--text-primary); outline:none; transition:border-color .15s ease; }
+  input:focus, select:focus { border-color:var(--brand-red); box-shadow:0 0 0 3px rgba(197,22,36,.10); }
+  .pwwrap { position:relative; }
+  .pwwrap input { padding-right:56px; }
+  .pwtoggle { position:absolute; right:6px; top:6px; bottom:6px; width:44px; border:none; background:transparent; color:var(--text-muted); font-size:12px; font-weight:700; cursor:pointer; border-radius:8px; }
+  .pwtoggle:hover { background:var(--bg-page); }
+  button.primary { display:block; width:100%; padding:15px; font-size:16px; font-weight:800; border:none; border-radius:var(--radius-md); background:var(--brand-red); color:#fff; cursor:pointer; min-height:52px; }
+  button.primary:hover { background:var(--brand-red-dark); }
+  button.primary:disabled { background:#c7c9cd; cursor:not-allowed; }
+  button.ghost { display:block; width:100%; padding:15px; font-size:16px; font-weight:800; border:1px solid var(--border-default); border-radius:var(--radius-md); background:#fff; color:var(--text-secondary); cursor:pointer; min-height:52px; }
+  .msg { font-size:13px; margin-top:8px; text-align:center; }
+
+  /* ---- 옥토버 연결: 세그먼트 토글 ---- */
+  .seg { display:flex; background:var(--bg-page); border-radius:var(--radius-md); padding:4px; gap:4px; margin:0 0 14px; }
+  .seg button { flex:1; border:none; background:transparent; padding:11px 8px; border-radius:9px; font-weight:800; font-size:13.5px; color:var(--text-secondary); cursor:pointer; min-height:44px; transition:all .15s ease; }
+  .seg button.on { background:#fff; color:var(--brand-red); box-shadow:0 1px 3px rgba(16,24,40,.10); }
+
+  /* ---- 신규가입 스텝 위저드 ---- */
+  .steps { display:flex; align-items:center; margin:2px 0 18px; }
+  .steps .dot { width:26px; height:26px; border-radius:999px; background:var(--bg-page); color:var(--text-muted); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex:none; }
+  .steps .lbl { font-size:11.5px; color:var(--text-muted); margin:0 6px 0 6px; white-space:nowrap; }
+  .steps .bar { flex:1; height:2px; background:var(--divider); }
+  .steps .dot.done { background:var(--brand-red); color:#fff; }
+  .steps .dot.now { background:var(--brand-red); color:#fff; box-shadow:0 0 0 4px var(--brand-red-soft); }
+  .steps .lbl.now, .steps .lbl.done { color:var(--brand-red); font-weight:800; }
+  .steps .bar.done { background:var(--brand-red); }
+  .step-pane { display:none; }
+  .step-pane.on { display:block; animation:fadeIn .15s ease; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  .step-title { font-size:14px; font-weight:800; color:var(--text-primary); margin:0 0 12px; display:flex; align-items:center; gap:6px; }
+  .step-nav { display:flex; gap:8px; margin-top:4px; }
+  .step-nav .ghost { flex:1; } .step-nav .primary { flex:2; }
+
   .imp-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
-  .imp-row .mini { border:0; background:#e5e7eb; border-radius:8px; padding:8px 12px; font-weight:700; cursor:pointer; font-size:13px; }
-  .imp-row .go { background:#16a34a; color:#fff; }
 </style>
 </head>
 <body>
@@ -78,7 +120,7 @@
   </div>
 
   <div class="card">
-    <h2>📅 입금예정 캘린더 <span class="r" style="display:flex;gap:6px;align-items:center"><button class="calnav" id="cal-prev" aria-label="이전 달">◀</button><b id="cal-ym" style="min-width:78px;text-align:center;color:#111827;font-size:14px"></b><button class="calnav" id="cal-next" aria-label="다음 달">▶</button></span></h2>
+    <h2>📅 입금예정 캘린더 <span class="r" style="display:flex;gap:6px;align-items:center"><button class="calnav" id="cal-prev" aria-label="이전 달">◀</button><b id="cal-ym" style="min-width:78px;text-align:center;color:var(--text-primary);font-size:14px"></b><button class="calnav" id="cal-next" aria-label="다음 달">▶</button></span></h2>
     <div class="calwrap"><div id="cal" class="muted">불러오는 중…</div></div>
   </div>
 
@@ -92,66 +134,97 @@
   </div>
 
   <div class="card" id="octoverCard">
-    <h2>🔄 카드매출 자동조회 <span class="r">Octover 연동 · 여신협회 통합조회 대행</span></h2>
+    <h2>🔄 카드매출 자동조회 <span class="r">Octover 연동</span></h2>
     <div class="sub" id="ov-intro" style="margin:0 0 8px">여신금융협회 통합조회 계정을 <b>최초 1회만</b> 연결해두면, 이후에는 아이디·비밀번호를 다시 입력할 필요 없이 버튼 한 번으로 조회합니다. 비밀번호는 옥토버 공개키로 암호화해서만 저장하며, 원문은 저장하지 않습니다.</div>
     <div id="ov-loading" class="muted">연결 상태 확인 중…</div>
 
-    <!-- 연결 안 됨: 선택 탭 -->
+    <!-- 연결 안 됨: 선택 -->
     <div id="ov-setup" style="display:none">
-      <div class="imp-row" style="margin:0 0 10px">
-        <button class="mini go" id="ov-tab-existing" type="button">이미 계정이 있어요</button>
-        <button class="mini" id="ov-tab-signup" type="button">계정이 없어요 (신규 가입)</button>
+      <div class="seg" role="tablist">
+        <button class="on" id="ov-tab-existing" type="button" role="tab">이미 계정이 있어요</button>
+        <button id="ov-tab-signup" type="button" role="tab">계정이 없어요 (신규가입)</button>
       </div>
 
+      <!-- 기존 계정 연결 -->
       <div id="ov-pane-existing">
-        <div class="sub" style="margin:0 0 8px">기존 여신협회 통합조회(cardsales.or.kr) 로그인 정보를 <b>한 번만</b> 입력해서 연결합니다.</div>
-        <div class="frm" style="margin-bottom:8px">
-          <div><label>통합조회 아이디<input id="reg-id" type="text" autocomplete="off" placeholder="여신협회 통합조회 로그인 ID" /></label></div>
-          <div><label>통합조회 비밀번호<input id="reg-pw" type="password" autocomplete="off" placeholder="비밀번호" /></label></div>
+        <div class="sub" style="margin:0 0 10px">기존 여신협회 통합조회(cardsales.or.kr) 로그인 정보를 <b>한 번만</b> 입력해서 연결합니다.</div>
+        <div class="field"><label>통합조회 아이디</label><input id="reg-id" type="text" autocomplete="username" placeholder="여신협회 통합조회 로그인 ID" /></div>
+        <div class="field">
+          <label>통합조회 비밀번호</label>
+          <div class="pwwrap"><input id="reg-pw" type="password" autocomplete="current-password" placeholder="비밀번호" /><button type="button" class="pwtoggle" data-target="reg-pw">표시</button></div>
         </div>
         <button class="primary" id="reg-run">🔗 계정 연결하기</button>
         <div class="msg" id="reg-msg"></div>
       </div>
 
+      <!-- 신규가입: 3단계 위저드 -->
       <div id="ov-pane-signup" style="display:none">
-        <div class="notice">주민등록번호 앞 7자리 등 <b>대표자 본인인증 정보</b>가 필요합니다(옥토버 회원가입 절차상 필수). 입력한 정보는 가입 처리에만 사용되고 MEATOS DB에는 저장하지 않습니다.</div>
-        <div class="sub" style="margin:0 0 6px;font-weight:800;color:#374151">본인인증 (대표자)</div>
-        <div class="frm" style="margin-bottom:8px">
-          <div><label>대표자 성명<input id="su-name" type="text" autocomplete="off" /></label></div>
-          <div><label>주민번호 앞 7자리<input id="su-regno" type="text" maxlength="7" placeholder="예: 8001011" autocomplete="off" /></label></div>
-          <div><label>휴대폰번호<input id="su-phone" type="text" placeholder="01012345678" autocomplete="off" /></label></div>
-          <div><label>통신사<select id="su-telecom"><option value="0">SKT</option><option value="1">KT</option><option value="2">LGU+</option><option value="3">알뜰SK</option><option value="4">알뜰KT</option><option value="5">알뜰LGU+</option></select></label></div>
-          <div class="full"><label>이메일<input id="su-email" type="email" autocomplete="off" /></label></div>
+        <div class="notice blue">주민등록번호 앞 7자리 등 <b>대표자 본인인증 정보</b>가 필요합니다(옥토버 회원가입 절차상 필수). 입력한 정보는 가입 처리에만 사용되고 MEATOS DB에는 저장하지 않습니다.</div>
+
+        <div class="steps" id="su-steps">
+          <div class="dot now" data-step="1">1</div><span class="lbl now" data-step="1">본인인증</span>
+          <div class="bar" data-bar="1"></div>
+          <div class="dot" data-step="2">2</div><span class="lbl" data-step="2">계정설정</span>
+          <div class="bar" data-bar="2"></div>
+          <div class="dot" data-step="3">3</div><span class="lbl" data-step="3">가맹점정보</span>
         </div>
-        <div class="sub" style="margin:0 0 6px;font-weight:800;color:#374151">새 통합조회 계정</div>
-        <div class="frm" style="margin-bottom:8px">
-          <div><label>사용할 아이디<input id="su-id" type="text" autocomplete="off" /></label></div>
-          <div><label>사용할 비밀번호<input id="su-pw" type="password" autocomplete="off" /></label></div>
+
+        <!-- Step 1: 본인인증 -->
+        <div class="step-pane on" data-pane="1">
+          <div class="step-title">👤 대표자 본인인증</div>
+          <div class="field"><label>대표자 성명</label><input id="su-name" type="text" autocomplete="name" placeholder="홍길동" data-req="1" /><div class="err">대표자 성명을 입력하세요.</div></div>
+          <div class="field"><label>주민번호 앞 7자리</label><input id="su-regno" type="text" inputmode="numeric" maxlength="7" placeholder="예: 8001011" autocomplete="off" data-req="1" /><div class="hint">뒤 6자리는 입력하지 않습니다.</div><div class="err">주민번호 앞 7자리를 입력하세요.</div></div>
+          <div class="frm">
+            <div class="field"><label>휴대폰번호</label><input id="su-phone" type="tel" inputmode="tel" placeholder="01012345678" autocomplete="tel" data-req="1" /><div class="err">휴대폰번호를 입력하세요.</div></div>
+            <div class="field"><label>통신사</label><select id="su-telecom"><option value="0">SKT</option><option value="1">KT</option><option value="2">LGU+</option><option value="3">알뜰SK</option><option value="4">알뜰KT</option><option value="5">알뜰LGU+</option></select></div>
+          </div>
+          <div class="field"><label>이메일</label><input id="su-email" type="email" autocomplete="email" placeholder="you@example.com" data-req="1" /><div class="err">이메일을 입력하세요.</div></div>
+          <div class="step-nav"><button class="primary" type="button" data-next="2">다음 (2/3)</button></div>
         </div>
-        <div class="sub" style="margin:0 0 6px;font-weight:800;color:#374151">가맹점(사업자) 정보</div>
-        <div class="frm" style="margin-bottom:8px">
-          <div><label>사업자번호(10자리)<input id="su-bizno" type="text" maxlength="10" autocomplete="off" /></label></div>
-          <div><label>법인번호(13자리, 개인사업자는 생년월일8자리+뒤5자리 등 사업자등록증 참고)<input id="su-bubin" type="text" maxlength="13" autocomplete="off" /></label></div>
-          <div><label>가맹점명<input id="su-mername" type="text" autocomplete="off" /></label></div>
-          <div><label>대표자명<input id="su-ownername" type="text" autocomplete="off" /></label></div>
-          <div><label>대표자 생년월일(YYMMDD)<input id="su-ownerbirth" type="text" maxlength="6" placeholder="예: 800101" autocomplete="off" /></label></div>
-          <div><label>주 카드사<select id="su-cardcd">
-            <option value="01">KB카드</option><option value="03">신한카드</option><option value="04">BC카드</option>
-            <option value="11">롯데카드</option><option value="12">현대카드</option><option value="13">삼성카드</option>
-            <option value="18">씨티카드</option><option value="19">NH농협카드</option><option value="21">하나카드</option><option value="23">우리카드</option>
-          </select></label></div>
-          <div><label>결제은행<select id="su-bankcd">
-            <option value="004">국민은행</option><option value="088">신한은행</option><option value="020">우리은행</option>
-            <option value="081">하나은행</option><option value="003">기업은행</option><option value="011">농협중앙회</option>
-            <option value="012">농협회원조합</option><option value="045">새마을금고</option><option value="048">신협중앙회</option>
-            <option value="071">우체국</option><option value="089">케이뱅크</option><option value="090">카카오뱅크</option><option value="092">토스뱅크</option>
-            <option value="031">대구은행</option><option value="032">부산은행</option><option value="034">광주은행</option>
-            <option value="035">제주은행</option><option value="037">전북은행</option><option value="039">경남은행</option>
-            <option value="023">SC제일은행</option><option value="027">한국씨티은행</option>
-          </select></label></div>
-          <div class="full"><label>결제계좌번호<input id="su-acctno" type="text" autocomplete="off" /></label></div>
+
+        <!-- Step 2: 계정설정 -->
+        <div class="step-pane" data-pane="2">
+          <div class="step-title">🔐 새 통합조회 계정 만들기</div>
+          <div class="field"><label>사용할 아이디</label><input id="su-id" type="text" autocomplete="username" data-req="1" /><div class="err">사용할 아이디를 입력하세요.</div></div>
+          <div class="field">
+            <label>사용할 비밀번호</label>
+            <div class="pwwrap"><input id="su-pw" type="password" autocomplete="new-password" data-req="1" /><button type="button" class="pwtoggle" data-target="su-pw">표시</button></div>
+            <div class="err">사용할 비밀번호를 입력하세요.</div>
+          </div>
+          <div class="step-nav"><button class="ghost" type="button" data-prev="1">이전</button><button class="primary" type="button" data-next="3">다음 (3/3)</button></div>
         </div>
-        <button class="primary" id="su-run">📝 가입하고 연결하기</button>
+
+        <!-- Step 3: 가맹점 정보 -->
+        <div class="step-pane" data-pane="3">
+          <div class="step-title">🏪 가맹점(사업자) 정보</div>
+          <div class="frm">
+            <div class="field"><label>사업자번호(10자리)</label><input id="su-bizno" type="text" inputmode="numeric" maxlength="10" autocomplete="off" data-req="1" /><div class="err">사업자번호를 입력하세요.</div></div>
+            <div class="field"><label>법인/생년월일 번호</label><input id="su-bubin" type="text" inputmode="numeric" maxlength="13" autocomplete="off" data-req="1" /><div class="hint">개인사업자는 생년월일8자리+뒤5자리</div><div class="err">법인번호를 입력하세요.</div></div>
+          </div>
+          <div class="frm">
+            <div class="field"><label>가맹점명</label><input id="su-mername" type="text" autocomplete="off" data-req="1" /><div class="err">가맹점명을 입력하세요.</div></div>
+            <div class="field"><label>대표자명</label><input id="su-ownername" type="text" autocomplete="off" data-req="1" /><div class="err">대표자명을 입력하세요.</div></div>
+          </div>
+          <div class="field"><label>대표자 생년월일(YYMMDD)</label><input id="su-ownerbirth" type="text" inputmode="numeric" maxlength="6" placeholder="예: 800101" autocomplete="off" data-req="1" /><div class="err">대표자 생년월일을 입력하세요.</div></div>
+          <div class="frm">
+            <div class="field"><label>주 카드사</label><select id="su-cardcd">
+              <option value="01">KB카드</option><option value="03">신한카드</option><option value="04">BC카드</option>
+              <option value="11">롯데카드</option><option value="12">현대카드</option><option value="13">삼성카드</option>
+              <option value="18">씨티카드</option><option value="19">NH농협카드</option><option value="21">하나카드</option><option value="23">우리카드</option>
+            </select></div>
+            <div class="field"><label>결제은행</label><select id="su-bankcd">
+              <option value="004">국민은행</option><option value="088">신한은행</option><option value="020">우리은행</option>
+              <option value="081">하나은행</option><option value="003">기업은행</option><option value="011">농협중앙회</option>
+              <option value="012">농협회원조합</option><option value="045">새마을금고</option><option value="048">신협중앙회</option>
+              <option value="071">우체국</option><option value="089">케이뱅크</option><option value="090">카카오뱅크</option><option value="092">토스뱅크</option>
+              <option value="031">대구은행</option><option value="032">부산은행</option><option value="034">광주은행</option>
+              <option value="035">제주은행</option><option value="037">전북은행</option><option value="039">경남은행</option>
+              <option value="023">SC제일은행</option><option value="027">한국씨티은행</option>
+            </select></div>
+          </div>
+          <div class="field"><label>결제계좌번호</label><input id="su-acctno" type="text" inputmode="numeric" autocomplete="off" data-req="1" /><div class="err">결제계좌번호를 입력하세요.</div></div>
+          <div class="step-nav"><button class="ghost" type="button" data-prev="2">이전</button><button class="primary" id="su-run" type="button">📝 가입하고 연결하기</button></div>
+        </div>
         <div class="msg" id="su-msg"></div>
       </div>
     </div>
@@ -160,8 +233,8 @@
     <div id="ov-linked" style="display:none">
       <div class="sub" style="margin:0 0 8px">✅ <b id="ov-linked-id"></b> 계정으로 연결되어 있습니다. <span class="link" id="ov-relink">계정 변경</span></div>
       <div class="frm" style="margin-bottom:8px">
-        <div><label>조회 시작일<input id="ov-start" type="date" /></label></div>
-        <div><label>조회 종료일<input id="ov-end" type="date" /></label></div>
+        <div class="field"><label>조회 시작일</label><input id="ov-start" type="date" /></div>
+        <div class="field"><label>조회 종료일</label><input id="ov-end" type="date" /></div>
       </div>
       <button class="primary" id="ov-run">🔍 지금 조회하기</button>
       <div class="msg" id="ov-msg"></div>
@@ -288,6 +361,70 @@ document.getElementById("tb").addEventListener("click", async (e)=>{
 document.getElementById("cal-prev").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); });
 document.getElementById("cal-next").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); });
 
+// ===================== 비밀번호 표시/숨기기 토글 =====================
+document.querySelectorAll(".pwtoggle").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const el=document.getElementById(btn.dataset.target);
+    if(!el) return;
+    const show = el.type==="password";
+    el.type = show ? "text" : "password";
+    btn.textContent = show ? "숨김" : "표시";
+  });
+});
+
+// ===================== 신규가입 3단계 위저드 =====================
+(function(){
+  const panes = Array.from(document.querySelectorAll(".step-pane"));
+  if(!panes.length) return;
+  function goStep(n){
+    panes.forEach(p=>p.classList.toggle("on", Number(p.dataset.pane)===n));
+    document.querySelectorAll("#su-steps .dot").forEach(d=>{
+      const s=Number(d.dataset.step);
+      d.classList.toggle("now", s===n); d.classList.toggle("done", s<n);
+    });
+    document.querySelectorAll("#su-steps .lbl").forEach(l=>{
+      const s=Number(l.dataset.step);
+      l.classList.toggle("now", s===n); l.classList.toggle("done", s<n);
+    });
+    document.querySelectorAll("#su-steps .bar").forEach(b=>{
+      b.classList.toggle("done", Number(b.dataset.bar) < n);
+    });
+    const pane=document.querySelector(".step-pane[data-pane='"+n+"']");
+    if(pane) pane.scrollIntoView({behavior:"smooth", block:"start"});
+  }
+  function validatePane(n){
+    const pane=document.querySelector(".step-pane[data-pane='"+n+"']");
+    let ok=true;
+    pane.querySelectorAll("[data-req]").forEach(input=>{
+      const field=input.closest(".field");
+      const empty = !String(input.value||"").trim();
+      if(field) field.classList.toggle("invalid", empty);
+      if(empty){ ok=false; if(input.type!=="hidden") input.addEventListener("input", ()=>{ if(input.value.trim()) field.classList.remove("invalid"); }, { once:true }); }
+    });
+    if(!ok){ const firstInvalid=pane.querySelector(".field.invalid input, .field.invalid select"); if(firstInvalid) firstInvalid.focus(); }
+    return ok;
+  }
+  document.querySelectorAll("[data-next]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const cur=Number(btn.closest(".step-pane").dataset.pane);
+      if(!validatePane(cur)) return;
+      goStep(Number(btn.dataset.next));
+    });
+  });
+  document.querySelectorAll("[data-prev]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{ goStep(Number(btn.dataset.prev)); });
+  });
+  window.__suValidateAll = function(){
+    for(const n of [1,2,3]){
+      const pane=document.querySelector(".step-pane[data-pane='"+n+"']");
+      let ok=true;
+      pane.querySelectorAll("[data-req]").forEach(input=>{ if(!String(input.value||"").trim()) ok=false; });
+      if(!ok){ goStep(n); validatePane(n); return false; }
+    }
+    return true;
+  };
+})();
+
 // ===================== Octover 자동조회 (최초 1회 연결 → 이후 재사용) =====================
 const FUNCTIONS_BASE = "https://pkrsiqjzllyiafwpskll.supabase.co/functions/v1";
 
@@ -325,12 +462,12 @@ const ovTabExisting=document.getElementById("ov-tab-existing");
 const ovTabSignup=document.getElementById("ov-tab-signup");
 if(ovTabExisting && ovTabSignup){
   ovTabExisting.addEventListener("click", ()=>{
-    ovTabExisting.classList.add("go"); ovTabSignup.classList.remove("go");
+    ovTabExisting.classList.add("on"); ovTabSignup.classList.remove("on");
     document.getElementById("ov-pane-existing").style.display="";
     document.getElementById("ov-pane-signup").style.display="none";
   });
   ovTabSignup.addEventListener("click", ()=>{
-    ovTabSignup.classList.add("go"); ovTabExisting.classList.remove("go");
+    ovTabSignup.classList.add("on"); ovTabExisting.classList.remove("on");
     document.getElementById("ov-pane-signup").style.display="";
     document.getElementById("ov-pane-existing").style.display="none";
   });
@@ -376,6 +513,7 @@ if(regRunBtn) regRunBtn.addEventListener("click", async ()=>{
 const suRunBtn=document.getElementById("su-run");
 if(suRunBtn) suRunBtn.addEventListener("click", async ()=>{
   const msg=document.getElementById("su-msg");
+  if(!window.__suValidateAll()){ msg.style.color="#b91c1c"; msg.textContent="비어 있는 항목을 입력해주세요."; return; }
   const val=id=>{ const el=document.getElementById(id); return el ? el.value.trim() : ""; };
   const payload={
     wantId: val("su-id"), wantPw: document.getElementById("su-pw").value,
