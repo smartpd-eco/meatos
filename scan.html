@@ -13,16 +13,38 @@
   .card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
   label.filebtn { display: block; width: 100%; padding: 18px; font-size: 18px; font-weight: 700;
     border: none; border-radius: 12px; background: #16a34a; color: #fff; text-align: center; cursor: pointer; }
+  .upload-actions { display:grid; grid-template-columns:1fr; gap:8px; }
+  .secondary-btn { width:100%; padding:14px; border:1px solid #dc2626; border-radius:12px; background:#fff1f2; color:#b91c1c; font-size:16px; font-weight:800; cursor:pointer; }
+  .secondary-btn:disabled { border-color:#d1d5db; background:#f3f4f6; color:#9ca3af; cursor:not-allowed; }
+  .bundle-reset { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:10px; background:#fff; color:#475569; font-size:13px; font-weight:700; cursor:pointer; }
   input[type=file] { display: none; }
   .steps { list-style: none; padding: 0; margin: 0; display:flex; flex-wrap:wrap; gap:6px; }
   .steps li { padding: 6px 10px; border-radius: 999px; background: #f1f5f9; font-size: 12px; color:#475569; }
   .steps li.wait { background:#fef3c7; color:#92400e; } .steps li.ok { background:#dcfce7; color:#166534; } .steps li.err { background:#fee2e2; color:#991b1b; }
+  .capture-quality { display:none; margin-top:10px; padding:10px 12px; border-radius:10px; font-size:13px; font-weight:700; line-height:1.5; }
+  .capture-quality.good { display:block; background:#dcfce7; color:#166534; }
+  .capture-quality.review { display:block; background:#fef3c7; color:#92400e; }
+  .capture-quality.recapture { display:block; background:#fee2e2; color:#991b1b; }
+  .performance-timing { display:none; margin-top:10px; padding:11px 12px; border:1px solid #bfdbfe; border-radius:10px; background:#eff6ff; color:#1e3a8a; font-size:13px; line-height:1.55; }
+  .performance-timing.show { display:block; }
+  .performance-timing strong { display:block; margin-bottom:3px; font-size:14px; }
   #preview { max-width: 100%; border-radius: 10px; margin-top: 10px; display: none; }
   .muted { color: #6b7280; font-size: 13px; }
+  .page-summary { margin-top:12px; border:1px solid #fecaca; border-radius:12px; background:#fff7f7; padding:12px; }
+  .page-summary-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px; }
+  .page-summary-head strong { color:#b91c1c; font-size:18px; white-space:nowrap; }
+  .page-tabs { display:grid; grid-template-columns:repeat(auto-fit,minmax(92px,1fr)); gap:7px; }
+  .page-tab { border:1px solid #e5e7eb; border-radius:10px; background:#fff; padding:9px 6px; color:#475569; cursor:pointer; text-align:center; }
+  .page-tab.active { border-color:#dc2626; box-shadow:inset 0 0 0 1px #dc2626; background:#fff1f2; color:#991b1b; }
+  .page-tab b,.page-tab span { display:block; }
+  .page-tab b { font-size:13px; margin-bottom:3px; }
+  .page-tab span { font-size:11px; line-height:1.35; }
+  .duplicate-warning { margin-top:8px; border-radius:9px; background:#fef3c7; color:#92400e; padding:8px 10px; font-size:12px; font-weight:700; }
 
   /* 거래명세서 양식 */
   .invoice { border: 2px solid #b91c1c; border-radius: 8px; overflow: hidden; }
   .invoice-title { background:#b91c1c; color:#fff; text-align:center; font-size:18px; font-weight:800; padding:8px; letter-spacing:4px; }
+  .name-review-guide { margin:9px 10px 0; padding:9px 11px; border:1px solid #9ca3af; border-radius:9px; background:#eef0f2; color:#374151; font-size:12px; font-weight:700; line-height:1.45; text-align:left; }
   .invoice-head { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #e5e7eb; }
   .invoice-head > div { padding:8px 10px; font-size:13px; }
   .invoice-head > div + div { border-left:1px solid #f1f5f9; }
@@ -35,12 +57,21 @@
   td.name { text-align:left; white-space:normal; min-width:150px; }
   td.num { text-align:right; }
   tr.mismatch td { background:#fff7ed; }
+  tr.name-review-row td { background:#eef0f2; color:#374151; }
+  tr.name-review-row td.name { box-shadow:inset 4px 0 0 #6b7280; font-weight:800; }
+  tr.name-warning-row td { background:#fff7ed; color:#7c2d12; }
+  tr.name-warning-row td.name { box-shadow:inset 4px 0 0 #ea580c; font-weight:800; }
+  tr.ocr-review-row td { background:#f3f4f6; }
+  td.ocr-review-cell { background:#e5e7eb !important; }
+  tr.name-review-row td.name::after,tr.name-warning-row td.name::after { content:"표준 후보: " attr(data-suggestion) " · 확신 " attr(data-confidence) "%"; display:block; width:max-content; max-width:100%; margin-top:4px; padding:2px 6px; border-radius:999px; background:#d1d5db; color:#374151; font-size:10px; font-weight:800; line-height:1.35; }
+  td.name[data-source]::before { content:"OCR 원문: " attr(data-source); display:block; margin-bottom:2px; color:#6b7280; font-size:10px; font-weight:600; line-height:1.25; }
   td[contenteditable] { cursor: text; }
   td[contenteditable]:hover { background:#fffef0; }
   td[contenteditable]:focus { background:#fef9c3; outline:none; box-shadow: inset 0 0 0 2px #eab308; }
   .tracelink { color:#2563eb; text-decoration:none; font-weight:700; white-space:nowrap; }
   .edit-hint { font-size:12px; color:#2563eb; padding:6px 4px 0; }
   tfoot td { font-weight:800; background:#f9fafb; }
+  tfoot tr.actual-subtotal td { background:#fff1f2; color:#991b1b; }
   .foot-note { font-size:12px; color:#92400e; padding:8px 4px 0; }
   .badge-ok { color:#166534; } .badge-warn { color:#b45309; }
   #trace-print-area { display:none; }
@@ -52,23 +83,41 @@
 </head>
 <body>
 <script src="header.js"></script>
+<script src="src/data/product-name-substitution.js?v=20260803-alias-dictionary-6"></script>
+<script src="src/data/multi-page-invoice.js?v=20260803-multipage-1"></script>
   <h1>거래명세서 스캔</h1>
 
   <div class="card">
-    <label class="filebtn" for="file">📷 사진 찍기 / 파일 선택</label>
+    <div class="upload-actions">
+      <label class="filebtn" for="file" id="firstCaptureLabel">📷 첫 명세서 촬영 / 파일 선택</label>
+      <button type="button" class="secondary-btn" id="addPageBtn" style="display:none">＋ 다음 명세서 추가</button>
+      <button type="button" class="bundle-reset" id="resetBundleBtn" style="display:none">새 명세서 묶음 시작</button>
+    </div>
     <input id="file" type="file" accept="image/*" />
+    <input id="fileCam" type="file" accept="image/*" capture="environment" style="display:none" />
+    <div class="page-summary" id="pageSummary" style="display:none">
+      <div class="page-summary-head">
+        <div><b id="pageCount">명세서 0장</b><div class="muted">저장 금액은 각 장의 품목 소계를 합산합니다.</div></div>
+        <strong id="bundleTotal">0원</strong>
+      </div>
+      <div class="page-tabs" id="pageTabs"></div>
+      <div class="duplicate-warning" id="duplicateWarning" style="display:none"></div>
+    </div>
     <img id="preview" alt="미리보기" />
     <ul class="steps" id="steps" style="margin-top:12px">
       <li id="s1">① 사진</li><li id="s2">② 준비</li><li id="s3">③ 인식</li><li id="s4">④ 표시</li>
     </ul>
+    <div class="capture-quality" id="captureQuality" role="status"></div>
+    <div class="performance-timing" id="performanceTiming" role="status" aria-live="polite"></div>
   </div>
 
   <div class="card" id="resultCard" style="display:none">
     <div class="invoice">
       <div class="invoice-title">거 래 명 세 서</div>
+      <div class="name-review-guide" id="nameReviewGuide" style="display:none">AI가 가까운 표준명으로 정리했습니다. 회색 표시 품목만 저장 전에 한 번 확인해 주세요.</div>
       <div class="invoice-head">
         <div><b>공급자</b><span class="val" id="f-supplier">-</span></div>
-        <div><b>거래일자</b><span class="val" id="f-date">-</span></div>
+        <div><b>거래일자 · 페이지</b><span class="val"><span id="f-date">-</span> · <span id="f-page">1/1</span></span></div>
       </div>
       <div class="tbl-wrap">
         <table id="tbl">
@@ -78,7 +127,8 @@
           </tr></thead>
           <tbody></tbody>
           <tfoot>
-            <tr><td colspan="6">합계금액</td><td class="num" id="f-total">-</td><td></td></tr>
+            <tr><td colspan="6">명세서 인쇄 합계</td><td class="num" id="f-total">-</td><td></td></tr>
+            <tr class="actual-subtotal"><td colspan="6">이 페이지 실제 소계</td><td class="num" id="f-subtotal">-</td><td></td></tr>
           </tfoot>
         </table>
       </div>
@@ -94,7 +144,14 @@
 const FUNCTION_URL = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/analyze-invoice";
 const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const AUTH_HEADERS = window.MEATOS_API_HEADERS;
-const MAX_DIM = 1600, TIMEOUT_MS = 60000;
+const TIMEOUT_MS = 75000;
+const MAX_PAGES = 5;
+const IMAGE_PIPELINE = Promise.all([
+  import("./src/data/ocr-image-pipeline.js"),
+  import("./src/data/ocr-intake-policy.js"),
+  import("./src/data/ocr-smart-zoom.js"),
+  import("./src/data/invoice-product-evidence.js")
+]);
 
 (async () => { try {
   if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
@@ -102,52 +159,252 @@ const MAX_DIM = 1600, TIMEOUT_MS = 60000;
 } catch(e){} })();
 
 let LINES = [];
+let ORIGINAL_PRODUCT_NAMES = [];
 let DOC = {};
 let FILE_NAME = "scan.jpg";
+let PAGES = [];
+let ACTIVE_PAGE_INDEX = -1;
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const TENANT_ID = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61"; // SMARTPD_DEV
+const IS_BUSINESS_WORKSPACE = Boolean(window.MEATOS_CONTEXT && window.MEATOS_CONTEXT.isBusiness);
+const ANALYSIS_HEADERS = IS_BUSINESS_WORKSPACE
+  ? AUTH_HEADERS
+  : { apikey: ANON_KEY, Authorization: "Bearer " + ANON_KEY };
 const won = (v) => v == null || v === "" ? "-" : Number(v).toLocaleString("ko-KR");
 const num = (s) => Number(String(s).replace(/[^0-9.]/g, "")) || 0;
+const PRODUCT_NAMES = window.MEATOS_PRODUCT_NAMES;
+const MULTI_PAGE = window.MEATOS_MULTI_PAGE_INVOICE;
+const PRODUCT_NAME_LEARNING_READY = PRODUCT_NAMES.loadRemoteLearning({
+  restUrl: REST,
+  headers: AUTH_HEADERS,
+  tenantId: TENANT_ID
+});
+
+async function learnProductNameCorrections() {
+  const tasks = PAGES.flatMap((page) => page.lineItems.map((item, index) => {
+      const sourceText = page.originalProductNames[index] || "";
+      const targetText = item.rawProductName || "";
+      if (PRODUCT_NAMES.fingerprint(sourceText) === PRODUCT_NAMES.fingerprint(targetText)) return null;
+      return PRODUCT_NAMES.learnCorrection({
+        restUrl: REST,
+        headers: AUTH_HEADERS,
+        tenantId: TENANT_ID,
+        supplierName: page.documentFields?.supplierName || "",
+        sourceText,
+        targetText
+      });
+    })).filter(Boolean);
+  if (!tasks.length) return { learned: 0, remotePersisted: 0 };
+  const results = await Promise.all(tasks);
+  return {
+    learned: results.filter((result) => result.learned).length,
+    remotePersisted: results.filter((result) => result.remotePersisted).length
+  };
+}
 
 // 셀 직접 수정(검수): 값을 고치면 메모리에 반영, 중량·단가 수정 시 공급가액 자동 계산
 document.querySelector("#tbl tbody").addEventListener("input", (e) => {
   const td = e.target.closest("td[data-f]"); if (!td) return;
   const r = +td.dataset.r, f = td.dataset.f; if (!LINES[r]) return;
   LINES[r][f] = ["quantity","unitPrice","supplyAmount"].includes(f) ? num(td.textContent) : td.textContent.trim();
+  if (LINES[r]._ocrReview) {
+    LINES[r]._ocrReview.reviewedFields = [...new Set([...(LINES[r]._ocrReview.reviewedFields || []), f])];
+    td.classList.remove("ocr-review-cell");
+    if (LINES[r]._ocrReview.fields.every((field) => LINES[r]._ocrReview.reviewedFields.includes(field))) {
+      LINES[r]._ocrReview.reviewed = true;
+      td.closest("tr")?.classList.remove("ocr-review-row");
+    }
+    updateNameReviewGuide();
+  }
+  if (f === "rawProductName" && LINES[r]._nameSubstitution) {
+    LINES[r]._nameSubstitution.reviewed = true;
+    td.closest("tr")?.classList.remove("name-review-row");
+    td.closest("tr")?.classList.remove("name-warning-row");
+    updateNameReviewGuide();
+  }
+  if (f === "rawProductName") {
+    LINES[r].rawProductNameFinal = LINES[r].rawProductName;
+    LINES[r].readStatus = "READABLE";
+    LINES[r].reviewRequired = false;
+    LINES[r].correctionSource = "USER_CORRECTED";
+    LINES[r].mappingStatus = "USER_CONFIRMED";
+    LINES[r].mappingConfidence = 1;
+  }
   if (f === "quantity" || f === "unitPrice") {
     const sup = Math.round((Number(LINES[r].quantity)||0) * (Number(LINES[r].unitPrice)||0));
     LINES[r].supplyAmount = sup;
     const cell = document.querySelector("#tbl tbody tr[data-r='"+r+"'] td[data-f='supplyAmount']");
     if (cell && document.activeElement !== cell) cell.textContent = won(sup);
   }
+  const page = PAGES[ACTIVE_PAGE_INDEX];
+  if (page) {
+    MULTI_PAGE.refreshInvoicePage(page);
+    document.getElementById("f-subtotal").textContent = won(page.pageSubtotal);
+    updateBundleSummary();
+  }
 });
 
 // 매입 저장: ocr_document + ocr_line_item 에 기록
 document.getElementById("saveBtn").addEventListener("click", async () => {
   const btn = document.getElementById("saveBtn"), msg = document.getElementById("saveMsg");
-  if (!LINES.length) { msg.style.color = "#b91c1c"; msg.textContent = "저장할 품목이 없습니다."; return; }
+  if (!IS_BUSINESS_WORKSPACE) {
+    msg.style.color = "#b45309";
+    msg.textContent = "체험 모드는 샘플 데이터만 사용합니다. 사업장 연동 후 회사 전용 재고에 저장할 수 있습니다.";
+    return;
+  }
+  const allLines = MULTI_PAGE.flattenInvoicePages(PAGES);
+  if (!allLines.length) { msg.style.color = "#b91c1c"; msg.textContent = "저장할 품목이 없습니다."; return; }
+
+  // ── 저장 시 판독 애매 항목이 있으면: 확인창 → 표준후보로 치환(없으면 원문 그대로) → 확정 저장 ──
+  const isReviewBlocked = (item) =>
+    (item._ocrReview && item._ocrReview.requiresReview && !item._ocrReview.reviewed)
+    || (item._nameSubstitution && item._nameSubstitution.requiresReview && !item._nameSubstitution.reviewed)
+    || item.reviewRequired
+    || ["UNRESOLVED", "SUGGESTED"].includes(item.mappingStatus);
+  const reviewConfidence = (item) => {
+    const vals = [];
+    if (item._ocrReview && item._ocrReview.requiresReview && !item._ocrReview.reviewed) vals.push(Number(item._ocrReview.confidence) || 0);
+    if (item._nameSubstitution && !item._nameSubstitution.reviewed) vals.push(Number(item._nameSubstitution.confidence) || 0);
+    return vals.length ? Math.min.apply(null, vals) : 100;
+  };
+  const blockedItems = allLines.filter(isReviewBlocked);
+  if (blockedItems.length) {
+    const list = blockedItems.map((it) => {
+      const cand = it._nameSubstitution && it._nameSubstitution.standardName;
+      return "· " + (it.rawProductName || "?") + (cand ? " → " + cand : " (원문 그대로)") + " · " + Math.round(reviewConfidence(it)) + "%";
+    }).join("\n");
+    if (!confirm("판독이 애매한 " + blockedItems.length + "건을 아래대로 확정해 저장할까요?\n\n" + list + "\n\n※ 표준후보가 있으면 그 이름으로, 없으면 명세서 원문 그대로 저장됩니다. 원문은 기록에 보존되며, 틀리면 저장 후 셀을 눌러 수정할 수 있어요.")) {
+      msg.style.color = "#6b7280"; msg.textContent = "저장을 취소했습니다. 값을 직접 확인·수정할 수 있어요.";
+      return;
+    }
+    blockedItems.forEach((it) => {
+      const sub = it._nameSubstitution;
+      if (sub && sub.standardName) {
+        it.rawProductName = sub.standardName;
+        it.rawProductNameFinal = sub.standardName;
+        it.standardProductName = sub.standardName;
+        if (sub.productCode) it.standardProductCode = sub.productCode;
+      }
+      if (sub) { sub.reviewed = true; sub.requiresReview = false; }
+      it.mappingStatus = "USER_CONFIRMED";
+      it.mappingConfidence = 1;
+      it.reviewRequired = false;
+      it.readStatus = "READABLE";
+      it.correctionSource = "USER_CONFIRMED_ON_SAVE";
+      if (it._ocrReview) {
+        it._ocrReview.reviewed = true;
+        it._ocrReview.reviewedFields = [...(it._ocrReview.fields || [])];
+      }
+    });
+    if (typeof renderActivePage === "function") renderActivePage();
+  }
+
+  const pendingOcrReviews = allLines.filter((item) => item._ocrReview?.requiresReview && !item._ocrReview?.reviewed);
+  if (pendingOcrReviews.length) {
+    const fieldCount = pendingOcrReviews.reduce((sum, item) => sum + item._ocrReview.fields.length, 0);
+    msg.style.color = "#b91c1c";
+    msg.textContent = "판독이 불확실한 값 " + fieldCount + "개를 직접 수정해야 재고에 반영할 수 있습니다.";
+    return;
+  }
+  const pendingNameReviews = allLines.filter((item) => item._nameSubstitution?.requiresReview && !item._nameSubstitution?.reviewed);
+  if (pendingNameReviews.length) {
+    const names = pendingNameReviews.map((item) => item.rawProductName).filter(Boolean).slice(0, 5).join(", ");
+    msg.style.color = "#b91c1c";
+    msg.textContent = "표준 상품 연결이 확정되지 않은 상품명 " + pendingNameReviews.length + "건을 직접 확인해 주세요: " + names;
+    return;
+  }
+  const unresolvedNames = allLines.filter((item) => item.reviewRequired || ["UNRESOLVED", "SUGGESTED"].includes(item.mappingStatus));
+  if (unresolvedNames.length) {
+    msg.style.color = "#b91c1c";
+    msg.textContent = "상품명 판독 또는 표준 연결이 미확정인 " + unresolvedNames.length + "건은 재고에 자동 반영할 수 없습니다. 상품명을 직접 수정해 확정해 주세요.";
+    return;
+  }
+  const emptySubtotalPages = PAGES.filter((page) => MULTI_PAGE.calculatePageSubtotal(page.lineItems) <= 0);
+  if (emptySubtotalPages.length) {
+    msg.style.color = "#b91c1c";
+    msg.textContent = emptySubtotalPages.map((page) => page.pageNo + "장").join(", ")
+      + "의 실제 소계가 0원입니다. 품목 금액을 확인해 주세요.";
+    return;
+  }
+  const inflatedPages = PAGES.filter((page) => {
+    const printed = Number(page.displayedTotal) || 0;
+    const subtotal = Number(MULTI_PAGE.calculatePageSubtotal(page.lineItems)) || 0;
+    return printed > 0 && subtotal > printed + 1;   // 소계가 인쇄합계보다 클 때만 차단(중복·가짜행)
+  });
+  if (inflatedPages.length) {
+    msg.style.color = "#b91c1c";
+    msg.textContent = inflatedPages.map((page) => page.pageNo + "장").join(", ")
+      + "의 품목 소계가 인쇄 합계보다 큽니다. 행이 중복·잘못 추가됐을 수 있으니 확인 후 저장해 주세요.";
+    return;
+  }
+  // 기본 필수 항목 강제 체크 — 상품명·수량·단가(금액)·원산지·이력번호·공급자(매입처).
+  // 비어 있으면 어디가 빠졌는지 알려주고, 사장님이 확인하면 그대로 진행한다.
+  const requiredMissing = [];
+  PAGES.forEach((page) => {
+    const supplier = String(page.documentFields?.supplierName || "").trim();
+    if (!supplier) requiredMissing.push(page.pageNo + "장: 공급자(매입처)");
+    (page.lineItems || []).forEach((it, idx) => {
+      const miss = [];
+      if (!String(it.rawProductName || "").trim()) miss.push("상품명");
+      if (!(Number(it.quantity) > 0)) miss.push("수량");
+      const amt = Number(MULTI_PAGE.calculateLineAmount(it)) || 0;
+      if (!(Number(it.unitPrice) > 0) && !(amt > 0)) miss.push("단가/금액");
+      if (!String(it.origin || "").trim()) miss.push("원산지");
+      if (!String(it.traceOrImportNo || "").trim()) miss.push("이력번호");
+      if (miss.length) requiredMissing.push(page.pageNo + "장 " + (idx + 1) + "번: " + miss.join("·"));
+    });
+  });
+  if (requiredMissing.length) {
+    const head = requiredMissing.slice(0, 8).join("\n");
+    const more = requiredMissing.length > 8 ? "\n… 외 " + (requiredMissing.length - 8) + "건" : "";
+    const proceed = confirm("다음 필수 항목이 비어 있습니다:\n\n" + head + more + "\n\n이대로 저장·재고반영할까요? (취소하면 값을 채운 뒤 다시 저장할 수 있습니다)");
+    if (!proceed) {
+      msg.style.color = "#b91c1c";
+      msg.textContent = "필수 항목 " + requiredMissing.length + "건이 비어 있어 저장을 멈췄습니다. 값을 채운 뒤 다시 저장해 주세요.";
+      return;
+    }
+  }
   btn.disabled = true; msg.style.color = "#6b7280"; msg.textContent = "저장 중...";
   const H = { ...AUTH_HEADERS, "Content-Type": "application/json" };
   const code = "SCAN-" + Date.now();
-  const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(DOC.invoiceDate || "");
+  const summary = MULTI_PAGE.summarizeInvoicePages(PAGES);
+  const firstDocumentFields = PAGES[0]?.documentFields || {};
+  const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(firstDocumentFields.invoiceDate || "");
+  const aggregateDocumentFields = {
+    ...firstDocumentFields,
+    totalAmount: summary.actualTotal,
+    pageCount: summary.pageCount,
+    pageSubtotals: summary.pageSubtotals,
+    displayedTotalAmounts: summary.displayedTotals,
+    repeatedDisplayedTotal: summary.repeatedDisplayedTotal || null
+  };
+  const persistedPages = PAGES.map((page) => ({
+    pageNo: page.pageNo,
+    fileName: page.fileName,
+    documentFields: page.documentFields,
+    displayedTotal: page.displayedTotal,
+    pageSubtotal: page.pageSubtotal,
+    lineItems: page.lineItems
+  }));
   const docRow = {
     tenant_id: TENANT_ID, document_code: code,
     original_file_path: "scan/" + code, original_file_hash: code,
-    file_name: FILE_NAME, mime_type: "image/jpeg", document_status: "POSTED",
-    parsed_json: { documentFields: DOC, lineItems: LINES },
-    invoice_date: dateOk ? DOC.invoiceDate : null,
-    total_amount: Number(DOC.totalAmount) || 0
+    file_name: (PAGES[0]?.fileName || FILE_NAME) + (summary.pageCount > 1 ? " 외 " + (summary.pageCount - 1) + "장" : ""),
+    mime_type: "image/jpeg", document_status: "POSTED",
+    parsed_json: { documentFields: aggregateDocumentFields, pages: persistedPages, lineItems: allLines },
+    invoice_date: dateOk ? firstDocumentFields.invoiceDate : null,
+    total_amount: summary.actualTotal
   };
   try {
     const r1 = await fetch(REST + "/ocr_document", { method: "POST", headers: { ...H, Prefer: "return=representation" }, body: JSON.stringify(docRow) });
     const t1 = await r1.text();
     if (!r1.ok) throw new Error("문서 " + r1.status + ": " + t1.slice(0, 150));
     const docId = JSON.parse(t1)[0].id;
-    const lineRows = LINES.map((it, i) => ({
+    const lineRows = allLines.map((it, i) => ({
       tenant_id: TENANT_ID, ocr_document_id: docId, line_no: i + 1,
       raw_product_name: (it.rawProductName && String(it.rawProductName).trim()) || "-",
       raw_quantity: Number(it.quantity) || 0, raw_unit: it.unit || null,
-      raw_unit_price: Number(it.unitPrice) || 0, raw_amount: Number(it.supplyAmount) || 0,
+      raw_unit_price: Number(it.unitPrice) || 0, raw_amount: MULTI_PAGE.calculateLineAmount(it),
       raw_origin: it.origin || null, raw_grade: it.grade || null,
       confidence: Number(it.confidence) || 0
     }));
@@ -155,19 +412,27 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
     if (!r2.ok) throw new Error("품목 " + r2.status + ": " + (await r2.text()).slice(0, 150));
     // 저장과 동시에 재고 반영(IN) + 도축일/유통기한 계산
     msg.textContent = "유통기한 계산 중...";
-    const exp = await computeExpiryForLines(LINES, dateOk ? DOC.invoiceDate : null);
-    const mv = LINES.map((it, i) => ({
+    const pageExpiry = await Promise.all(PAGES.map((page) => computeExpiryForLines(
+      page.lineItems,
+      /^\d{4}-\d{2}-\d{2}$/.test(page.documentFields?.invoiceDate || "") ? page.documentFields.invoiceDate : null
+    )));
+    const expiryRows = pageExpiry.flat();
+    const mv = allLines.map((it, i) => ({
       tenant_id: TENANT_ID, movement_type: "IN",
       raw_product_name: (it.rawProductName && String(it.rawProductName).trim()) || "-",
       origin: it.origin || null, unit: it.unit || null,
-      quantity: Number(it.quantity) || 0, unit_price: Number(it.unitPrice) || 0, amount: Number(it.supplyAmount) || 0,
-      trace_no: it.traceOrImportNo || null, supplier_name: DOC.supplierName || null,
-      ocr_document_id: docId, ocr_line_no: i + 1, movement_date: dateOk ? DOC.invoiceDate : null,
-      slaughter_date: exp[i].slaughter_date, expiry_date: exp[i].expiry_date
+      quantity: Number(it.quantity) || 0, unit_price: Number(it.unitPrice) || 0, amount: MULTI_PAGE.calculateLineAmount(it),
+      trace_no: it.traceOrImportNo || null, supplier_name: it.pageSupplierName || firstDocumentFields.supplierName || null,
+      ocr_document_id: docId, ocr_line_no: i + 1,
+      movement_date: /^\d{4}-\d{2}-\d{2}$/.test(it.pageInvoiceDate || "") ? it.pageInvoiceDate : null,
+      slaughter_date: expiryRows[i]?.slaughter_date || null, expiry_date: expiryRows[i]?.expiry_date || null
     }));
     const r3 = await fetch(REST + "/inventory_movement", { method: "POST", headers: H, body: JSON.stringify(mv) });
     if (!r3.ok) throw new Error("재고반영 " + r3.status + ": " + (await r3.text()).slice(0, 150));
-    msg.style.color = "#166534"; msg.textContent = "✓ 저장 + 재고 반영 완료 · 품목 " + lineRows.length + "건";
+    const learning = await learnProductNameCorrections();
+    msg.style.color = "#166534";
+    msg.textContent = "✓ " + summary.pageCount + "장 저장 + 재고 반영 완료 · 실제 합계 " + won(summary.actualTotal) + "원 · 품목 " + lineRows.length + "건"
+      + (learning.learned ? " · 품목명 치환 학습 " + learning.learned + "건" : "");
   } catch (e) {
     msg.style.color = "#b91c1c"; msg.textContent = "저장 실패: " + e.message;
   } finally { btn.disabled = false; }
@@ -347,32 +612,310 @@ async function computeExpiryForLines(lines, invoiceDate){
   });
 }
 
-document.getElementById("file").addEventListener("change", async (ev) => {
+async function handleInvoiceFileChange(ev) {
   const file = ev.target.files && ev.target.files[0];
   if (!file) return;
-  document.getElementById("resultCard").style.display = "none";
+  if (PAGES.length >= MAX_PAGES) {
+    alert("거래명세서는 한 묶음에 최대 5장까지 추가할 수 있습니다.");
+    ev.target.value = "";
+    return;
+  }
   step("s1","ok"); step("s2","wait"); ["s3","s4"].forEach(s=>step(s,""));
-  let dataUrl;
-  try { dataUrl = await downscale(file); step("s2","ok"); }
-  catch(e){ step("s2","err"); alert("이미지 준비 실패: "+e.message); return; }
-  recognize(dataUrl, file.name || "scan.jpg");
+  let prepared;
+  const imagePrepareStartedAt = performance.now();
+  try {
+    prepared = await prepareInvoiceImage(file);
+    prepared.timing = { imagePrepareMs: Math.round(performance.now() - imagePrepareStartedAt) };
+    renderPerformanceTiming(prepared.timing, true);
+    showCaptureQuality(prepared);
+    if (prepared.intake.recommendRecapture) {
+      step("s2","err");
+      alert("글자 인식이 불안정한 사진입니다.\n"+recaptureMessage(prepared.intake.recaptureReasonCodes)+"\n\n명세서를 평평하게 놓고 그림자 없이 정면에서 다시 촬영해 주세요.");
+      return;
+    }
+    step("s2","ok");
+  } catch(e){ step("s2","err"); alert("이미지 준비 실패: "+e.message); return; }
+  autoOrientThenRecognize(prepared.dataUrl, file.name || "scan.jpg", prepared.quality, prepared.imageHash, prepared.timing.imagePrepareMs);
+  ev.target.value = "";
+}
+document.getElementById("file").addEventListener("change", handleInvoiceFileChange);
+document.getElementById("fileCam").addEventListener("change", handleInvoiceFileChange);
+
+// 다음 명세서 추가: 사진 찍기 / 파일 불러오기 선택 (모바일에서 카메라가 안 뜨던 문제 해결)
+function showAddPagePicker() {
+  if (document.getElementById("addPagePicker")) return;
+  const ov = document.createElement("div");
+  ov.id = "addPagePicker";
+  ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px";
+  ov.innerHTML = "<div style='background:#fff;border-radius:16px;padding:18px;width:100%;max-width:360px'>"
+    + "<div style='font-size:17px;font-weight:800;margin-bottom:6px'>다음 명세서 추가</div>"
+    + "<div style='color:#6b7280;font-size:13px;margin-bottom:14px'>사진을 찍거나 파일을 불러오세요</div>"
+    + "<button type='button' id='app-cam' style='width:100%;margin-bottom:10px;height:52px;border:0;border-radius:12px;background:#16a34a;color:#fff;font-size:16px;font-weight:800;cursor:pointer'>📷 사진 찍기</button>"
+    + "<button type='button' id='app-file' style='width:100%;margin-bottom:10px;height:52px;border:1px solid #2563eb;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-size:16px;font-weight:800;cursor:pointer'>📁 파일 불러오기</button>"
+    + "<button type='button' id='app-cancel' style='width:100%;height:44px;border:1px solid #d1d5db;border-radius:12px;background:#fff;color:#374151;font-weight:700;cursor:pointer'>닫기</button>"
+    + "</div>";
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  ov.querySelector("#app-cam").addEventListener("click", () => { close(); const c = document.getElementById("fileCam"); c.value = ""; c.click(); });
+  ov.querySelector("#app-file").addEventListener("click", () => { close(); const f = document.getElementById("file"); f.value = ""; f.click(); });
+  ov.querySelector("#app-cancel").addEventListener("click", close);
+}
+
+document.getElementById("addPageBtn").addEventListener("click", () => {
+  if (PAGES.length >= MAX_PAGES) {
+    alert("최대 5장까지 추가할 수 있습니다.");
+    return;
+  }
+  showAddPagePicker();
 });
 
-async function recognize(dataUrl, fileName) {
+document.getElementById("resetBundleBtn").addEventListener("click", () => {
+  if (PAGES.length && !confirm("현재 명세서 묶음을 비우고 새로 시작할까요?")) return;
+  resetBundle();
+});
+
+document.getElementById("pageTabs").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-page-index]");
+  if (!button) return;
+  selectPage(Number(button.dataset.pageIndex));
+});
+
+async function recognize(dataUrl, fileName, imageQuality, imageHash, initialTiming = {}, precomputedResponse = null) {
+  const pageCountBefore = PAGES.length;
   FILE_NAME = fileName || "scan.jpg";
-  document.getElementById("resultCard").style.display = "none";
   step("s1","ok"); step("s2","ok"); step("s4","");
   const img=document.getElementById("preview"); img.src=dataUrl; img.style.display="block";
+  document.getElementById("addPageBtn").disabled = true;
   step("s3","wait");
   try {
-    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(), TIMEOUT_MS);
-    const res=await fetch(FUNCTION_URL,{method:"POST",headers:{...AUTH_HEADERS,"Content-Type":"application/json"},signal:ctrl.signal,
-      body:JSON.stringify({providerId:"gemini-2.5-flash",imageDataUrl:dataUrl,documentId:"scan",tenantId:TENANT_ID,supplierName:"",localOcrText:"",unresolvedFields:[]})});
-    clearTimeout(to);
-    const t=await res.text(); let b; try{b=JSON.parse(t);}catch{b={raw:t};}
-    if(!res.ok || b.ok===false){ step("s3","err"); document.getElementById("raw").textContent=t; document.getElementById("resultCard").style.display="block"; alert("서버 오류 "+res.status+": "+(b.message||t).slice(0,150)); return; }
-    step("s3","ok"); render(b.result||b);
+    const response = precomputedResponse || await requestInvoiceAnalysis(dataUrl, imageQuality, imageHash);
+    const { res, text: t } = response;
+    let b = response.body;
+    const serverClovaDiag = (b && b.result && b.result.clovaDiag) || (b && b.clovaDiag) || null;
+    if(!res.ok || b.ok===false){
+      step("s3","err"); document.getElementById("raw").textContent=t;
+      alert(res.status === 422
+        ? "표의 행과 금액을 안전하게 맞추지 못했습니다. 사진을 정면에서 다시 촬영해 주세요."
+        : (b.userMessage || (b.retryable || res.status === 503
+          ? "OCR 서버가 일시적으로 혼잡합니다. 잠시 후 다시 시도해 주세요. 사진은 화면에 유지됩니다."
+          : "OCR 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")));
+      return;
+    }
+    step("s3","ok"); await PRODUCT_NAME_LEARNING_READY;
+    const resultDisplayStartedAt = performance.now();
+    const firstPassResult = await prepareFirstPassResult(b.result||b);
+    b = b.result ? { ...b, result: firstPassResult } : firstPassResult;
+    const serverMs = Math.max(0, Number(b.processingMs ?? b.result?.processingMs ?? 0) || 0);
+    const timing = {
+      imagePrepareMs: Math.max(0, Number(initialTiming.imagePrepareMs || 0)),
+      uploadMs: Math.max(0, response.requestMs - serverMs),
+      geminiMs: serverMs,
+      resultDisplayMs: 0,
+      requestMs: response.requestMs,
+      modelUsed: b.modelUsed || b.result?.providerVersion || null,
+      clovaDiag: serverClovaDiag
+    };
+    await appendPageResult(b.result||b, dataUrl, fileName, timing);
+    timing.resultDisplayMs = Math.round(performance.now() - resultDisplayStartedAt);
+    timing.totalMs = timing.imagePrepareMs + timing.uploadMs + timing.geminiMs + timing.resultDisplayMs;
+    const page = PAGES[PAGES.length - 1];
+    if (page) page.performanceTiming = timing;
+    renderPerformanceTiming(timing);
+    renderActivePage();
   } catch(e){ step("s3","err"); alert(e.name==="AbortError"?"시간 초과":"실패: "+e.message); }
+  finally {
+    if (PAGES.length === pageCountBefore && ACTIVE_PAGE_INDEX >= 0) renderActivePage();
+    updateCaptureControls();
+  }
+}
+
+async function requestInvoiceAnalysis(dataUrl, imageQuality, imageHash) {
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  const requestStartedAt = performance.now();
+  try {
+    const res = await fetch(FUNCTION_URL, {
+      method: "POST",
+      headers: { ...ANALYSIS_HEADERS, "Content-Type": "application/json" },
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        providerId: "gemini-2.5-flash",
+        imageDataUrl: dataUrl,
+        documentId: imageHash ? "scan-" + imageHash : "scan-" + Date.now(),
+        imageHash: imageHash || null,
+        tenantId: TENANT_ID,
+        supplierName: "",
+        localOcrText: "",
+        unresolvedFields: [],
+        imageQuality: imageQuality || null
+      })
+    });
+    const text = await res.text();
+    let body;
+    try { body = JSON.parse(text); } catch { body = { raw: text }; }
+    return { res, body, text, requestMs: Math.round(performance.now() - requestStartedAt) };
+  } finally {
+    clearTimeout(to);
+  }
+}
+
+// 임의 각도 회전
+function rotateDataUrl(dataUrl, degrees){
+  return new Promise((resolve, reject) => {
+    if (!degrees) { resolve(dataUrl); return; }
+    const im = new Image();
+    im.onload = () => {
+      const rot = ((degrees % 360) + 360) % 360;
+      const swap = rot === 90 || rot === 270;
+      const c = document.createElement("canvas");
+      c.width = swap ? im.naturalHeight : im.naturalWidth;
+      c.height = swap ? im.naturalWidth : im.naturalHeight;
+      const x = c.getContext("2d");
+      x.translate(c.width / 2, c.height / 2);
+      x.rotate(rot * Math.PI / 180);
+      x.drawImage(im, -im.naturalWidth / 2, -im.naturalHeight / 2);
+      resolve(c.toDataURL("image/jpeg", 0.92));
+    };
+    im.onerror = reject;
+    im.src = dataUrl;
+  });
+}
+// 방향 감지 전용(CLOVA만, 빠름) 호출
+async function requestOrientationProbe(dataUrl, imageQuality, imageHash){
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const res = await fetch(FUNCTION_URL, {
+      method: "POST",
+      headers: { ...ANALYSIS_HEADERS, "Content-Type": "application/json" },
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        providerId: "gemini-2.5-flash",
+        mode: "orient",
+        imageDataUrl: dataUrl,
+        documentId: "orient-" + (imageHash || Date.now()),
+        imageHash: imageHash || null,
+        tenantId: TENANT_ID,
+        imageQuality: imageQuality || null
+      })
+    });
+    const text = await res.text();
+    try { return JSON.parse(text); } catch (e) { return {}; }
+  } finally { clearTimeout(to); }
+}
+// 0/90/180/270 을 CLOVA로 '동시에' 판정 → 가장 똑바른 방향 하나만 골라 최종 판독(1회)
+async function autoOrientThenRecognize(baseDataUrl, name, quality, imageHash, homePrepareMs){
+  const qEl = document.getElementById("captureQuality");
+  if (qEl) qEl.textContent = "방향 자동 보정 중…";
+  const candidates = [0, 90, 180, 270];
+  let chosen = baseDataUrl;
+  try {
+    const probes = await Promise.all(candidates.map(async (deg) => {
+      try {
+        const cand = deg === 0 ? baseDataUrl : await rotateDataUrl(baseDataUrl, deg);
+        const body = await requestOrientationProbe(cand, quality, imageHash ? imageHash + "o" + deg : null);
+        const o = (body && body.orient) || {};
+        const landscape = Number(o.landscape) || 0;
+        const tokenScore = Number(o.tokenScore) || 0;
+        // 1순위: 글자가 가로(=0°/180°)인 방향만 후보. 2순위(0 vs 180 결정): 유효토큰(이력번호 L·금액 등은 '똑바로'일 때만 읽힘).
+        const score = (landscape >= 0.5 ? 1000000 : 0) + tokenScore * 100 + Math.round(landscape * 10);
+        return { deg, cand, score };
+      } catch (e) { return { deg, cand: null, score: -1 }; }
+    }));
+    let best = null;
+    for (const p of probes) { if (p.cand && (!best || p.score > best.score)) best = p; }
+    if (best && best.cand) chosen = best.cand;
+  } catch (e) {}
+  window.__MEATOS_SCAN_SRC = chosen;
+  const timing = { imagePrepareMs: Math.max(0, Number(homePrepareMs) || 0) };
+  await recognize(chosen, name, quality, imageHash, timing);
+}
+
+async function prepareFirstPassResult(result) {
+  const [, , SMART_ZOOM] = await IMAGE_PIPELINE;
+  const items = (Array.isArray(result.lineItems) ? result.lineItems : []).map(SMART_ZOOM.initializeSmartZoomFields);
+  return {
+    ...result,
+    lineItems: items,
+    smartZoomTelemetry: {
+      triggered: false,
+      count: 0,
+      mode: "MANUAL_REVIEW_ONLY",
+      reason: "AUTO_OVERWRITE_DISABLED"
+    }
+  };
+}
+
+async function applySmartZoomToResult(result, analysisImageDataUrl, imageHash) {
+  const [, , SMART_ZOOM] = await IMAGE_PIPELINE;
+  const startedAt = performance.now();
+  const items = (Array.isArray(result.lineItems) ? result.lineItems : []).map(SMART_ZOOM.initializeSmartZoomFields);
+  const mappings = items.map((item) => {
+    const suggestion = PRODUCT_NAMES.suggest(item.rawProductName || "", { supplierName: result.documentFields?.supplierName || "" });
+    return { candidateFound: Boolean(suggestion.candidateFound), topScore: suggestion.confidence || 0, secondScore: suggestion.secondConfidence || 0 };
+  });
+  const targets = SMART_ZOOM.selectSmartZoomTargets(items, mappings);
+  const targetIndexes = new Set(targets.map((target) => target.index));
+  items.forEach((item, index) => {
+    if (SMART_ZOOM.shouldTriggerSmartZoom(item, mappings[index]) && !targetIndexes.has(index)) {
+      item.reviewRequired = true;
+      item.readStatus = item.readStatus === "READABLE" ? "PARTIAL" : item.readStatus;
+      item.correctionSource = "SMART_ZOOM_UNAVAILABLE";
+      item.uncertainFields = [...new Set([...(item.uncertainFields || []), "rawProductName"])];
+    }
+  });
+  const telemetry = { triggered: targets.length > 0, count: targets.length, cropMs: 0, zoomGeminiMs: 0, totalMs: 0, cells: [] };
+  await Promise.all(targets.map(async (target) => {
+    const cropStartedAt = performance.now();
+    try {
+      const cacheKey = SMART_ZOOM.smartZoomCacheKey(imageHash, target.box, "gemini-flash");
+      let zoomResponse = SMART_ZOOM.getCachedSmartZoom(cacheKey);
+      const cached = Boolean(zoomResponse);
+      if (!zoomResponse) {
+        const crop = await SMART_ZOOM.createSmartZoomCrop(analysisImageDataUrl, target.box);
+        telemetry.cropMs += Math.round(performance.now() - cropStartedAt);
+        const geminiStartedAt = performance.now();
+        zoomResponse = await requestSmartZoomAnalysis(crop.dataUrl, target.lineItem, imageHash);
+        telemetry.zoomGeminiMs += Math.round(performance.now() - geminiStartedAt);
+        SMART_ZOOM.cacheSmartZoom(cacheKey, zoomResponse);
+      }
+      items[target.index] = SMART_ZOOM.mergeSmartZoomResult(items[target.index], zoomResponse.result || zoomResponse);
+      telemetry.cells.push({ rowNo: target.lineItem.rowNo, cached, readStatus: items[target.index].readStatus, correctionSource: items[target.index].correctionSource });
+    } catch (error) {
+      items[target.index] = SMART_ZOOM.mergeSmartZoomResult(items[target.index], { rawProductName: null, readConfidence: 0, uncertainCharacters: [], readStatus: "UNREADABLE" });
+      telemetry.cells.push({ rowNo: target.lineItem.rowNo, error: String(error?.message || error), readStatus: "UNREADABLE" });
+    }
+  }));
+  telemetry.totalMs = Math.round(performance.now() - startedAt);
+  return { ...result, lineItems: items, smartZoomTelemetry: telemetry };
+}
+
+async function requestSmartZoomAnalysis(cropDataUrl, lineItem, imageHash) {
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 30000);
+  try {
+    const response = await fetch(FUNCTION_URL, {
+      method: "POST",
+      headers: { ...ANALYSIS_HEADERS, "Content-Type": "application/json" },
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        mode: "smart_zoom",
+        providerId: "gemini-2.5-flash",
+        imageDataUrl: cropDataUrl,
+        documentId: imageHash ? "smart-zoom-" + imageHash + "-" + lineItem.rowNo : "smart-zoom-" + Date.now(),
+        imageHash: imageHash || null,
+        tenantId: TENANT_ID,
+        rowNo: lineItem.rowNo,
+        firstPassProductName: lineItem.rawProductNameFirstPass || lineItem.rawProductName || ""
+      })
+    });
+    const body = await response.json();
+    if (!response.ok || body.ok === false) throw new Error(body.userMessage || body.message || "SMART_ZOOM_FAILED");
+    return body;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // 홈 "고기가 들어왔어요"에서 넘어온 이미지가 있으면 버튼 없이 바로 인식
@@ -381,50 +924,440 @@ async function recognize(dataUrl, fileName) {
     const img = sessionStorage.getItem("meatos_pending_image");
     if (img) {
       const name = sessionStorage.getItem("meatos_pending_name") || "scan.jpg";
+      const sourceType = sessionStorage.getItem("meatos_pending_source") || "file";
+      window.__MEATOS_SCAN_SRC = img;
+      window.__MEATOS_SCAN_NAME = name;
+      const homePrepareMs = Number(sessionStorage.getItem("meatos_pending_home_prepare_ms") || 0);
       sessionStorage.removeItem("meatos_pending_image");
       sessionStorage.removeItem("meatos_pending_name");
-      recognize(img, name);
+      sessionStorage.removeItem("meatos_pending_source");
+      sessionStorage.removeItem("meatos_pending_home_prepare_ms");
+      const imagePrepareStartedAt = performance.now();
+      preparePendingImage(img, name, sourceType).then((prepared) => {
+        prepared.timing = { imagePrepareMs: Math.max(0, homePrepareMs) + Math.round(performance.now() - imagePrepareStartedAt) };
+        renderPerformanceTiming(prepared.timing, true);
+        showCaptureQuality(prepared);
+        if (prepared.intake.recommendRecapture) {
+          step("s2","err");
+          alert("촬영 품질이 낮아 다시 촬영이 필요합니다. 명세서를 평평하게 놓고 그림자 없이 정면에서 촬영해 주세요.");
+          return;
+        }
+        autoOrientThenRecognize(prepared.dataUrl, name, prepared.quality, prepared.imageHash, homePrepareMs);
+      }).catch((error) => alert("이미지 준비 실패: "+error.message));
     }
   } catch(e){}
 })();
 
-async function downscale(file){
-  const bmp=await createImageBitmap(file);
-  const scale=Math.min(1, MAX_DIM/Math.max(bmp.width,bmp.height));
-  const w=Math.round(bmp.width*scale), h=Math.round(bmp.height*scale);
-  const c=document.createElement("canvas"); c.width=w; c.height=h;
-  c.getContext("2d").drawImage(bmp,0,0,w,h);
-  return c.toDataURL("image/jpeg",0.85);
+async function prepareInvoiceImage(file, options = {}){
+  const [{ processUploadedOcrImage }, { evaluateOcrIntakeQuality }] = await IMAGE_PIPELINE;
+  const processed = await processUploadedOcrImage(file, {
+    maxDimension: 1800,
+    jpegQuality: 0.84,
+    preserveColor: true
+  });
+  const intake = evaluateOcrIntakeQuality(processed.imageAnalysis);
+  return {
+    dataUrl: processed.preprocessedImageDataUrl,
+    imageHash: processed.preprocessedImageHash,
+    intake,
+    quality: {
+      qualityScore: processed.qualityScore,
+      qualityLevel: processed.imageAnalysis.qualityLevel,
+      warnings: processed.warnings,
+      preprocessingSteps: processed.preprocessedImage.steps,
+      encodedSizeBytes: processed.preprocessedImage.encodedSizeBytes,
+      sourceType: options.sourceType === "camera" ? "camera" : "file",
+      cropApplied: Boolean(processed.cropHints?.cropApplied)
+    }
+  };
 }
 
-function render(result){
-  const items = Array.isArray(result.lineItems)?result.lineItems:[];
+async function preparePendingImage(dataUrl, fileName, sourceType = "file"){
+  const blob = await (await fetch(dataUrl)).blob();
+  return prepareInvoiceImage(
+    new File([blob], fileName || "scan.jpg", { type: blob.type || "image/jpeg" }),
+    { sourceType }
+  );
+}
+
+// ▼ 눕힌(90°) 사진 회전 후 재인식 — Gemini는 세운 이미지에서 정확도가 크게 오른다.
+function meatosRotate90CW(dataUrl){
+  return new Promise((resolve, reject) => {
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = im.naturalHeight; c.height = im.naturalWidth;
+      const x = c.getContext("2d");
+      x.translate(c.width / 2, c.height / 2);
+      x.rotate(Math.PI / 2);
+      x.drawImage(im, -im.naturalWidth / 2, -im.naturalHeight / 2);
+      resolve(c.toDataURL("image/jpeg", 0.92));
+    };
+    im.onerror = reject;
+    im.src = dataUrl;
+  });
+}
+async function meatosRotateAndRecognize(){
+  const src = window.__MEATOS_SCAN_SRC;
+  if (!src) return;
+  const btn = document.getElementById("mtRotateBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "회전 후 다시 인식 중…"; }
+  try {
+    const rotated = await meatosRotate90CW(src);
+    window.__MEATOS_SCAN_SRC = rotated;
+    const name = window.__MEATOS_SCAN_NAME || "scan.jpg";
+    const startedAt = performance.now();
+    const prepared = await preparePendingImage(rotated, name, "file");
+    prepared.timing = { imagePrepareMs: Math.round(performance.now() - startedAt) };
+    renderPerformanceTiming(prepared.timing, true);
+    showCaptureQuality(prepared);
+    recognize(prepared.dataUrl, name, prepared.quality, prepared.imageHash, prepared.timing);
+  } catch (error) {
+    alert("회전 재인식 실패: " + ((error && error.message) || error));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "🔄 90° 회전 후 다시 인식"; }
+  }
+}
+// (수동 방향 회전 버튼 제거 — 방향은 업로드 시 자동 보정됨)
+
+// ▼ 원본 응답(JSON) 원클릭 복사 버튼
+(function mountCopyRawButton(){
+  function mount(){
+    const rawEl = document.getElementById("raw");
+    if (!rawEl || document.getElementById("mtCopyRaw")) return;
+    const btn = document.createElement("button");
+    btn.id = "mtCopyRaw";
+    btn.type = "button";
+    btn.textContent = "📋 원본 응답 복사";
+    btn.style.cssText = "display:block;width:100%;margin:8px 0;padding:11px;border:1px solid #2563eb;border-radius:9px;background:#eff6ff;color:#1d4ed8;font-weight:800;cursor:pointer;font-size:14px";
+    btn.addEventListener("click", async () => {
+      const text = rawEl.textContent || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = "✓ 복사됨! 채팅에 붙여넣기 하세요";
+        setTimeout(() => { btn.textContent = "📋 원본 응답 복사"; }, 2500);
+      } catch (_e) {
+        const range = document.createRange();
+        range.selectNodeContents(rawEl);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        btn.textContent = "글자가 선택됐어요 · 길게 눌러 복사하세요";
+      }
+    });
+    rawEl.parentElement.insertBefore(btn, rawEl);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount);
+  else mount();
+}());
+
+function showCaptureQuality(prepared){
+  const box = document.getElementById("captureQuality");
+  const score = Number(prepared?.quality?.qualityScore || 0);
+  const recapture = Boolean(prepared?.intake?.recommendRecapture);
+  box.className = "capture-quality "+(recapture ? "recapture" : score >= 85 ? "good" : "review");
+  box.textContent = recapture
+    ? "재촬영 필요 · 품질 "+score+"점 · 그림자·흐림·해상도를 확인해 주세요."
+    : (score >= 85 ? "촬영 품질 양호 " : "사용 가능 · 흐린 필드만 확인 ")+score+"점 · 문서 정리와 약한 밝기 보정을 적용했습니다.";
+  const rotateBtn = document.getElementById("mtRotateBtn");
+  if (rotateBtn && window.__MEATOS_SCAN_SRC) rotateBtn.style.display = "block";
+}
+
+function recaptureMessage(codes){
+  const labels = { LOW_QUALITY:"전체 품질 부족", LOW_RESOLUTION:"해상도 부족", LOW_BRIGHTNESS:"사진이 너무 어두움", LOW_CONTRAST:"글자 대비 부족", SHADOW_RISK:"그림자 감지", BLUR_RISK:"초점 흐림", ROTATION_REVIEW_REQUIRED:"회전·기울기 확인 필요" };
+  return (codes || []).map((code) => labels[code] || code).join(" · ");
+}
+
+// 거래명세표 하단의 요약/합계성 행(품목이 아님)을 품목 목록에서 제외한다.
+// 이 행들이 품목으로 섞이면 소계가 인쇄합계의 2배가 되는 등 금액 오류가 발생한다.
+function isSummaryLineItem(item){
+  const name = String(item && item.rawProductName || "").replace(/[\s.·]/g, "");
+  if (!name) return false;
+  if (/^(합계|소계|총계|중계|조정액|전일잔액|당일잔액|공급가액|세액|부가세|합계금액|금일입금|전일입금|금일잔액|미수금|받을금액|인수자|공급받는자|비고)$/.test(name)) return true;
+  // '합 계 12,426,000' 처럼 요약 키워드로 시작하고 상품 실물명이 없는 행
+  if (/^(합계|소계|총계|공급가액|합계금액|조정액|전일잔액|금일)/.test(name) && !/(고기|살|육|갈비|삼겹|목살|항정|등심|안심|사태|양지|정육|돈|우|닭|오리)/.test(name)) return true;
+  return false;
+}
+// OCR '반복 붕괴' 감지 — 글자가 '가 가 가 가'처럼 같은 글자/토큰 반복으로 뭉개진 결과.
+// (접사·흐림에서 모델이 같은 글자를 반복 출력하는 오류) 저장 전에 검토로 잡는다.
+function isRepetitionCollapse(text){
+  const t = String(text || "").trim();
+  if (t.length < 3) return false;
+  const compact = t.replace(/\s+/g, "");
+  if (compact.length < 3) return false;
+  if (/^(.)\1{2,}$/.test(compact)) return true;                       // 가가가 / ㅅㅅㅅ
+  const toks = t.split(/\s+/).filter(Boolean);
+  if (toks.length >= 3 && new Set(toks).size === 1) return true;      // 가 가 가
+  if (compact.length >= 6 && compact.length % 2 === 0) {              // 가나가나가나
+    const g = compact.slice(0, 2);
+    if (g.repeat(compact.length / 2) === compact) return true;
+  }
+  return false;
+}
+async function appendPageResult(result, dataUrl, fileName, performanceTiming = null){
+  const [, , , PRODUCT_EVIDENCE] = await IMAGE_PIPELINE;
+  const items = (Array.isArray(result.lineItems)?result.lineItems:[]).filter((it) => !isSummaryLineItem(it));
   const f = result.documentFields||{};
-  DOC = f;
+  // 공급자명이 반복붕괴로 깨졌으면 비워서 필수항목 경고로 유도한다.
+  if (isRepetitionCollapse(f.supplierName)) f.supplierName = "";
+  const originalProductNames = items.map((item) => String(item.rawProductName || "").trim());
+  const canonicalItems = items.map((item) => {
+    const productEvidence = PRODUCT_EVIDENCE.assessProductCellEvidence(item);
+    const sourceName = productEvidence.rawProductName;
+    const suggestion = PRODUCT_NAMES.suggest(sourceName, {
+      supplierName: f.supplierName || "",
+      species: item.species || "",
+      condition: item.condition || ""
+    });
+    const mappingDecision = PRODUCT_EVIDENCE.decideProductMapping(suggestion, productEvidence);
+    const mappingConfidence = mappingDecision.confidence;
+    const mappingStatus = mappingDecision.status;
+    const autoSubstitute = mappingStatus === "AUTO_APPROVED";
+    const modelUncertainFields = Array.isArray(item.uncertainFields)
+      ? item.uncertainFields.filter((field) => ["rawProductName","origin","unit","quantity","unitPrice","supplyAmount","traceOrImportNo"].includes(field))
+      : [];
+    const confidencePercent = normalizeConfidencePercent(item.confidence);
+    const confidenceFallback = confidencePercent < 85 && item.reviewRequired
+      ? ["rawProductName","quantity","unitPrice","supplyAmount"]
+      : [];
+    const evidenceUncertainFields = productEvidence.reviewRequired ? ["rawProductName"] : [];
+    const uncertainFields = [...new Set([...modelUncertainFields, ...confidenceFallback, ...evidenceUncertainFields])];
+    return {
+      ...item,
+      providerRawProductName: productEvidence.providerRawProductName,
+      rawProductName: sourceName,
+      rawProductNameFinal: sourceName,
+      productEvidenceIssues: productEvidence.issues,
+      standardProductName: autoSubstitute ? suggestion.suggestedName : null,
+      standardProductCode: autoSubstitute ? (suggestion.productCode || suggestion.dictionaryCode || null) : null,
+      mappingConfidence,
+      mappingStatus,
+      reviewRequired: Boolean(item.reviewRequired || mappingStatus !== "AUTO_APPROVED"),
+      _ocrReview: uncertainFields.length ? {
+        requiresReview: true,
+        fields: uncertainFields,
+        reviewedFields: [],
+        reviewed: false,
+        confidence: confidencePercent
+      } : null,
+      _nameSubstitution: suggestion.candidateFound && PRODUCT_NAMES.fingerprint(suggestion.suggestedName) !== PRODUCT_NAMES.fingerprint(sourceName) ? {
+        sourceName,
+        standardName: suggestion.suggestedName,
+        confidence: suggestion.requiresConfirmation ? Math.min(80, suggestion.confidence) : suggestion.confidence,
+        mappingConfidence: suggestion.confidence,
+        ocrConfidence: confidencePercent,
+        ocrCorrection: suggestion.ocrCorrection || null,
+        requiresReview: mappingDecision.requiresConfirmation,
+        reviewRange: Boolean(suggestion.reviewRange),
+        highRiskReview: Boolean(suggestion.highRiskReview),
+        reviewed: !mappingDecision.requiresConfirmation,
+        dictionaryCode: suggestion.dictionaryCode || null,
+        productCode: suggestion.productCode || null
+      } : null
+    };
+  });
+  // 상품명이 반복붕괴로 깨진 행은 검토 필수로 표시(빨간 셀·저장 전 수정 유도)
+  canonicalItems.forEach((it) => {
+    if (isRepetitionCollapse(it.rawProductName)) {
+      it.reviewRequired = true;
+      const fields = new Set([...(it._ocrReview?.fields || []), "rawProductName"]);
+      it._ocrReview = {
+        requiresReview: true,
+        fields: [...fields],
+        reviewedFields: it._ocrReview?.reviewedFields || [],
+        reviewed: false,
+        confidence: Math.min(40, Number(it._ocrReview?.confidence) || 40)
+      };
+    }
+  });
+  const page = MULTI_PAGE.createInvoicePage({
+    pageId: "PAGE-" + Date.now() + "-" + (PAGES.length + 1),
+    pageNo: PAGES.length + 1,
+    fileName: fileName || "scan.jpg",
+    imageDataUrl: dataUrl,
+    documentFields: f,
+    lineItems: canonicalItems,
+    originalProductNames
+  });
+  page.performanceTiming = performanceTiming;
+  PAGES.push(page);
+  selectPage(PAGES.length - 1);
+  updateCaptureControls();
+  step("s4","ok");
+}
+
+function selectPage(index){
+  if (!Number.isInteger(index) || index < 0 || index >= PAGES.length) return;
+  ACTIVE_PAGE_INDEX = index;
+  const page = PAGES[index];
+  LINES = page.lineItems;
+  ORIGINAL_PRODUCT_NAMES = page.originalProductNames;
+  DOC = page.documentFields;
+  FILE_NAME = page.fileName;
+  renderActivePage();
+  updateBundleSummary();
+}
+
+function renderActivePage(){
+  const page = PAGES[ACTIVE_PAGE_INDEX];
+  if (!page) return;
+  MULTI_PAGE.refreshInvoicePage(page);
+  const f = page.documentFields || {};
   document.getElementById("saveMsg").textContent = "";
   document.getElementById("f-supplier").textContent = f.supplierName || "-";
   document.getElementById("f-date").textContent = f.invoiceDate || "-";
+  document.getElementById("f-page").textContent = page.pageNo + "/" + PAGES.length;
+  const preview = document.getElementById("preview");
+  preview.src = page.imageDataUrl;
+  preview.style.display = page.imageDataUrl ? "block" : "none";
   const tbody = document.querySelector("#tbl tbody"); tbody.innerHTML="";
-  LINES = items.map(it => ({ ...it }));
   LINES.forEach((it,i) => {
+    const needsNameReview=Boolean(it._nameSubstitution?.requiresReview&&!it._nameSubstitution?.reviewed);
+    const needsOcrReview=Boolean(it._ocrReview?.requiresReview&&!it._ocrReview?.reviewed);
     const tr=document.createElement("tr"); tr.dataset.r=i;
+    if(needsNameReview)tr.classList.add(it._nameSubstitution?.reviewRange?"name-review-row":"name-warning-row");
+    if(needsOcrReview)tr.classList.add("ocr-review-row");
     tr.innerHTML =
       "<td>"+(i+1)+"</td>"+
-      "<td class='name' contenteditable='true' data-f='rawProductName' data-r='"+i+"'>"+esc(it.rawProductName||"")+"</td>"+
-      "<td contenteditable='true' data-f='origin' data-r='"+i+"'>"+esc(it.origin||"")+"</td>"+
-      "<td contenteditable='true' data-f='unit' data-r='"+i+"'>"+esc(it.unit||"")+"</td>"+
-      "<td class='num' contenteditable='true' data-f='quantity' data-r='"+i+"'>"+(it.quantity!=null?esc(it.quantity):"")+"</td>"+
-      "<td class='num' contenteditable='true' data-f='unitPrice' data-r='"+i+"'>"+won(it.unitPrice)+"</td>"+
-      "<td class='num' contenteditable='true' data-f='supplyAmount' data-r='"+i+"'>"+won(it.supplyAmount)+"</td>"+
-      "<td>"+(it.traceOrImportNo ? "<a href='#' class='tracelink' data-no=\""+esc(it.traceOrImportNo)+"\">"+esc(it.traceOrImportNo)+" 🔎</a>" : "-")+"</td>";
+      "<td class='name"+ocrReviewClass(it,"rawProductName")+"' contenteditable='true' data-f='rawProductName' data-r='"+i+"'"+
+        (needsNameReview?" data-confidence='"+esc(it._nameSubstitution.confidence)+"'":"")+
+        (needsNameReview?" data-suggestion='"+esc(it._nameSubstitution.standardName||"")+"'":"")+
+        (needsNameReview&&it._nameSubstitution?.sourceName&&PRODUCT_NAMES.fingerprint(it._nameSubstitution.sourceName)!==PRODUCT_NAMES.fingerprint(it.rawProductName||"")
+          ? " data-source='"+esc(it._nameSubstitution.sourceName)+"'"
+          : "")+">"+esc(it.rawProductName||"")+"</td>"+
+      "<td class='"+ocrReviewClass(it,"origin").trim()+"' contenteditable='true' data-f='origin' data-r='"+i+"'>"+esc(it.origin||"")+"</td>"+
+      "<td class='"+ocrReviewClass(it,"unit").trim()+"' contenteditable='true' data-f='unit' data-r='"+i+"'>"+esc(it.unit||"")+"</td>"+
+      "<td class='num"+ocrReviewClass(it,"quantity")+"' contenteditable='true' data-f='quantity' data-r='"+i+"'>"+(it.quantity!=null?esc(it.quantity):"")+"</td>"+
+      "<td class='num"+ocrReviewClass(it,"unitPrice")+"' contenteditable='true' data-f='unitPrice' data-r='"+i+"'>"+won(it.unitPrice)+"</td>"+
+      "<td class='num"+ocrReviewClass(it,"supplyAmount")+"' contenteditable='true' data-f='supplyAmount' data-r='"+i+"'>"+won(it.supplyAmount)+"</td>"+
+      "<td class='"+ocrReviewClass(it,"traceOrImportNo").trim()+"'>"+(it.traceOrImportNo ? "<a href='#' class='tracelink' data-no=\""+esc(it.traceOrImportNo)+"\">"+esc(it.traceOrImportNo)+" 🔎</a>" : "-")+"</td>";
     tbody.appendChild(tr);
   });
-  const total = Number(f.totalAmount)||0;
-  document.getElementById("f-total").textContent = won(total);
-  document.getElementById("f-note").textContent = "";
-  document.getElementById("raw").textContent = JSON.stringify(result, null, 2);
+  document.getElementById("f-total").textContent = won(page.displayedTotal);
+  document.getElementById("f-subtotal").textContent = won(page.pageSubtotal);
+  const printedTot = Number(page.displayedTotal) || 0;
+  const subTot = Number(page.pageSubtotal) || 0;
+  const inflated = printedTot > 0 && subTot > printedTot + 1;   // 소계가 더 큼 = 중복·가짜행(진짜 위험)
+  const underTot = printedTot > 0 && subTot < printedTot - 1;   // 소계가 더 작음 = 세액·전 미수금·누락 가능
+  const noteEl = document.getElementById("f-note");
+  noteEl.textContent = inflated
+    ? "⚠ 품목 소계(" + won(subTot) + "원)가 인쇄 합계(" + won(printedTot) + "원)보다 큽니다. 행이 중복·잘못 추가됐을 수 있어요. 확인 후 저장하세요."
+    : (underTot
+      ? "ℹ 인쇄 합계(" + won(printedTot) + "원)와 품목 소계(" + won(subTot) + "원)가 다릅니다. 세액·전 미수금이 포함됐거나 누락 행이 있을 수 있어요. 품목 금액이 맞으면 그대로 저장해도 됩니다."
+      : "");
+  noteEl.style.color = inflated ? "#b91c1c" : "#92400e";
+  document.getElementById("raw").textContent = JSON.stringify({
+    pageNo: page.pageNo,
+    documentFields: page.documentFields,
+    displayedTotal: page.displayedTotal,
+    pageSubtotal: page.pageSubtotal,
+    lineItems: page.lineItems,
+    performanceTiming: page.performanceTiming || null
+  }, null, 2);
+  renderPerformanceTiming(page.performanceTiming);
   document.getElementById("resultCard").style.display = "block";
-  step("s4","ok");
+  updateNameReviewGuide();
+}
+
+function renderPerformanceTiming(timing, pending = false){
+  const box = document.getElementById("performanceTiming");
+  if (!timing) {
+    box.className = "performance-timing";
+    box.textContent = "";
+    return;
+  }
+  const ms = (value) => (Math.max(0, Number(value || 0)) / 1000).toFixed(1) + "초";
+  box.className = "performance-timing show";
+  box.innerHTML = pending
+    ? "<strong>처리 시간</strong>이미지 준비 " + ms(timing.imagePrepareMs) + " · 서버 전송 대기 중"
+    : "<strong>처리 시간 · 총 " + ms(timing.totalMs) + "</strong>이미지 준비 " + ms(timing.imagePrepareMs)
+      + " · 업로드/통신 " + ms(timing.uploadMs)
+      + " · Gemini 처리 " + ms(timing.geminiMs)
+      + " · 결과 표시 " + ms(timing.resultDisplayMs)
+      + (timing.modelUsed ? "<br>모델 " + esc(timing.modelUsed) : "");
+}
+
+function updateNameReviewGuide(){
+  const pending=PAGES.flatMap((page)=>page.lineItems).filter((item)=>item._nameSubstitution?.requiresReview&&!item._nameSubstitution?.reviewed);
+  const count=pending.length;
+  const grayCount=pending.filter((item)=>item._nameSubstitution?.reviewRange).length;
+  const warningCount=count-grayCount;
+  const ocrFields=PAGES.flatMap((page)=>page.lineItems)
+    .filter((item)=>item._ocrReview?.requiresReview&&!item._ocrReview?.reviewed)
+    .reduce((sum,item)=>sum+item._ocrReview.fields.length,0);
+  const guide=document.getElementById("nameReviewGuide");
+  guide.style.display=(count||ocrFields)?"block":"none";
+  const messages=[];
+  if(ocrFields)messages.push("음영·흐림으로 확인할 회색 값 "+ocrFields+"개");
+  if(count)messages.push("AI 표준명 "+count+"건"+(grayCount?"(회색 "+grayCount+"건)":"")+(warningCount?"(주의 "+warningCount+"건)":""));
+  guide.textContent=messages.length?messages.join(" · ")+" — 저장 전에 한 번 확인해 주세요.":"";
+}
+
+function normalizeConfidencePercent(value){
+  const numeric=Number(value);
+  if(!Number.isFinite(numeric)||numeric<0)return 0;
+  return Math.min(100,numeric<=1?numeric*100:numeric);
+}
+
+function ocrReviewClass(item, field){
+  return item._ocrReview?.requiresReview&&!item._ocrReview?.reviewed&&item._ocrReview.fields.includes(field)
+    ? " ocr-review-cell"
+    : "";
+}
+
+function updateBundleSummary(){
+  const summary = MULTI_PAGE.summarizeInvoicePages(PAGES);
+  const wrap = document.getElementById("pageSummary");
+  wrap.style.display = summary.pageCount ? "block" : "none";
+  document.getElementById("pageCount").textContent = "명세서 " + summary.pageCount + "장";
+  document.getElementById("bundleTotal").textContent = won(summary.actualTotal) + "원";
+  document.getElementById("pageTabs").innerHTML = PAGES.map((page, index) =>
+    "<button type='button' class='page-tab" + (index === ACTIVE_PAGE_INDEX ? " active" : "") + "' data-page-index='" + index + "'>"+
+      "<b>" + page.pageNo + "장</b>"+
+      "<span>표시 " + won(page.displayedTotal) + "원</span>"+
+      "<span>소계 " + won(page.pageSubtotal) + "원</span>"+
+    "</button>"
+  ).join("");
+  const warning = document.getElementById("duplicateWarning");
+  if (summary.hasRepeatedDisplayedTotal) {
+    warning.style.display = "block";
+    warning.textContent = "⚠ " + won(summary.repeatedDisplayedTotal) + "원이 여러 장에 반복 표시되었습니다. 전체 합계에는 각 장의 품목 소계만 반영합니다.";
+  } else {
+    warning.style.display = "none";
+    warning.textContent = "";
+  }
+  if (PAGES[ACTIVE_PAGE_INDEX]) {
+    document.getElementById("f-page").textContent = PAGES[ACTIVE_PAGE_INDEX].pageNo + "/" + PAGES.length;
+  }
+}
+
+function updateCaptureControls(){
+  const hasPages = PAGES.length > 0;
+  document.getElementById("firstCaptureLabel").style.display = hasPages ? "none" : "block";
+  const addButton = document.getElementById("addPageBtn");
+  addButton.style.display = hasPages ? "block" : "none";
+  addButton.disabled = PAGES.length >= MAX_PAGES;
+  addButton.textContent = PAGES.length >= MAX_PAGES ? "최대 5장 등록됨" : "＋ 다음 명세서 추가 (" + (PAGES.length + 1) + "/5)";
+  document.getElementById("resetBundleBtn").style.display = hasPages ? "block" : "none";
+}
+
+function resetBundle(){
+  PAGES = [];
+  ACTIVE_PAGE_INDEX = -1;
+  LINES = [];
+  ORIGINAL_PRODUCT_NAMES = [];
+  DOC = {};
+  FILE_NAME = "scan.jpg";
+  document.getElementById("pageTabs").innerHTML = "";
+  document.getElementById("pageSummary").style.display = "none";
+  document.getElementById("resultCard").style.display = "none";
+  const preview = document.getElementById("preview");
+  preview.removeAttribute("src");
+  preview.style.display = "none";
+  document.getElementById("file").value = "";
+  renderPerformanceTiming(null);
+  ["s1","s2","s3","s4"].forEach((id) => step(id, ""));
+  updateCaptureControls();
 }
 </script>
 </body>

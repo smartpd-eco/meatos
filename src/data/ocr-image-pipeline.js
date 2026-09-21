@@ -1,12 +1,13 @@
-import { buildOcrPreprocessingVariants, estimateDocumentCropHints, summarizePreprocessingVariants } from "./ocr-image-preprocessor.js";
+import { estimateDocumentCropHints } from "./ocr-image-preprocessor.js";
 
 export async function processUploadedOcrImage(file, options = {}) {
   const originalImageDataUrl = await fileToDataUrl(file);
   const image = await loadImage(originalImageDataUrl);
-  const analysis = analyzeDocumentImage(image, options);
-  const preprocessing = preprocessDocumentImage(image, analysis, options);
-  const cropHints = estimateDocumentCropHints(image, analysis);
-  const preprocessingVariants = summarizePreprocessingVariants(buildOcrPreprocessingVariants(image, analysis, options));
+  const initialCropHints = estimateDocumentCropHints(image);
+  const cropBounds = initialCropHints.suggestedBounds;
+  const analysis = analyzeDocumentImage(image, { ...options, cropBounds });
+  const cropHints = { ...estimateDocumentCropHints(image, analysis), suggestedBounds: cropBounds };
+  const preprocessing = preprocessDocumentImage(image, analysis, { ...options, cropBounds });
   const pipelineTrace = buildPipelineTrace(analysis, preprocessing);
   const originalImageHash = createLocalFileHash(file);
   const preprocessedImageHash = fingerprint(`${originalImageHash}:${preprocessing.rotationDegrees}:${analysis.qualityScore}`);
@@ -29,13 +30,13 @@ export async function processUploadedOcrImage(file, options = {}) {
     preprocessedImage: {
       width: preprocessing.width,
       height: preprocessing.height,
+      encodedSizeBytes: preprocessing.encodedSizeBytes,
       rotationDegrees: preprocessing.rotationDegrees,
       dataUrl: preprocessing.dataUrl,
       steps: preprocessing.steps
     },
     imageAnalysis: analysis,
     cropHints,
-    preprocessingVariants,
     pipelineTrace,
     qualityScore: analysis.qualityScore,
     recommendedRotation: analysis.recommendedRotation,
@@ -47,7 +48,7 @@ export function analyzeDocumentImage(image, options = {}) {
   const width = Number(image?.naturalWidth ?? image?.width ?? 0);
   const height = Number(image?.naturalHeight ?? image?.height ?? 0);
   const maxSampleSize = Number(options.maxSampleSize ?? 240);
-  const sample = createSampleCanvas(image, maxSampleSize);
+  const sample = createSampleCanvas(image, maxSampleSize, options.cropBounds);
   const context = sample.canvas.getContext("2d", { willReadFrequently: true });
   const data = context.getImageData(0, 0, sample.canvas.width, sample.canvas.height).data;
 
@@ -130,12 +131,22 @@ export function analyzeDocumentImage(image, options = {}) {
 
 export function preprocessDocumentImage(image, analysis = {}, options = {}) {
   const rotationDegrees = Number(options.rotationDegrees ?? analysis.recommendedRotation ?? 0);
-  const maxDimension = Number(options.maxDimension ?? 1600);
+  // 접사(가까이서 찍은 작은 글자) 대응: 상한을 올려 해상도를 덜 버리고,
+  // 명세서가 작게 잡힌 사진은 OCR 최소 글자높이를 확보하도록 확대(업스케일)한다.
+  const maxDimension = Number(options.maxDimension ?? 2600);   // 긴 변 상한(기존 1800 → 2600)
+  const minLongSide = Number(options.minLongSide ?? 2200);     // 이보다 작으면 확대
+  const maxUpscale = Number(options.maxUpscale ?? 2);          // 확대 배율 상한(과확대 방지)
   const sourceWidth = Number(image?.naturalWidth ?? image?.width ?? 0);
   const sourceHeight = Number(image?.naturalHeight ?? image?.height ?? 0);
-  const sourceRatio = sourceWidth > 0 && sourceHeight > 0 ? Math.min(1, maxDimension / Math.max(sourceWidth, sourceHeight)) : 1;
-  const drawWidth = Math.max(1, Math.round(sourceWidth * sourceRatio));
-  const drawHeight = Math.max(1, Math.round(sourceHeight * sourceRatio));
+  const crop = normalizeCropBounds(options.cropBounds, sourceWidth, sourceHeight);
+  const croppedWidth = Math.max(1, crop.right - crop.left);
+  const croppedHeight = Math.max(1, crop.bottom - crop.top);
+  const longSide = Math.max(croppedWidth, croppedHeight);
+  let sourceRatio = maxDimension / longSide;                   // 큰 사진은 상한까지 축소
+  if (longSide < minLongSide) sourceRatio = minLongSide / longSide; // 작은/접사 사진은 확대
+  sourceRatio = Math.max(0.1, Math.min(sourceRatio, maxUpscale));   // 확대는 최대 maxUpscale 배
+  const drawWidth = Math.max(1, Math.round(croppedWidth * sourceRatio));
+  const drawHeight = Math.max(1, Math.round(croppedHeight * sourceRatio));
   const rotated = rotationDegrees === 90 || rotationDegrees === 270;
   const canvas = document.createElement("canvas");
   canvas.width = rotated ? drawHeight : drawWidth;
@@ -146,14 +157,25 @@ export function preprocessDocumentImage(image, analysis = {}, options = {}) {
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.translate(canvas.width / 2, canvas.height / 2);
   context.rotate((rotationDegrees * Math.PI) / 180);
-  context.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+  context.drawImage(
+    image,
+    crop.left,
+    crop.top,
+    croppedWidth,
+    croppedHeight,
+    -drawWidth / 2,
+    -drawHeight / 2,
+    drawWidth,
+    drawHeight
+  );
   context.restore();
 
   const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
-  const contrastBoost = Number(options.contrastBoost ?? (analysis.qualityScore < 70 ? 1.22 : 1.12));
-  const brightnessBoost = Number(options.brightnessBoost ?? (analysis.averageLuminance < 120 ? 14 : 6));
-  const shadowLift = Number(options.shadowLift ?? (analysis.darkRatio > 30 ? 0.18 : 0.10));
+  const contrastBoost = Number(options.contrastBoost ?? (analysis.qualityScore < 70 ? 1.10 : 1.06));
+  const brightnessBoost = Number(options.brightnessBoost ?? (analysis.averageLuminance < 120 ? 8 : 4));
+  const shadowLift = Number(options.shadowLift ?? (analysis.darkRatio > 30 ? 0.14 : 0.08));
+  const preserveColor = options.preserveColor !== false;
 
   for (let index = 0; index < data.length; index += 4) {
     const originalR = data[index];
@@ -166,27 +188,66 @@ export function preprocessDocumentImage(image, analysis = {}, options = {}) {
       adjusted += (110 - luminance) * shadowLift;
     }
     adjusted = clamp(adjusted, 0, 255);
-    data[index] = adjusted;
-    data[index + 1] = adjusted;
-    data[index + 2] = adjusted;
+    if (preserveColor) {
+      const lift = adjusted - luminance;
+      data[index] = clamp((originalR - 128) * contrastBoost + 128 + lift, 0, 255);
+      data[index + 1] = clamp((originalG - 128) * contrastBoost + 128 + lift, 0, 255);
+      data[index + 2] = clamp((originalB - 128) * contrastBoost + 128 + lift, 0, 255);
+    } else {
+      data[index] = adjusted;
+      data[index + 1] = adjusted;
+      data[index + 2] = adjusted;
+    }
   }
 
+  // 접사·흔들림으로 뭉개진 글자 윤곽을 살리는 선명화(언샤프 마스크). 흐릴수록 강하게.
+  const sharpenAmount = Number(options.sharpenAmount ?? (analysis.edgeDensity != null && analysis.edgeDensity < 22 ? 0.9 : 0.6));
+  applyUnsharpMask(data, canvas.width, canvas.height, sharpenAmount);
   context.putImageData(imageData, 0, 0);
 
+  const jpegQuality = clamp(Number(options.jpegQuality ?? 0.84), 0.72, 0.94);
+  const dataUrl = canvas.toDataURL("image/jpeg", jpegQuality);
   return {
-    dataUrl: canvas.toDataURL("image/jpeg", 0.92),
+    dataUrl,
+    encodedSizeBytes: estimateDataUrlBytes(dataUrl),
     width: canvas.width,
     height: canvas.height,
     rotationDegrees,
     steps: [
       "EXIF_ROTATE",
-      "AUTOROTATE",
-      "GRAYSCALE",
-      "CONTRAST_ENHANCE",
-      "SHADOW_REDUCTION",
+      "CONSERVATIVE_DOCUMENT_CROP",
+      `RESIZE_LIMIT_${maxDimension}`,
+      preserveColor ? "COLOR_GRID_SEPARATION_PRESERVED" : "GRAYSCALE",
+      "WEAK_CONTRAST_ENHANCE",
+      "WEAK_SHADOW_LIFT",
+      "UNSHARP_MASK_SHARPEN",
       "JPEG_NORMALIZE"
     ]
   };
+}
+
+// 언샤프 마스크: 중심값 + amount×(중심값 - 이웃평균). 테두리 1px는 그대로 둔다.
+function applyUnsharpMask(data, width, height, amount) {
+  if (!(amount > 0) || width < 3 || height < 3) return;
+  const src = new Uint8ClampedArray(data);
+  const rowBytes = width * 4;
+  for (let y = 1; y < height - 1; y += 1) {
+    let offset = (y * width + 1) * 4;
+    for (let x = 1; x < width - 1; x += 1, offset += 4) {
+      for (let c = 0; c < 3; c += 1) {
+        const p = offset + c;
+        const center = src[p];
+        const blur = (src[p - 4] + src[p + 4] + src[p - rowBytes] + src[p + rowBytes] + center) / 5;
+        const v = center + amount * (center - blur);
+        data[p] = v < 0 ? 0 : v > 255 ? 255 : v;
+      }
+    }
+  }
+}
+
+function estimateDataUrlBytes(dataUrl) {
+  const encoded = String(dataUrl ?? "").split(",", 2)[1] || "";
+  return Math.max(0, Math.floor(encoded.length * 0.75));
 }
 
 export function createLocalFileHash(file) {
@@ -232,16 +293,27 @@ function dataUrlToBlob(dataUrl) {
   return new Blob([bytes], { type: mimeType });
 }
 
-function createSampleCanvas(image, maxSize) {
+function createSampleCanvas(image, maxSize, cropBounds) {
   const width = Number(image?.naturalWidth ?? image?.width ?? 0);
   const height = Number(image?.naturalHeight ?? image?.height ?? 0);
-  const scale = width > 0 && height > 0 ? Math.min(1, maxSize / Math.max(width, height)) : 1;
+  const crop = normalizeCropBounds(cropBounds, width, height);
+  const croppedWidth = Math.max(1, crop.right - crop.left);
+  const croppedHeight = Math.max(1, crop.bottom - crop.top);
+  const scale = Math.min(1, maxSize / Math.max(croppedWidth, croppedHeight));
   const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(width * scale));
-  canvas.height = Math.max(1, Math.round(height * scale));
+  canvas.width = Math.max(1, Math.round(croppedWidth * scale));
+  canvas.height = Math.max(1, Math.round(croppedHeight * scale));
   const context = canvas.getContext("2d", { willReadFrequently: true });
-  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  context.drawImage(image, crop.left, crop.top, croppedWidth, croppedHeight, 0, 0, canvas.width, canvas.height);
   return { canvas, context };
+}
+
+function normalizeCropBounds(bounds, width, height) {
+  const left = clamp(Math.round(Number(bounds?.left ?? 0)), 0, Math.max(0, width - 1));
+  const top = clamp(Math.round(Number(bounds?.top ?? 0)), 0, Math.max(0, height - 1));
+  const right = clamp(Math.round(Number(bounds?.right ?? width)), left + 1, width);
+  const bottom = clamp(Math.round(Number(bounds?.bottom ?? height)), top + 1, height);
+  return { left, top, right, bottom };
 }
 
 function minDimension(width, height) {

@@ -18,7 +18,7 @@
   <title>정육비서</title>
   <link rel="canonical" href="https://meatos.vercel.app/" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20260728-mobile-dashboard-3" />
   <style>
     /* Dashboard Specific Styles */
     .dashboard { padding: var(--space-5) 0 var(--space-8); }
@@ -29,12 +29,15 @@
 
     /* AI Briefing Card */
     .ai-briefing { margin-bottom: var(--space-6); }
-    .ai-briefing__header { display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--space-4); margin-bottom: var(--space-5); border-bottom: 1px solid var(--divider); }
+    .ai-briefing__header { display: grid; grid-template-columns:auto minmax(0,1fr) auto; align-items: center; gap: 16px; padding-bottom: var(--space-4); margin-bottom: var(--space-5); border-bottom: 1px solid var(--divider); }
     .ai-briefing__title { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
     .ai-briefing__meta { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
     .ai-briefing__refresh { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-primary); font-size: 24px; transition: var(--transition); }
     .ai-briefing__refresh:hover { background: var(--border-default); }
     .ai-briefing__refresh.is-loading { animation: refresh-spin .8s linear infinite; }
+    .ai-tip-ticker { min-width:0; height:30px; overflow:hidden; border-radius:999px; background:linear-gradient(90deg,#fff7ed,#fff1f2); border:1px solid #f4d2c0; color:#7f3423; }
+    .ai-tip-ticker__track { display:flex; align-items:center; width:max-content; min-width:100%; height:100%; white-space:nowrap; will-change:transform; animation:ai-tip-marquee 18s linear infinite; }
+    .ai-tip-ticker__text { display:block; padding-right:var(--ai-ticker-gap,100vw); font-size:13px; font-weight:750; }
 
     .briefing-content { display: flex; flex-direction: column; gap: var(--space-4); }
 
@@ -50,22 +53,63 @@
     .management-item__value { font-size: clamp(24px, 3vw, 40px); font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; letter-spacing: -0.025em; }
     .management-item__trend { font-size: 14px; font-weight: 700; margin-top: var(--space-2); }
 
+    /* 당월 경영현황: 좌(매출/매입) + 우(입금예정) */
+    .mgmt-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 0.92fr); gap: var(--space-4); align-items: stretch; padding-bottom: var(--space-4); border-bottom: 1px solid var(--divider); }
+    .mgmt-left { display: flex; flex-direction: column; min-width: 0; }
+    .mgmt-left .management-item { padding: 8px 0; }
+    .mgmt-left .management-item + .management-item { border-top: 1px solid var(--divider); border-left: 0; padding-left: 0; }
+    .mgmt-left .management-item__value { font-size: clamp(22px, 2.8vw, 35px); }
+    .deposit-box { display: flex; flex-direction: column; justify-content: center; gap: 7px; padding: 14px 16px; border-radius: 14px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; text-decoration: none; transition: var(--transition); }
+    .deposit-box:hover { background: #dbeafe; border-color: #93c5fd; transform: translateY(-1px); }
+    .deposit-box:focus-visible { outline: 3px solid rgba(37,99,212,.28); outline-offset: 2px; }
+    .deposit-box__title { font-size: 15px; font-weight: 800; color: #1d4ed8; margin-bottom: 2px; }
+    .deposit-box__row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 13px; color: #475569; font-weight: 600; }
+    .deposit-box__row b { font-size: 17px; font-weight: 800; color: #1e3a8a; letter-spacing: -.02em; }
+    @media (min-width: 1024px) { .mgmt-wrap { padding-bottom: 8px; } .mgmt-left .management-item { padding: 6px 0; } .deposit-box { padding: 10px 16px; } }
+    @media (max-width: 639px) {
+      .mgmt-wrap { grid-template-columns: minmax(0, 1fr) 43%; gap: 10px; padding-bottom: 8px; }
+      /* 매출/매입: 아이콘 삭제, 금액 글꼴을 입금예정 숫자와 동일 크기(20px)로 통일 */
+      .mgmt-left .management-item { display: block; padding: 6px 0; }
+      .mgmt-left .management-item__icon { display: none; }
+      .mgmt-left .management-item__data { display: block; }
+      .mgmt-left .management-item__label { font-size: 13px; line-height: 1.2; }
+      .mgmt-left .management-item__value { font-size: 20px; line-height: 1.1; }
+      .deposit-box { padding: 10px 12px; gap: 5px; border-radius: 12px; }
+      .deposit-box__title { font-size: 13px; }
+      .deposit-box__row { font-size: 12px; }
+      .deposit-box__row b { font-size: 20px; }
+    }
+
     .status-row { display: flex; justify-content: space-between; align-items: center; min-height: 64px; }
     .status-row + .status-row { border-top: 1px solid var(--divider); }
     .status-row__label { display: flex; align-items: center; gap: var(--space-3); font-size: 16px; font-weight: 700; }
     .status-row__icon { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
     .status-row--expiry .status-row__icon { background: #fff7ed; color: var(--warning-orange); }
+    .status-row--sanitation { min-height: 64px; padding-block: 8px; }
+    .status-row--sanitation .status-row__label,
+    .status-row--sanitation .sanitation-actions { align-self: center; }
     .status-row--sanitation .status-row__icon { background: #ecfdf3; color: var(--success-green); }
     .status-row__value { font-size: 18px; font-weight: 800; }
+    a.status-row--expiry { color: inherit; text-decoration: none; }
+    .mo-br { display: none; }
+    .sanitation-actions { display: flex; align-items: center; gap: 10px; }
+    .sanitation-status-button { min-height: 36px; display:inline-flex; align-items:center; justify-content:center; padding:0 13px; border-radius:10px; border:1px solid transparent; text-decoration:none; font-size:13px; font-weight:900; white-space:nowrap; }
+    .sanitation-status-button--pending { background:#e96f65; border-color:#dc5c52; color:#fff; box-shadow:0 3px 10px rgba(220,92,82,.18); }
+    .sanitation-status-button--pending:hover { background:#dc5c52; }
+    .sanitation-status-button--complete { background:#e8f1ff; border-color:#a9c8f5; color:#1f5fbf; cursor:default; }
+    .monthly-sanitation-link { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; border-radius: 10px; background: #eef4ff; color: #1f5fbf; border: 1px solid #c9dcfb; text-decoration: none; font-size: 13px; font-weight: 800; white-space: nowrap; }
+    .monthly-sanitation-link:hover { background: #dfeaff; }
 
     /* CTA Card */
-    .meat-cta { background: var(--brand-red-soft); border: 1px solid var(--brand-red-border); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6); position: relative; overflow: hidden; }
+    .meat-cta { width: 100%; background: #fdcfd4; border: 1px solid #e98b96; border-radius: var(--radius-lg); padding: var(--space-5); display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6); position: relative; overflow: hidden; color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; transition: var(--transition); }
+    .meat-cta:hover { background: #f9c3ca; border-color: #e47784; transform: translateY(-1px); }
+    .meat-cta:focus-visible { outline: 3px solid rgba(197, 22, 36, 0.22); outline-offset: 2px; }
     .meat-cta__content { display: flex; align-items: center; gap: var(--space-4); }
     .meat-cta__image { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: #fff; font-size: 38px; }
     .meat-cta__text { display: flex; flex-direction: column; gap: 4px; }
     .meat-cta__title { font-size: 18px; font-weight: 800; }
     .meat-cta__sub { font-size: 13px; color: var(--text-secondary); }
-    .meat-cta__btn { min-height: 52px; background: var(--brand-red); color: #fff; padding: var(--space-3) var(--space-5); border-radius: var(--radius-sm); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(197, 22, 36, 0.2); }
+    .meat-cta__chevron { flex: 0 0 auto; color: var(--brand-red); font-size: 30px; font-weight: 800; line-height: 1; }
 
     /* KPI Cards */
     .kpi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
@@ -90,6 +134,12 @@
     .dashboard-toast.show { opacity: 1; transform: translateY(0); }
 
     @keyframes refresh-spin { to { transform: rotate(360deg); } }
+    @keyframes ai-tip-marquee { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+    @media (prefers-reduced-motion:reduce) {
+      .ai-tip-ticker__track { width:100%; animation:none; }
+      .ai-tip-ticker__text { width:100%; overflow:hidden; text-overflow:ellipsis; padding:0 12px; }
+      .ai-tip-ticker__text[aria-hidden="true"] { display:none; }
+    }
 
     @media (min-width: 640px) {
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -100,6 +150,7 @@
       .ai-briefing { min-height: 0; padding: 16px 24px; margin-bottom: 12px; }
       .ai-briefing__header { min-height: 38px; padding-bottom: 8px; margin-bottom: 10px; }
       .ai-briefing__title { font-size: 26px; line-height: 1.2; }
+      .ai-tip-ticker { height:28px; }
       .briefing-content { gap: 0; }
       .management-row { padding-bottom: 8px; }
       .management-item { padding: 4px 0; gap: 12px; }
@@ -115,7 +166,7 @@
       .meat-cta__image { width: 50px; height: 50px; font-size: 30px; }
       .meat-cta__title { font-size: 18px; }
       .meat-cta__sub { font-size: 13px; }
-      .meat-cta__btn { min-width: 190px; min-height: 48px; padding: 0 22px; }
+      .meat-cta__chevron { font-size: 34px; }
       .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
       .kpi-card { min-height: 230px; height: 230px; padding: 16px; gap: 8px; justify-content: flex-start; }
       .kpi-card__header { flex-direction: row; justify-content: center; gap: 8px; }
@@ -138,7 +189,7 @@
       .status-row__icon { width: 34px; height: 34px; }
       .meat-cta { min-height: 72px; padding-top: 8px; padding-bottom: 8px; margin-bottom: 8px; }
       .meat-cta__image { width: 46px; height: 46px; }
-      .meat-cta__btn { min-height: 44px; }
+      .meat-cta__chevron { font-size: 30px; }
       .kpi-card { min-height: 205px; height: 205px; padding: 12px 14px; gap: 6px; }
       .kpi-card__icon { width: 40px; height: 40px; flex-basis: 40px; }
       .kpi-card__value { font-size: 30px; }
@@ -147,45 +198,78 @@
     }
 
     @media (max-width: 639px) {
-      .dashboard { padding: var(--space-4) 0 40px; }
-      .ai-briefing { padding: 20px; margin-bottom: 20px; border-radius: var(--radius-panel); }
-      .ai-briefing__header { align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
-      .ai-briefing__title { font-size: 22px; line-height: 1.25; }
-      .ai-briefing__meta { flex-shrink: 0; }
-      .briefing-content { gap: var(--space-3); }
-      .management-row { gap: var(--space-3); padding-bottom: var(--space-3); }
-      .management-item { flex-direction: column; gap: var(--space-2); }
-      .management-item + .management-item { padding-left: var(--space-3); }
-      .management-item__icon { width: 44px; height: 44px; font-size: 22px; }
-      .management-item__value { font-size: clamp(22px, 6.6vw, 28px); line-height: 1.15; }
-      .management-item__trend { font-size: 12px; }
-      .status-row { min-height: 58px; }
-      .status-row__label { gap: var(--space-2); font-size: 15px; }
-      .status-row__icon { width: 40px; height: 40px; }
-      .status-row__value { font-size: 16px; }
-      .meat-cta { flex-direction: column; align-items: stretch; padding: 20px; margin-bottom: 20px; gap: var(--space-3); box-shadow: none; }
-      .meat-cta__content { flex-direction: row; text-align: left; gap: var(--space-3); }
-      .meat-cta__image { width: 64px; height: 64px; flex: 0 0 64px; font-size: 34px; }
-      .meat-cta__title { font-size: 20px; }
-      .meat-cta__sub { font-size: 14px; line-height: 1.45; }
-      .meat-cta__btn { width: 100%; min-height: 50px; justify-content: center; box-shadow: none; }
-      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-      .kpi-card { min-width: 0; min-height: 220px; height: auto; padding: 16px; gap: 8px; justify-content: flex-start; }
-      .kpi-card__header { flex-direction: row; justify-content: center; gap: 8px; }
-      .kpi-card__icon { width: 44px; height: 44px; flex: 0 0 44px; }
-      .kpi-card__title { font-size: 17px; }
-      .kpi-card__body { gap: 3px; margin-bottom: 0; }
-      .kpi-card__value { font-size: clamp(26px, 7.5vw, 30px); line-height: 1.1; }
-      .kpi-card__sub, .kpi-card__meta { font-size: 13px; }
-      .kpi-card__graph { height: 36px; margin-top: 8px; }
+      .container { width: 100%; padding: 0 10px; }
+      .dashboard { width: 100%; padding: 8px 0 14px; }
+      .ai-briefing { padding: 12px 14px; margin-bottom: 8px; border-radius: 14px; }
+      .ai-briefing__header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; padding-bottom: 6px; margin-bottom: 5px; }
+      .ai-briefing__title { min-width: 0; font-size: 21px; line-height: 1.2; white-space: nowrap; }
+      .ai-tip-ticker { grid-column:1 / -1; grid-row:2; width:100%; height:27px; margin-top:1px; }
+      .ai-tip-ticker__text { padding-right:52px; font-size:12px; }
+      .ai-briefing__meta { flex-shrink: 0; gap: 4px; font-size: 11px; white-space: nowrap; }
+      .ai-briefing__refresh { width: 36px; height: 36px; min-height: 36px !important; flex: 0 0 36px; font-size: 21px; }
+      .briefing-content { gap: 0; }
+      .section-title { margin-bottom: 0 !important; padding: 0 0 3px; font-size: 14px !important; }
+      .management-row { grid-template-columns: 1fr; gap: 0; min-height: 0; padding: 0; }
+      .management-item { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 48px; padding: 5px 0; }
+      .management-item + .management-item { border-top: 1px solid var(--divider); border-left: 0; padding-left: 0; }
+      .management-item__icon { width: 34px; height: 34px; font-size: 18px; }
+      .management-item__data { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-items: center; }
+      .management-item__label { grid-column: 1; font-size: 13px; line-height: 1.15; }
+      .management-item__value { grid-column: 1; font-size: 20px; line-height: 1.05; }
+      .management-item__trend { grid-column: 2; grid-row: 2; align-self: center; margin-top: 0; font-size: 11px; white-space: nowrap; }
+      .status-row { min-height: 48px; padding: 5px 0; }
+      .status-row__label { gap: 8px; font-size: 14px; }
+      .status-row__icon { width: 34px; height: 34px; }
+      .status-row__value { font-size: 15px; }
+      .sanitation-actions { gap: 6px; }
+      /* 유통기한 ↔ 위생 점검표 상하 교체 (위생 위, 유통기한 아래) */
+      .status-row--sanitation { order: 1; }
+      .status-row--expiry { order: 2; border-top: 1px solid var(--divider); cursor: pointer; }
+      .briefing-content .status-row--sanitation { border-top: 0; }
+      /* 유통기한 임박: 행 전체 탭 → 알림현황 이동 표시 */
+      .status-row--expiry .status-row__value::after { content: " ›"; color: var(--text-muted); font-weight: 800; }
+      /* 위생 점검표: 라벨 2줄 + 옆 두 버튼 2줄·동일 높이 한 줄 정렬 */
+      .mo-br { display: inline; }
+      .status-row--sanitation { align-items: center; min-height: 60px; padding-block: 7px; flex-wrap: nowrap; gap: 8px; }
+      .status-row--sanitation .status-row__label { flex: 0 0 auto; font-size: 13px; line-height: 1.2; }
+      .status-row--sanitation .sanitation-actions { flex: 1 1 auto; display: flex; gap: 6px; align-items: stretch; padding-left: 0; min-width: 0; }
+      .sanitation-actions > * { flex: 1 1 0; min-width: 0; }
+      .sanitation-status-button, .monthly-sanitation-link { min-height: 40px; padding: 4px 6px; font-size: 10.5px; line-height: 1.15; white-space: normal; text-align: center; display: flex; align-items: center; justify-content: center; }
+      .meat-cta { display: grid; grid-template-columns: minmax(0, 1fr) 18px; min-height: 76px; align-items: center; padding: 10px 12px; margin-bottom: 8px; gap: 8px; box-shadow: none; }
+      .meat-cta__content { display: grid; grid-template-columns: 46px minmax(0, 1fr); align-items: center; text-align: left; gap: 10px; }
+      .meat-cta__image { width: 46px; height: 46px; font-size: 27px; }
+      .meat-cta__title { font-size: 16px; }
+      .meat-cta__sub { font-size: 12px; line-height: 1.3; }
+      .meat-cta__chevron { font-size: 26px; }
+      body.mt-dashboard-page .kpi-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+      body.mt-dashboard-page .kpi-card { min-width: 0; min-height: 154px !important; height: 154px !important; overflow: hidden; padding: 9px 8px !important; gap: 3px; justify-content: flex-start; border-radius: 14px; }
+      body.mt-dashboard-page .kpi-card__header { flex-direction: row; justify-content: center; gap: 5px; }
+      body.mt-dashboard-page .kpi-card__icon { width: 32px; height: 32px; flex: 0 0 32px; border-radius: 9px; }
+      body.mt-dashboard-page .kpi-card__icon svg { width: 20px; height: 20px; }
+      body.mt-dashboard-page .kpi-card__title { font-size: 14px; white-space: nowrap; }
+      body.mt-dashboard-page .kpi-card__body { gap: 2px; margin-bottom: 0; }
+      body.mt-dashboard-page .kpi-card__label,
+      body.mt-dashboard-page .kpi-card__sub,
+      body.mt-dashboard-page .kpi-card__meta { font-size: 11px; line-height: 1.3; }
+      body.mt-dashboard-page .kpi-card__value { font-size: 22px; line-height: 1.05; }
+      body.mt-dashboard-page .kpi-card__graph { height: 17px; margin-top: auto; }
+      body.mt-dashboard-page .kpi-card--alert .kpi-card__body > div { margin-top: 2px !important; }
       .dashboard-toast { right: var(--space-4); bottom: var(--space-4); left: var(--space-4); text-align: center; }
-      .footer { padding: 24px 0 32px; font-size: 13px; }
+      .footer { padding: 12px 12px 14px; font-size: 12px; }
     }
 
     @media (max-width: 340px) {
-      .ai-briefing__meta { width: 100%; justify-content: space-between; }
-      .kpi-grid { grid-template-columns: 1fr; }
-      .kpi-card { min-height: 210px; }
+      .ai-briefing { padding: 14px 12px; }
+      .ai-briefing__title { font-size: 18px; }
+      .ai-briefing__meta { font-size: 10px; }
+      .ai-briefing__refresh { width: 32px; height: 32px; min-height: 32px !important; flex-basis: 32px; font-size: 19px; }
+      .ai-briefing__date-label { display: none; }
+      .management-item__trend { font-size: 10px; }
+      body.mt-dashboard-page .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+      body.mt-dashboard-page .kpi-card { min-height: 150px !important; height: 150px !important; padding: 8px 6px !important; }
+      body.mt-dashboard-page .kpi-card__icon { width: 32px; height: 32px; flex-basis: 32px; }
+      body.mt-dashboard-page .kpi-card__title { font-size: 14px; }
+      body.mt-dashboard-page .kpi-card__value { font-size: 22px; }
     }
 
     .footer { text-align: center; padding: var(--space-6) 0; color: var(--text-muted); font-size: 12px; }
@@ -200,8 +284,14 @@
       <section class="ai-briefing ui-card">
         <div class="ai-briefing__header">
           <h2 class="ai-briefing__title">오늘의 AI 브리핑</h2>
+          <div class="ai-tip-ticker" id="ai-tip-ticker" role="status" aria-label="오늘의 날씨와 정육 추천">
+            <div class="ai-tip-ticker__track">
+              <span class="ai-tip-ticker__text" id="ai-tip-text">✨ 오늘 날씨에 어울리는 정육 메뉴를 살펴보고 있어요.</span>
+              <span class="ai-tip-ticker__text" id="ai-tip-text-copy" aria-hidden="true">✨ 오늘 날씨에 어울리는 정육 메뉴를 살펴보고 있어요.</span>
+            </div>
+          </div>
           <div class="ai-briefing__meta">
-            <span>기준일 <span id="f-today-fmt">2026.07.01</span></span>
+            <span><span class="ai-briefing__date-label">기준일 </span><span id="f-today-fmt">2026.07.01</span></span>
             <button class="ai-briefing__refresh" id="refresh-btn" type="button" aria-label="대시보드 새로고침" title="새로고침">↻</button>
           </div>
         </div>
@@ -209,56 +299,62 @@
         <div class="briefing-content">
             <h3 class="section-title" style="font-size: 16px; margin-bottom: 8px;">당월 경영 현황</h3>
 
-            <div class="management-row">
-              <div class="management-item management-item--sales">
-                <div class="management-item__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 20h18"></path><path d="M5 16l4-5 4 3 6-8"></path><path d="M15 6h4v4"></path></svg></div>
-                <div class="management-item__data">
-                  <span class="management-item__label">매출</span>
-                  <strong class="management-item__value" id="ai-sales-val">0 원</strong>
-                  <span class="management-item__trend text-brand" id="ai-sales-trend">전월 대비 0%</span>
+            <div class="mgmt-wrap">
+              <div class="mgmt-left">
+                <div class="management-item management-item--sales">
+                  <div class="management-item__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 20h18"></path><path d="M5 16l4-5 4 3 6-8"></path><path d="M15 6h4v4"></path></svg></div>
+                  <div class="management-item__data">
+                    <span class="management-item__label">매출</span>
+                    <strong class="management-item__value" id="ai-sales-val">0 원</strong>
+                  </div>
+                </div>
+                <div class="management-item management-item--purchase">
+                  <div class="management-item__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.3 10.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 8H7"></path><circle cx="10" cy="20" r="1"></circle><circle cx="18" cy="20" r="1"></circle></svg></div>
+                  <div class="management-item__data">
+                    <span class="management-item__label">매입</span>
+                    <strong class="management-item__value" id="ai-buy-val">0 원</strong>
+                  </div>
                 </div>
               </div>
-              <div class="management-item management-item--purchase">
-                <div class="management-item__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.3 10.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 8H7"></path><circle cx="10" cy="20" r="1"></circle><circle cx="18" cy="20" r="1"></circle></svg></div>
-                <div class="management-item__data">
-                  <span class="management-item__label">매입</span>
-                  <strong class="management-item__value" id="ai-buy-val">0 원</strong>
-                  <span class="management-item__trend text-info" id="ai-buy-trend">전월 대비 0%</span>
-                </div>
-              </div>
+              <a class="deposit-box" href="settlement.html" aria-label="카드 입금예정 페이지로 이동">
+                <span class="deposit-box__title">입금예정금액</span>
+                <span class="deposit-box__row"><span>당일</span><b id="ai-deposit-today">0</b></span>
+                <span class="deposit-box__row"><span>금주</span><b id="ai-deposit-week">0</b></span>
+              </a>
             </div>
 
-            <div class="status-row status-row--expiry">
+            <a class="status-row status-row--expiry" href="alerts.html" aria-label="유통기한 임박 상세 보기">
               <div class="status-row__label">
                 <span class="status-row__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span> 유통기한 임박
               </div>
               <div class="status-row__value"><span class="text-warning" id="ai-expiry-count">0</span> 건</div>
-            </div>
+            </a>
 
             <div class="status-row status-row--sanitation">
               <div class="status-row__label">
-                <span class="status-row__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 5h6"></path><path d="M9 3h6v4H9z"></path><path d="M7 5H5v16h14V5h-2"></path><path d="M8 14l2 2 5-5"></path></svg></span> 위생점검표
+                <span class="status-row__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 5h6"></path><path d="M9 3h6v4H9z"></path><path d="M7 5H5v16h14V5h-2"></path><path d="M8 14l2 2 5-5"></path></svg></span><span>축산물 일일<br class="mo-br">위생 점검표</span>
               </div>
-              <div class="status-row__value" id="ai-sanitation-status">
-                <span class="status-badge status-badge--danger">미작성</span>
+              <div class="sanitation-actions">
+                <div class="status-row__value" id="ai-sanitation-status">
+                  <a class="sanitation-status-button sanitation-status-button--pending" href="sanitation.html">미작성 · 작성하기</a>
+                </div>
+                <a class="monthly-sanitation-link" href="sanitation-list.html">축산물 월별 위생 점검표</a>
               </div>
             </div>
         </div>
       </section>
 
       <!-- Section 2: 고기가 들어왔어요 CTA -->
-      <section class="meat-cta" id="meat-cta-banner">
-        <div class="meat-cta__content">
+      <button class="meat-cta" id="cta-scan-btn" data-section="meat-cta-banner" type="button" aria-label="거래명세서를 촬영해 입고 시작">
+        <span class="meat-cta__content">
           <span class="meat-cta__image" aria-hidden="true">🥩</span>
-          <div class="meat-cta__text">
+          <span class="meat-cta__text">
             <strong class="meat-cta__title">고기가 들어왔어요!</strong>
             <span class="meat-cta__sub">거래명세서를 촬영해 입고를 시작합니다.</span>
-          </div>
-        </div>
-        <button class="meat-cta__btn" id="cta-scan-btn" type="button">
-          <span>📷 거래명세서 촬영</span>
-        </button>
-      </section>
+          </span>
+        </span>
+        <span class="meat-cta__chevron" aria-hidden="true">›</span>
+      </button>
 
       <!-- Section 3: KPI Cards -->
       <section class="kpi-grid">
@@ -326,7 +422,7 @@
             <strong class="kpi-card__value text-danger" id="k-alert">0 건</strong>
             <div style="text-align: left; width: 100%; margin-top: 8px;">
               <div class="kpi-card__sub" style="display: flex; align-items: center; gap: 4px;"><span style="color: var(--danger-red);">●</span> 유통기한 임박 <span id="k-alert-expiry">0</span>건</div>
-              <div class="kpi-card__sub" style="display: flex; align-items: center; gap: 4px;"><span style="color: var(--success-green);" id="k-alert-sanitation-dot">●</span> 위생일지 <span id="k-alert-sanitation">미작성</span></div>
+              <div class="kpi-card__sub" style="display: flex; align-items: flex-start; gap: 4px;"><span style="color: var(--danger-red);" id="k-alert-sanitation-dot">●</span><span>축산물 일일 위생 점검표 <span id="k-alert-sanitation">미작성</span></span></div>
             </div>
           </div>
         </a>
@@ -351,18 +447,148 @@
     </div>
   </div>
 
-  <script src="header.js"></script>
+  <script src="header.js?v=20260728-data-loader-2"></script>
+  <script src="src/data/daily-briefing.js"></script>
   <script>
     const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
     const TENANT = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
     const H = window.MEATOS_API_HEADERS;
     const IS_AUTHENTICATED = Boolean(window.MEATOS_IS_AUTHENTICATED);
+    const dailyBriefing = window.MEATOS_DAILY_BRIEFING;
     const won = (v) => Number(v || 0).toLocaleString("ko-KR");
 
     function localToday() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+    function keyOf(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
     function monthKey(offset = 0) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + offset); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
     function formatDate(date) { return date.getFullYear() + "." + String(date.getMonth() + 1).padStart(2, "0") + "." + String(date.getDate()).padStart(2, "0"); }
     function sum(rows, key) { return (rows || []).reduce((total, row) => total + (Number(row[key]) || 0), 0); }
+    async function externalJson(url, timeoutMs = 4500) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { signal:controller.signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    function updateDailyTip(message, searchUrls) {
+      const text = dailyBriefing.clip(message, 50);
+      document.getElementById("ai-tip-text").textContent = text;
+      document.getElementById("ai-tip-text-copy").textContent = text;
+      const ticker = document.getElementById("ai-tip-ticker");
+      ticker.setAttribute("aria-label", text);
+      ticker.title = searchUrls?.naver ? "날씨·지역·시간대 기반 AI 특선 · 메뉴 검색 근거 연결 완료" : text;
+      if (searchUrls?.googleTrends) ticker.dataset.googleTrends = searchUrls.googleTrends;
+      if (searchUrls?.naver) ticker.dataset.naverSearch = searchUrls.naver;
+      if (searchUrls?.youtube) ticker.dataset.youtubeSearch = searchUrls.youtube;
+      if (searchUrls?.instagram) ticker.dataset.instagramSearch = searchUrls.instagram;
+      requestAnimationFrame(syncDailyTipSpacing);
+    }
+    function syncDailyTipSpacing() {
+      const ticker = document.getElementById("ai-tip-ticker");
+      const track = ticker?.querySelector(".ai-tip-ticker__track");
+      const width = Math.ceil(ticker?.getBoundingClientRect().width || 0);
+      if (!ticker || !track || width < 1) return;
+      if (window.matchMedia("(max-width: 639px)").matches) ticker.style.removeProperty("--ai-ticker-gap");
+      else ticker.style.setProperty("--ai-ticker-gap", `${width + 20}px`);
+      track.style.animation = "none";
+      void track.offsetWidth;
+      track.style.animation = "";
+    }
+    const dailyTipResizeObserver = "ResizeObserver" in window ? new ResizeObserver(syncDailyTipSpacing) : null;
+    if (dailyTipResizeObserver) dailyTipResizeObserver.observe(document.getElementById("ai-tip-ticker"));
+    else window.addEventListener("resize", syncDailyTipSpacing, { passive:true });
+    async function resolveBriefingLocation() {
+      let address = "";
+      if (window.MEATOS_CONTEXT?.isBusiness) {
+        const stores = await jget("/store?company_id=eq." + encodeURIComponent(TENANT) + "&is_active=eq.true&select=addr&order=is_default.desc,created_at.asc&limit=1");
+        address = String(stores?.[0]?.addr || "");
+      }
+      const region = dailyBriefing.extractRegion(address) || "우리 동네";
+      if (!address) return { region, latitude:37.5665, longitude:126.9780 };
+      const searchName = dailyBriefing.extractRegion(address) || address;
+      try {
+        const query = new URLSearchParams({ name:searchName, count:"1", language:"ko", format:"json", countryCode:"KR" });
+        const data = await externalJson(`https://geocoding-api.open-meteo.com/v1/search?${query}`);
+        const location = data?.results?.[0];
+        if (Number.isFinite(Number(location?.latitude)) && Number.isFinite(Number(location?.longitude))) {
+          return { region, latitude:Number(location.latitude), longitude:Number(location.longitude) };
+        }
+      } catch (error) {}
+      return { region, latitude:37.5665, longitude:126.9780 };
+    }
+    async function loadBriefingWeather(location) {
+      const query = new URLSearchParams({
+        latitude:String(location.latitude),
+        longitude:String(location.longitude),
+        current:"temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,precipitation",
+        timezone:"Asia/Seoul"
+      });
+      const data = await externalJson(`https://api.open-meteo.com/v1/forecast?${query}`);
+      return {
+        temperature:Number(data?.current?.temperature_2m),
+        apparentTemperature:Number(data?.current?.apparent_temperature),
+        humidity:Number(data?.current?.relative_humidity_2m),
+        code:Number(data?.current?.weather_code),
+        precipitation:Number(data?.current?.precipitation)
+      };
+    }
+    async function loadConfiguredLocalEvent(region, dateKey) {
+      const config = window.__MEATOS_DAILY_BRIEFING__ || {};
+      const serviceKey = String(config.tourApiKey || "").trim();
+      if (!serviceKey) return "";
+      try {
+        const query = new URLSearchParams({
+          serviceKey,
+          MobileOS:"ETC",
+          MobileApp:"MEATOS",
+          _type:"json",
+          numOfRows:"30",
+          pageNo:"1",
+          arrange:"A",
+          eventStartDate:dateKey.replaceAll("-", ""),
+          eventEndDate:dateKey.replaceAll("-", "")
+        });
+        const data = await externalJson(`https://apis.data.go.kr/B551011/KorService2/searchFestival2?${query}`, 6000);
+        const items = data?.response?.body?.items?.item;
+        const list = Array.isArray(items) ? items : items ? [items] : [];
+        const local = list.find((item) => !region || region === "우리 동네" || String(item?.addr1 || "").includes(region));
+        return String(local?.title || "").trim();
+      } catch (error) {
+        return "";
+      }
+    }
+    async function loadDailyBriefing(force = false) {
+      const dateKey = localToday();
+      const now = new Date();
+      const partKey = dailyBriefing.dayPart(now);
+      const cacheKey = `meatos_daily_tip_v4_${TENANT}_${dateKey}_${partKey}`;
+      if (!force) {
+        try {
+          const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
+          if (cached?.message && Date.now() - Number(cached.savedAt || 0) < 30 * 60 * 1000) {
+            updateDailyTip(cached.message, cached.searchUrls);
+            return;
+          }
+        } catch (error) {}
+      }
+      const fallback = dailyBriefing.buildBriefing({ date:now, region:"우리 동네", weather:{} });
+      updateDailyTip(fallback.message, fallback.searchUrls);
+      try {
+        const location = await resolveBriefingLocation();
+        const [weather, eventName] = await Promise.all([
+          loadBriefingWeather(location),
+          loadConfiguredLocalEvent(location.region, dateKey)
+        ]);
+        const briefing = dailyBriefing.buildBriefing({ date:new Date(), region:location.region, weather, eventName });
+        updateDailyTip(briefing.message, briefing.searchUrls);
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ message:briefing.message, searchUrls:briefing.searchUrls, savedAt:Date.now() })); } catch (error) {}
+      } catch (error) {
+        updateDailyTip(fallback.message, fallback.searchUrls);
+      }
+    }
     function showToast(message) {
       const toast = document.getElementById("dashboard-toast");
       toast.textContent = message;
@@ -386,20 +612,28 @@
 
     // 스캔 기능 연동
     async function downscale(file) {
-      const MAX = 1600; const bmp = await createImageBitmap(file);
+      const MAX = 1800; const bmp = await createImageBitmap(file);
       const s = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
       const w = Math.round(bmp.width * s), h = Math.round(bmp.height * s);
       const c = document.createElement("canvas"); c.width = w; c.height = h;
       c.getContext("2d").drawImage(bmp, 0, 0, w, h);
-      return c.toDataURL("image/jpeg", 0.85);
+      return c.toDataURL("image/jpeg", 0.84);
     }
     function makeInput(cam) {
       const i = document.createElement("input"); i.type = "file"; i.accept = "image/*";
       if (cam) i.setAttribute("capture", "environment"); i.style.display = "none";
       i.addEventListener("change", async () => {
         const f = i.files && i.files[0]; if (!f) return;
-        try { sessionStorage.setItem("meatos_pending_image", await downscale(f)); sessionStorage.setItem("meatos_pending_name", f.name || "scan.jpg"); } catch (e) {}
-        location.assign("scan.html");
+        try {
+          const prepareStartedAt = performance.now();
+          sessionStorage.setItem("meatos_pending_image", await downscale(f));
+          sessionStorage.setItem("meatos_pending_home_prepare_ms", String(Math.round(performance.now() - prepareStartedAt)));
+          sessionStorage.setItem("meatos_pending_name", f.name || "scan.jpg");
+          sessionStorage.setItem("meatos_pending_source", cam ? "camera" : "file");
+          location.assign("scan.html");
+        } catch (e) {
+          alert("촬영 이미지를 준비하지 못했습니다. 카메라를 다시 열어 촬영해 주세요.");
+        }
       });
       document.body.appendChild(i); return i;
     }
@@ -442,7 +676,6 @@
     async function jget(path) { try { const r = await fetch(REST + path, { headers: H }); return r.ok ? await r.json() : null; } catch (e) { return null; } }
 
     async function loadDashboardData() {
-      if (!IS_AUTHENTICATED) return;
       const today = localToday(), ym = monthKey(), previousYm = monthKey(-1);
 
       // 당월 브리핑, 오늘 KPI, 재고·알림 데이터를 각각의 기준으로 조회한다.
@@ -451,10 +684,10 @@
         jget("/monthly_sales_summary?company_id=eq." + TENANT + "&ym=eq." + previousYm + "&select=amount"),
         jget("/monthly_purchase_summary?company_id=eq." + TENANT + "&ym=eq." + ym + "&select=doc_cnt,amount"),
         jget("/monthly_purchase_summary?company_id=eq." + TENANT + "&ym=eq." + previousYm + "&select=amount"),
-        jget("/sales_record?tenant_id=eq." + TENANT + "&sale_date=eq." + today + "&select=amount"),
-        jget("/ocr_document?tenant_id=eq." + TENANT + "&document_status=eq.POSTED&invoice_date=eq." + today + "&select=total_amount"),
-        jget("/inventory_summary?company_id=eq." + TENANT + "&select=on_hand_qty,low_stock,inventory_amount"),
-        jget("/daily_sanitation_logs?tenant_id=eq." + TENANT + "&work_date=eq." + today + "&select=id&limit=1"),
+        jget("/daily_sales_summary?company_id=eq." + TENANT + "&day=eq." + today + "&select=order_cnt,amount"),
+        jget("/daily_purchase_summary?company_id=eq." + TENANT + "&day=eq." + today + "&select=doc_cnt,amount"),
+        jget("/inventory_summary?company_id=eq." + TENANT + "&select=product_key,on_hand_qty,low_stock,net_amount"),
+        jget("/daily_sanitation_logs?tenant_id=eq." + TENANT + "&work_date=eq." + today + "&select=id,total_score&order=created_at.desc&limit=1"),
         jget("/inventory_movement?tenant_id=eq." + TENANT + "&expiry_date=not.is.null&expiry_date=lte." + new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10) + "&select=id")
       ]);
 
@@ -462,25 +695,38 @@
       const monthlyPurchaseAmount = sum(mp, "amount");
       document.getElementById("ai-sales-val").textContent = won(monthlySalesAmount) + "원";
       document.getElementById("ai-buy-val").textContent = won(monthlyPurchaseAmount) + "원";
-      renderTrend("ai-sales-trend", monthlySalesAmount, sum(previousMs, "amount"));
-      renderTrend("ai-buy-trend", monthlyPurchaseAmount, sum(previousMp, "amount"));
+
+      // 카드 입금예정(당일/금주) — card_settlement 기준(SCHEDULED)
+      const depRows = await jget("/card_settlement?company_id=eq." + TENANT + "&status=eq.SCHEDULED&select=deposit_date,deposit_amt&limit=3000");
+      if (Array.isArray(depRows)) {
+        const base = new Date();
+        const dow = (base.getDay() + 6) % 7;
+        const weekStartDate = new Date(base); weekStartDate.setDate(base.getDate() - dow);
+        const weekEndDate = new Date(weekStartDate); weekEndDate.setDate(weekStartDate.getDate() + 6);
+        const ws = keyOf(weekStartDate), we = keyOf(weekEndDate);
+        const notPaid = (r) => r.status !== "PAID";
+        const sumIf = (pred) => depRows.filter((r) => notPaid(r) && pred(r)).reduce((t, r) => t + (Number(r.deposit_amt) || 0), 0);
+        document.getElementById("ai-deposit-today").textContent = won(sumIf((r) => r.deposit_date === today));
+        document.getElementById("ai-deposit-week").textContent = won(sumIf((r) => r.deposit_date >= ws && r.deposit_date <= we));
+      }
 
       const todaySalesAmount = sum(todaySales, "amount");
-      document.getElementById("k-sales").textContent = (todaySales || []).length + " 건";
+      document.getElementById("k-sales").textContent = sum(todaySales, "order_cnt") + " 건";
       document.getElementById("k-sales-sub").textContent = "금액 ₩" + won(todaySalesAmount);
       document.getElementById("k-sales-trend").textContent = "당월 " + sum(ms, "order_cnt") + "건";
 
-      const todayPurchaseAmount = sum(todayPurchases, "total_amount");
-      document.getElementById("k-buy").textContent = (todayPurchases || []).length + " 건";
+      const todayPurchaseAmount = sum(todayPurchases, "amount");
+      document.getElementById("k-buy").textContent = sum(todayPurchases, "doc_cnt") + " 건";
       document.getElementById("k-buy-sub").textContent = "금액 ₩" + won(todayPurchaseAmount);
       document.getElementById("k-buy-trend").textContent = "당월 " + sum(mp, "doc_cnt") + "건";
 
       // 재고 UI 반영
       if (inv) {
-        const amt = sum(inv, "inventory_amount");
-        document.getElementById("k-stock").textContent = inv.length + " 종";
+        const stockedItems = inv.filter((row) => Number(row.on_hand_qty) > 0);
+        const amt = sum(stockedItems, "net_amount");
+        document.getElementById("k-stock").textContent = stockedItems.length + " 종";
         document.getElementById("k-stock-sub").textContent = "재고금액 ₩" + won(amt);
-        const lowStockCount = inv.filter((row) => row.low_stock).length;
+        const lowStockCount = stockedItems.filter((row) => row.low_stock).length;
         document.getElementById("k-stock-trend").textContent = lowStockCount ? "재고 확인 " + lowStockCount + "종" : "재고 상태 정상";
       }
 
@@ -495,26 +741,28 @@
       const kSanitationDot = document.getElementById("k-alert-sanitation-dot");
 
       if (sanitationDone) {
-        sanitationEl.innerHTML = '<span class="status-badge status-badge--success">작성 완료</span>';
+        const todayScore = Number(logs[0]?.total_score);
+        sanitationEl.innerHTML = '<span class="sanitation-status-button sanitation-status-button--complete" aria-disabled="true">작성 완료' + (Number.isFinite(todayScore) ? " " + todayScore + "점" : "") + '</span>';
         kSanitationEl.textContent = "작성 완료";
-        kSanitationDot.style.color = "var(--success-green)";
+        kSanitationDot.style.color = "var(--info-blue)";
       } else {
-        sanitationEl.innerHTML = '<span class="status-badge status-badge--danger">미작성</span>';
+        sanitationEl.innerHTML = '<a class="sanitation-status-button sanitation-status-button--pending" href="sanitation.html">미작성 · 작성하기</a>';
         kSanitationEl.textContent = "미작성";
-        kSanitationDot.style.color = "var(--danger-red)";
+        kSanitationDot.style.color = "#e96f65";
       }
 
       document.getElementById("k-alert").textContent = (expiryCount + (sanitationDone ? 0 : 1)) + " 건";
     }
 
     loadDashboardData();
+    loadDailyBriefing();
     document.getElementById("refresh-btn").addEventListener("click", async () => {
       const button = document.getElementById("refresh-btn");
       if (button.disabled) return;
       button.disabled = true;
       button.classList.add("is-loading");
       button.setAttribute("aria-busy", "true");
-      await loadDashboardData();
+      await Promise.all([loadDashboardData(), loadDailyBriefing(true)]);
       button.disabled = false;
       button.classList.remove("is-loading");
       button.removeAttribute("aria-busy");

@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
@@ -41,6 +42,7 @@ namespace Meatos.PosAgent
         private const int KeyGapResetMs = 500;    // 키 사이 간격이 이보다 크면 새 입력으로 간주(기존 250 → 완화)
         private const int MaxAssembleMs = 3000;   // 한 코드 조립 최대 시간(기존 1500 → 완화)
         private const int IdleFlushMs = 120;       // Enter가 없어도 이 시간 멈추면 버퍼를 자동 전송
+        private const string AgentVersion = "2026-09-08-remote-health";
         private readonly string appDir;
         private readonly string logDir;
         private readonly string logFile;
@@ -53,11 +55,16 @@ namespace Meatos.PosAgent
         private HookProc hookProc;
         private IntPtr hookId = IntPtr.Zero;
         private System.Windows.Forms.Timer flushTimer;
+        private System.Windows.Forms.Timer watchdogTimer;
+        private int watchdogTicks;
+        private Microsoft.Win32.PowerModeChangedEventHandler powerHandler;
+        private Microsoft.Win32.SessionSwitchEventHandler sessionHandler;
         private long firstKeyAt;
         private long lastKeyAt;
         private string lastCode = "";
         private long lastSentAt;
         private int successCount;
+        private string lastError = "";
 
         public AgentContext()
         {
@@ -88,21 +95,41 @@ namespace Meatos.PosAgent
 
             hookProc = HookCallback;
             hookId = SetHook(hookProc);
+            if (hookId == IntPtr.Zero) { Log("HOOK_INSTALL_FAILED"); RecordError("HOOK_INSTALL_FAILED"); }
             // Enter(종결키)를 붙이지 않는 스캐너도 잡기 위한 자동 플러시 타이머
             flushTimer = new System.Windows.Forms.Timer();
             flushTimer.Interval = 60;
             flushTimer.Tick += delegate { TryIdleFlush(); };
             flushTimer.Start();
+            // 하드닝: 절전/잠금해제/세션전환 후 저수준 키보드 훅이 조용히 풀려 수집이 멈추는 것을 방지한다.
+            // 60초마다 훅을 재설치하고, 10분마다 하트비트를 로그에 남겨 살아있는지 확인할 수 있게 한다.
+            watchdogTimer = new System.Windows.Forms.Timer();
+            watchdogTimer.Interval = 60000;
+            watchdogTimer.Tick += delegate { OnWatchdog(); };
+            watchdogTimer.Start();
+            powerHandler = OnPowerModeChanged;
+            sessionHandler = OnSessionSwitch;
+            try { Microsoft.Win32.SystemEvents.PowerModeChanged += powerHandler; } catch { }
+            try { Microsoft.Win32.SystemEvents.SessionSwitch += sessionHandler; } catch { }
             deliveryCapture = new DeliveryAutoCapture(config, Log);
             deliveryCapture.Start();
-            Log("AGENT_STARTED device=" + config.Device + " version=2026-08-14-capture idleFlush=" + IdleFlushMs + "ms");
+            // elevated=False로 찍히는데 POS 프로그램이 관리자 권한으로 떠 있으면, Windows UIPI 정책 때문에
+            // 그 창이 활성화(포그라운드)된 동안은 이 저수준 키보드 훅이 입력을 못 받는다(설치 시 작업 스케줄러로
+            // 관리자 권한 실행되도록 등록해서 회피 — MeatosPosSetup.cs 참고). 로그로 실제 권한 상태를 확인한다.
+            Log("AGENT_STARTED device=" + config.Device + " version=" + AgentVersion + " elevated=" + IsElevated() + " idleFlush=" + IdleFlushMs + "ms");
             tray.Text = Truncate("MEATOS POS · " + config.StoreName, 63);
             tray.ShowBalloonTip(3000, "MEATOS POS Agent", config.StoreName + " 키보드 웨지 감지 시작", ToolTipIcon.Info);
             TestConnection(false);
+            // 사장님이 매장에 상주하지 못하므로, 시작 직후 한 번 + 이후 10분마다(OnWatchdog)
+            // 관리자 권한/훅 상태/최근 오류를 서버로 보고해 '자동 판매연동' 화면에서 원격으로 확인할 수 있게 한다.
+            SendHeartbeat();
         }
 
         protected override void ExitThreadCore()
         {
+            try { if (powerHandler != null) Microsoft.Win32.SystemEvents.PowerModeChanged -= powerHandler; } catch { }
+            try { if (sessionHandler != null) Microsoft.Win32.SystemEvents.SessionSwitch -= sessionHandler; } catch { }
+            if (watchdogTimer != null) { watchdogTimer.Stop(); watchdogTimer.Dispose(); }
             if (hookId != IntPtr.Zero) UnhookWindowsHookEx(hookId);
             if (flushTimer != null) { flushTimer.Stop(); flushTimer.Dispose(); }
             if (deliveryCapture != null) deliveryCapture.Dispose();
@@ -115,10 +142,67 @@ namespace Meatos.PosAgent
         {
             if (nCode >= 0 && (wParam == (IntPtr)WmKeyDown || wParam == (IntPtr)WmSysKeyDown))
             {
-                int vkCode = Marshal.ReadInt32(lParam);
-                HandleKey(vkCode);
+                try
+                {
+                    int vkCode = Marshal.ReadInt32(lParam);
+                    HandleKey(vkCode);
+                }
+                catch { }
             }
             return CallNextHookEx(hookId, nCode, wParam, lParam);
+        }
+
+        // 저수준 키보드 훅을 안전하게 재설치한다(기존 해제 후 재설치). UI 스레드에서 호출.
+        private void EnsureHook()
+        {
+            try
+            {
+                if (hookId != IntPtr.Zero) { UnhookWindowsHookEx(hookId); hookId = IntPtr.Zero; }
+                hookId = SetHook(hookProc);
+                if (hookId == IntPtr.Zero)
+                {
+                    // SetWindowsHookEx가 실패해도 예외를 던지지 않는다 — 예전엔 아무 신호 없이 그냥
+                    // 입력을 못 받았다. 이제 로그로 남기고 다음 하트비트에 hookOk=false로 보고한다.
+                    Log("HOOK_INSTALL_FAILED");
+                    RecordError("HOOK_INSTALL_FAILED");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("HOOK_INSTALL_EXCEPTION reason=" + ex.Message);
+                RecordError("HOOK_INSTALL_EXCEPTION");
+            }
+        }
+
+        // 60초마다: 훅 재설치로 조용한 훅 소실 방지 + 10분마다 하트비트 기록 + 서버 상태 보고.
+        private void OnWatchdog()
+        {
+            EnsureHook();
+            watchdogTicks++;
+            if (watchdogTicks % 10 == 0)
+            {
+                Log("HEARTBEAT alive successCount=" + successCount);
+                SendHeartbeat();
+            }
+        }
+
+        // 마지막으로 관찰된 오류를 기억해둔다(다음 하트비트에 함께 보고). 성공하면 CLEAR로 비운다.
+        private void RecordError(string error) { lastError = error; }
+
+        private void OnPowerModeChanged(object sender, Microsoft.Win32.PowerModeChangedEventArgs e)
+        {
+            if (e.Mode == Microsoft.Win32.PowerModes.Resume) { EnsureHook(); Log("HOOK_REHOOK reason=RESUME"); }
+        }
+
+        private void OnSessionSwitch(object sender, Microsoft.Win32.SessionSwitchEventArgs e)
+        {
+            if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock
+                || e.Reason == Microsoft.Win32.SessionSwitchReason.SessionLogon
+                || e.Reason == Microsoft.Win32.SessionSwitchReason.ConsoleConnect)
+            {
+                EnsureHook();
+                Log("HOOK_REHOOK reason=" + e.Reason);
+            }
         }
 
         private void HandleKey(int vkCode)
@@ -253,6 +337,7 @@ namespace Meatos.PosAgent
                 if (ok)
                 {
                     successCount++;
+                    lastError = "";
                     Log("SEND_SUCCEEDED code=" + code + " transaction=" + txId);
                     bool shadowMode = body.ContainsKey("shadowMode") && Convert.ToBoolean(body["shadowMode"]);
                     ShowBalloon(shadowMode ? "현장 관찰 완료" : "판매 반영 완료",
@@ -261,12 +346,14 @@ namespace Meatos.PosAgent
                 else
                 {
                     string error = body.ContainsKey("error") ? Convert.ToString(body["error"]) : "SERVER_ERROR";
+                    RecordError("SEND_FAILED:" + error);
                     Log("SEND_FAILED code=" + code + " reason=" + error);
                     ShowBalloon("판매 반영 실패", FriendlyError(error), ToolTipIcon.Warning);
                 }
             }
             catch (Exception ex)
             {
+                RecordError("SEND_EXCEPTION:" + ex.Message);
                 Log("SEND_FAILED code=" + code + " reason=" + ex.Message);
                 ShowBalloon("전송 실패", "네트워크 또는 서버 연결을 확인하세요.", ToolTipIcon.Error);
             }
@@ -288,27 +375,71 @@ namespace Meatos.PosAgent
                     string error = body.ContainsKey("error") ? Convert.ToString(body["error"]) : "";
                     if (error == "INVALID_BARCODE")
                     {
+                        lastError = "";
                         Log("CONNECTION_OK");
                         if (showSuccess) ShowBalloon("연결 정상", config.StoreName + " 서버 인증 완료", ToolTipIcon.Info);
                     }
                     else
                     {
+                        RecordError("CONNECTION_FAILED:" + error);
                         Log("CONNECTION_FAILED reason=" + error);
                         ShowBalloon("연결 확인 필요", FriendlyError(error), ToolTipIcon.Warning);
                     }
                 }
                 catch (Exception ex)
                 {
+                    RecordError("CONNECTION_EXCEPTION:" + ex.Message);
                     Log("CONNECTION_FAILED reason=" + ex.Message);
                     ShowBalloon("연결 실패", "인터넷 연결을 확인하세요.", ToolTipIcon.Error);
                 }
             });
         }
 
+        // 매장에 상주하지 않아도 원격에서(자동 판매연동 화면) 훅/권한/버전/최근 오류를 확인할 수 있도록
+        // 10분마다(+ 시작 직후 1회) 상태를 보고한다. 실패해도 로컬 캡처 동작에는 영향이 없다.
+        private void SendHeartbeat()
+        {
+            if (config == null) return;
+            bool elevatedNow = IsElevated();
+            bool hookOkNow = hookId != IntPtr.Zero;
+            string errorSnapshot = lastError;
+            Task.Run(delegate
+            {
+                try
+                {
+                    var payload = new Dictionary<string, object>();
+                    payload["p_agent_token"] = config.AgentKey;
+                    payload["p_elevated"] = elevatedNow;
+                    payload["p_hook_ok"] = hookOkNow;
+                    payload["p_agent_version"] = AgentVersion;
+                    payload["p_last_error"] = errorSnapshot;
+                    PostTo(HeartbeatRpcUrl(), payload);
+                    Log("HEARTBEAT_SENT elevated=" + elevatedNow + " hookOk=" + hookOkNow);
+                }
+                catch (Exception ex)
+                {
+                    Log("HEARTBEAT_SEND_FAILED reason=" + ex.Message);
+                }
+            });
+        }
+
+        // capture_pos_sale_observation_agent와 같은 REST 베이스에서 함수명만 report_pos_agent_health로 바꾼다.
+        // 이미 설치된 agent.config를 건드리지 않고도(RpcUrl 하나만으로) 새 RPC를 호출할 수 있게 하기 위함.
+        private string HeartbeatRpcUrl()
+        {
+            int index = config.RpcUrl.LastIndexOf('/');
+            return index > 0 ? config.RpcUrl.Substring(0, index + 1) + "report_pos_agent_health" : config.RpcUrl;
+        }
+
         private string Post(Dictionary<string, object> payload)
         {
+            return PostTo(config.RpcUrl, payload);
+        }
+
+        private string PostTo(string url, Dictionary<string, object> payload)
+        {
             byte[] bytes = Encoding.UTF8.GetBytes(json.Serialize(payload));
-            var request = (HttpWebRequest)WebRequest.Create(config.RpcUrl);
+            var request = (HttpWebRequest)WebRequest.Create(url);
             request.Method = "POST";
             request.ContentType = "application/json";
             request.Timeout = 15000;
@@ -350,6 +481,22 @@ namespace Meatos.PosAgent
         private static string Truncate(string value, int max)
         {
             return value.Length <= max ? value : value.Substring(0, max);
+        }
+
+        // 현재 프로세스가 관리자 권한으로 실행 중인지 확인한다.
+        // POS 프로그램이 관리자 권한이면, 이 값이 False인 동안은 그 창이 활성화된 시간대에
+        // 저수준 키보드 훅이 조용히(에러 로그 없이) 입력을 못 받는다(Windows UIPI).
+        private static bool IsElevated()
+        {
+            try
+            {
+                using (var identity = WindowsIdentity.GetCurrent())
+                {
+                    var principal = new WindowsPrincipal(identity);
+                    return principal.IsInRole(WindowsBuiltInRole.Administrator);
+                }
+            }
+            catch { return false; }
         }
 
         private static IntPtr SetHook(HookProc proc)

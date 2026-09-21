@@ -523,7 +523,7 @@ th,
 td {
   padding: 13px 12px;
   border-bottom: 1px solid var(--line);
-  text-align: left;
+  text-align: center !important;
   vertical-align: middle;
 }
 

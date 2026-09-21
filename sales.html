@@ -52,6 +52,9 @@
   input, select { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; margin-top:4px; }
   button.primary { display:block; width:100%; margin-top:12px; padding:14px; font-size:16px; font-weight:800; border:none; border-radius:12px; background:#16a34a; color:#fff; cursor:pointer; }
   .msg { font-size:13px; margin-top:8px; }
+  .cancel-btn { min-height:34px; padding:5px 10px; border:1px solid #dc2626; border-radius:8px; background:#fff; color:#b91c1c; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; }
+  .cancel-btn:disabled { border-color:#d1d5db; color:#9ca3af; cursor:not-allowed; }
+  .cancelled { display:inline-flex; padding:3px 9px; border-radius:999px; background:#f3f4f6; color:#6b7280; font-size:12px; font-weight:800; }
 </style>
 </head>
 <body>
@@ -72,7 +75,7 @@
     <h2>🧾 매출 내역 <span class="r" id="list-scope">(최신순)</span></h2>
     <div id="list-reset" style="margin-bottom:6px;display:none"><span class="link" id="reset-btn">← 전체 보기</span></div>
     <div style="overflow-x:auto"><table class="lst">
-      <thead><tr><th>판매일시</th><th>매장</th><th class="name">상품</th><th>바코드</th><th class="num">수량</th><th class="num">판매단가</th><th class="num">판매금액</th><th>POS 거래번호</th><th>상태</th></tr></thead>
+      <thead><tr><th>판매일시</th><th>매장</th><th class="name">상품</th><th>바코드</th><th class="num">수량</th><th class="num">판매단가</th><th class="num">판매금액</th><th>POS 거래번호</th><th>상태/관리</th></tr></thead>
       <tbody id="tb"><tr><td colspan="9" class="muted">불러오는 중…</td></tr></tbody>
     </table></div>
   </div>
@@ -82,7 +85,7 @@
     <div class="mbox">
       <div class="mhead"><b>➕ 판매 입력</b><button id="mclose">닫기</button></div>
       <div class="frm">
-        <div class="full"><label>품목명<input id="f-item" type="text" placeholder="예: 삼겹살" /></label></div>
+        <div class="full"><label>품목명<input id="f-item" type="text" list="sale-products" placeholder="재고 품목 선택" /><datalist id="sale-products"></datalist></label></div>
         <div><label>수량<input id="f-qty" type="number" step="0.01" placeholder="0" /></label></div>
         <div><label>단가(원)<input id="f-price" type="number" step="1" placeholder="0" /></label></div>
         <div><label>금액(원)<input id="f-amt" type="number" step="1" placeholder="자동 계산" /></label></div>
@@ -129,6 +132,16 @@ function monthStart(){ const d=new Date(); return d.getFullYear()+"-"+pad(d.getM
 
 let ALL = [];
 let STORE_NAMES = {};
+async function loadSaleProducts(){
+  try{
+    const storeFilter=window.MEATOS_CONTEXT?.storeId?"&store_id=eq."+encodeURIComponent(window.MEATOS_CONTEXT.storeId):"";
+    const response=await fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT+storeFilter+"&is_active=eq.true&select=raw_product_name,quantity,movement_type&limit=5000",{headers:H});
+    if(!response.ok)return;
+    const balances=new Map();
+    (await response.json()).forEach(row=>balances.set(row.raw_product_name,(balances.get(row.raw_product_name)||0)+(row.movement_type==="OUT"?-1:1)*(Number(row.quantity)||0)));
+    document.getElementById("sale-products").innerHTML=[...balances.entries()].filter(([,qty])=>qty>0).map(([name])=>"<option value=\""+esc(name)+"\"></option>").join("");
+  }catch(error){}
+}
 async function load(){
   try{
     const sr=await fetch(REST+"/store?company_id=eq."+TENANT+"&select=id,name",{headers:H});
@@ -141,13 +154,14 @@ async function load(){
   }catch(e){ ALL = []; }
   renderKpis(); renderList(); renderCalendar();   // 실패해도 항상 렌더(로딩 멈춤 방지)
 }
+loadSaleProducts();
 async function jget(path){ try{ const r=await fetch(REST+path,{headers:H}); return r.ok?await r.json():null; }catch(e){ return null; } }
 function setKpi(m,w,d){
   document.getElementById("k-m").textContent=m.cnt+"건"; document.getElementById("k-m-amt").textContent=won(m.amt)+"원";
   document.getElementById("k-w").textContent=w.cnt+"건"; document.getElementById("k-w-amt").textContent=won(w.amt)+"원";
   document.getElementById("k-d").textContent=d.cnt+"건"; document.getElementById("k-d-amt").textContent=won(d.amt)+"원";
 }
-function sumRange(from){ const rows=ALL.filter(x=>x.sale_date>=from); return { cnt:rows.length, amt:rows.reduce((s,x)=>s+(Number(x.amount)||0),0) }; }
+function sumRange(from){ const rows=ALL.filter(x=>x.sale_date>=from&&!x.is_cancelled); return { cnt:rows.length, amt:rows.reduce((s,x)=>s+(Number(x.amount)||0),0) }; }
 async function renderKpis(){
   const ds = await jget("/daily_sales_summary?company_id=eq."+TENANT+"&day=gte."+monthStart()+"&select=day,order_cnt,amount");
   if(Array.isArray(ds)){
@@ -166,10 +180,10 @@ async function renderCalendar(){
   const startDow=new Date(y,m,1).getDay();
   const dim=new Date(y,m+1,0).getDate();
   // 표시 월 데이터 조회(없으면 로드된 ALL에서 필터)
-  let rows = await jget("/sales_record?tenant_id=eq."+TENANT+"&sale_date=gte."+ym+"-01&sale_date=lte."+ym+"-31&select=sale_date,amount&limit=3000");
+  let rows = await jget("/sales_record?tenant_id=eq."+TENANT+"&sale_date=gte."+ym+"-01&sale_date=lte."+ym+"-31&select=sale_date,amount,is_cancelled&limit=3000");
   if(!Array.isArray(rows)) rows = ALL.filter(x=>x.sale_date && x.sale_date.slice(0,7)===ym);
   const byDay={};
-  rows.forEach(x=>{ if(x.sale_date && x.sale_date.slice(0,7)===ym){ byDay[x.sale_date]=(byDay[x.sale_date]||0)+(Number(x.amount)||0); } });
+  rows.forEach(x=>{ if(!x.is_cancelled && x.sale_date && x.sale_date.slice(0,7)===ym){ byDay[x.sale_date]=(byDay[x.sale_date]||0)+(Number(x.amount)||0); } });
   let html="<table class='cal'><thead><tr><th class='sun'>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class='sat'>토</th><th class='sumcol'>계</th></tr></thead><tbody>";
   let day=1, monthTotal=0;
   for(let w=0; w<6 && day<=dim; w++){
@@ -209,8 +223,28 @@ function renderList(rows){
     "<td>"+esc(STORE_NAMES[x.store_id]||chanBadge(x.channel).replace(/<[^>]+>/g,""))+"</td><td class='name'>"+esc(x.item_name)+"</td>"+
     "<td>"+esc(x.barcode||"-")+"</td><td class='num'>"+(x.quantity!=null?won(x.quantity):"-")+"</td>"+
     "<td class='num'>"+(x.unit_price!=null?won(x.unit_price):"-")+"</td><td class='num'>"+won(x.amount)+"</td>"+
-    "<td>"+esc(x.external_transaction_id||"-")+"</td><td>"+(x.is_cancelled?"취소":"완료")+"</td></tr>").join("");
+    "<td>"+esc(x.external_transaction_id||"-")+"</td><td>"+(x.is_cancelled
+      ?"<span class='cancelled'>취소됨</span>"
+      :"<button class='cancel-btn' type='button' data-sale-id='"+esc(x.id)+"'"+(window.MEATOS_CONTEXT?.isBusiness?"":" disabled title='기업 로그인 후 이용'")+">판매취소</button>")+"</td></tr>").join("");
 }
+document.getElementById("tb").addEventListener("click",async(event)=>{
+  const button=event.target.closest(".cancel-btn");
+  if(!button||button.disabled)return;
+  const sale=ALL.find(row=>row.id===button.dataset.saleId);
+  if(!sale||sale.is_cancelled)return;
+  if(!confirm(sale.item_name+" "+won(sale.amount)+"원 매출을 취소할까요?\n재고 차감이 있었던 판매는 자동으로 재고가 돌아옵니다."))return;
+  button.disabled=true; button.textContent="취소 중…";
+  try{
+    const response=await fetch(REST+"/rpc/cancel_sales_record",{method:"POST",headers:HW,body:JSON.stringify({p_sale_id:sale.id,p_reason:"매출현황에서 판매취소"})});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok||result.ok===false)throw new Error(result.message||result.error||"HTTP "+response.status);
+    alert(result.stockRestored?"판매가 취소되고 재고 "+won(result.restoredQuantity)+"kg이 원복되었습니다.":"판매가 취소되었습니다. 이 매출은 재고 차감이 없는 기록이라 재고는 변경하지 않았습니다.");
+    await load();
+  }catch(error){
+    alert("판매취소 실패: "+error.message);
+    button.disabled=false; button.textContent="판매취소";
+  }
+});
 load();
 
 // 월 이동
@@ -231,16 +265,19 @@ document.getElementById("saveBtn").addEventListener("click", async ()=>{
   const item=(document.getElementById("f-item").value||"").trim();
   if(!item){ msg.style.color="#b91c1c"; msg.textContent="품목명을 입력하세요."; return; }
   const q=document.getElementById("f-qty").value, p=document.getElementById("f-price").value, a=document.getElementById("f-amt").value;
-  const row={ tenant_id:TENANT, sale_date:document.getElementById("f-date").value||today, item_name:item,
-    quantity: q!==""?Number(q):null, unit_price: p!==""?Number(p):null,
-    amount: a!==""?Number(a):(q&&p?Math.round(Number(q)*Number(p)):0),
-    channel: document.getElementById("f-channel").value,
-    memo:(document.getElementById("f-memo").value||"").trim()||null };
+  const row={
+    p_item_name:item, p_quantity:q!==""?Number(q):null, p_unit_price:p!==""?Number(p):null,
+    p_amount:a!==""?Number(a):(q&&p?Math.round(Number(q)*Number(p)):0),
+    p_sale_date:document.getElementById("f-date").value||today,
+    p_channel:document.getElementById("f-channel").value,
+    p_memo:(document.getElementById("f-memo").value||"").trim()||null
+  };
   msg.style.color="#6b7280"; msg.textContent="저장 중…";
   try{
-    const r=await fetch(REST+"/sales_record",{method:"POST",headers:{...HW,Prefer:"return=minimal"},body:JSON.stringify(row)});
-    if(!r.ok) throw new Error(r.status+": "+(await r.text()).slice(0,150));
-    msg.style.color="#166534"; msg.textContent="✓ 매출 저장 완료";
+    const r=await fetch(REST+"/rpc/record_manual_sale",{method:"POST",headers:HW,body:JSON.stringify(row)});
+    const result=await r.json().catch(()=>({}));
+    if(!r.ok||result.ok===false) throw new Error(result.message||result.error||r.status);
+    msg.style.color="#166534"; msg.textContent="✓ 매출 저장 및 재고 차감 완료";
     document.getElementById("f-item").value=""; document.getElementById("f-qty").value=""; document.getElementById("f-price").value=""; document.getElementById("f-amt").value=""; document.getElementById("f-memo").value=""; amtTouched=false;
     load();
     setTimeout(()=>{ closeInput(); msg.textContent=""; }, 700);

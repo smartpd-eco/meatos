@@ -45,12 +45,33 @@
     </table></div>
   </div>
 
-<script src="header.js"></script>
+<script src="header.js?v=20260728-data-loader-2"></script>
+<script>
+window.__MEATOS_DETAIL_LOAD_GUARD = setTimeout(function () {
+  var target = document.getElementById("tb");
+  if (target && /불러오는 중/.test(target.textContent || "")) {
+    target.innerHTML = "<tr><td colspan='4' class='muted'>데이터 연결이 지연되고 있습니다.<br><button type='button' onclick='location.reload()' style='margin-top:10px;padding:9px 14px;border:0;border-radius:9px;background:#2563eb;color:#fff;font-weight:700'>페이지 새로고침</button></td></tr>";
+  }
+}, 10000);
+</script>
 <script>
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const TENANT = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
 const H = window.MEATOS_API_HEADERS;
+async function getJson(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(url, { headers:H, signal:controller.signal });
+    if(response.status===401) throw new Error("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
+    if(!response.ok) throw new Error("데이터 요청 실패 (HTTP "+response.status+")");
+    return await response.json();
+  } catch(error) {
+    if(error && error.name==="AbortError") throw new Error("데이터 응답 시간이 초과되었습니다.");
+    throw error;
+  } finally { clearTimeout(timer); }
+}
 const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 function pad(n){ return String(n).padStart(2,"0"); }
@@ -71,13 +92,11 @@ const dateOf = (d) => d.invoice_date || (d.created_at ? d.created_at.slice(0,10)
 let ALL = [];
 async function load(){
   try{
-    const r = await fetch(REST+"/ocr_document?tenant_id=eq."+TENANT+"&document_status=eq.POSTED&select=id,invoice_date,total_amount,parsed_json,created_at&order=created_at.desc&limit=500",{headers:H});
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    ALL = await r.json();
+    ALL = await getJson(REST+"/ocr_document?tenant_id=eq."+TENANT+"&document_status=eq.POSTED&select=id,invoice_date,total_amount,parsed_json,created_at&order=created_at.desc&limit=500");
     renderKpis(); renderList();
-  }catch(e){ document.getElementById("tb").innerHTML="<tr><td colspan='4' class='muted'>불러오기 실패: "+esc(e.message)+"</td></tr>"; }
+  }catch(e){ document.getElementById("tb").innerHTML="<tr><td colspan='4' class='muted'>불러오기 실패: "+esc(e.message)+"<br><button type='button' onclick='load()' style='margin-top:10px;padding:9px 14px;border:0;border-radius:9px;background:#2563eb;color:#fff;font-weight:700'>다시 시도</button></td></tr>"; }
 }
-async function jget(path){ try{ const r=await fetch(REST+path,{headers:H}); return r.ok?await r.json():null; }catch(e){ return null; } }
+async function jget(path){ try{ return await getJson(REST+path); }catch(e){ return null; } }
 function setKpi(m,w,d){
   document.getElementById("k-m").textContent=m.cnt+"건"; document.getElementById("k-m-amt").textContent=won(m.amt)+"원";
   document.getElementById("k-w").textContent=w.cnt+"건"; document.getElementById("k-w-amt").textContent=won(w.amt)+"원";

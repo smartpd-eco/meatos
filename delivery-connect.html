@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>쿠팡이츠 매출 연동 · 정육비서</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,sans-serif;background:#f3f4f6;color:#111827;padding:14px}
+  h1{font-size:20px;margin:2px 0 4px}
+  .sub{color:#6b7280;font-size:13px;margin-bottom:14px;line-height:1.55}
+  .card{background:#fff;border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .card h2{font-size:15px;margin:0 0 10px}
+  .brand{font-size:22px;font-weight:900;color:#1a8f5a;letter-spacing:-.02em;margin:2px 0 16px}
+  label{display:block;font-size:13px;font-weight:800;color:#111827;margin-top:14px}
+  .req{color:#2563eb;font-size:12px;margin-left:4px}
+  input[type=text],input[type=password]{width:100%;margin-top:8px;padding:13px;border:1px solid #d1d5db;border-radius:10px;font-size:15px}
+  .pw{position:relative}
+  .pw button{position:absolute;right:8px;top:50%;transform:translateY(-30%);border:0;background:transparent;font-size:18px;cursor:pointer;color:#6b7280}
+  .consent{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:13px;font-weight:700;color:#374151}
+  .consent input{width:18px;height:18px}
+  button.primary{display:block;width:100%;margin-top:16px;padding:15px;font-size:16px;font-weight:800;border:0;border-radius:12px;background:#16a34a;color:#fff;cursor:pointer}
+  button.primary:disabled{background:#cbd5e1;cursor:not-allowed}
+  .secnote{margin-top:12px;font-size:12px;color:#6b7280;line-height:1.5}
+  .msg{margin-top:10px;font-size:13px;font-weight:700}
+  .status{border-radius:10px;padding:12px;font-weight:800;font-size:14px}
+  .status.out{background:#fef2f2;color:#b91c1c}
+  .status.ok{background:#dcfce7;color:#166534}
+  .status.pending{background:#fef9c3;color:#854d0e}
+  .muted{color:#6b7280;font-size:13px;line-height:1.6}
+  .notice{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:10px;padding:12px;font-size:13px;line-height:1.6}
+  .notice b{color:#b45309}
+</style>
+</head>
+<body>
+  <h1>🛵 쿠팡이츠 매출 연동</h1>
+  <div class="sub">쿠팡이츠 사장님 포털 계정으로 연결하면, 쿠팡이츠 <b>매출·정산·입금 예정</b>을 자동으로 불러와 매출현황에 함께 보여줍니다.</div>
+
+  <div class="card">
+    <div class="brand">쿠팡이츠 Portal</div>
+    <label>쿠팡이츠 아이디<span class="req">필수</span>
+      <input id="ce-id" type="text" autocomplete="off" placeholder="아이디 입력" />
+    </label>
+    <label>쿠팡이츠 비밀번호<span class="req">필수</span></label>
+    <div class="pw">
+      <input id="ce-pw" type="password" autocomplete="off" placeholder="비밀번호 입력" />
+      <button type="button" id="ce-eye" aria-label="비밀번호 표시">👁</button>
+    </div>
+    <label class="consent"><input type="checkbox" id="ce-agree" /> <span>(필수) 배달앱 조회 및 알림서비스 동의</span></label>
+    <button class="primary" id="ce-connect" disabled>연결하기</button>
+    <div class="msg" id="ce-msg"></div>
+    <div class="secnote">🔒 비밀번호는 <b>정육비서 서버에 저장되지 않습니다.</b> 연결 시 매출 집계사로 암호화 전송만 되며, 조회 목적 외에는 쓰지 않습니다.</div>
+  </div>
+
+  <div class="card">
+    <h2>연동 상태</h2>
+    <div class="status out" id="ce-status">미연결 · 아직 쿠팡이츠 매출을 불러오지 않았습니다.</div>
+    <div class="muted" style="margin-top:10px">연결 후 쿠팡이츠 매출은 집계 방식 특성상 보통 <b>2~3일</b> 뒤부터 채워집니다.</div>
+  </div>
+
+  <div class="card">
+    <h2>불러온 매출·입금</h2>
+    <div class="muted" id="ce-list">연동이 켜지면 여기에 쿠팡이츠 <b>일자별 매출·정산·입금 예정</b>이 표시되고, 매출현황·카드 입금예정과 합산됩니다.</div>
+  </div>
+
+  <div class="notice">
+    ℹ <b>준비중</b> — 실제 자동 수집은 배달앱 매출 집계사(Hyphen 등) 연동 후 켜집니다. 참고로 배달의민족은 정책상 <b>2026-01-01부터 ID/PW 연결이 중단</b>되며, 쿠팡이츠도 수집 지연이 생길 수 있습니다.
+  </div>
+
+<script src="header.js"></script>
+<script>
+  const id = document.getElementById("ce-id");
+  const pw = document.getElementById("ce-pw");
+  const agree = document.getElementById("ce-agree");
+  const connect = document.getElementById("ce-connect");
+  const msg = document.getElementById("ce-msg");
+  const statusEl = document.getElementById("ce-status");
+
+  function refresh(){
+    connect.disabled = !(id.value.trim() && pw.value.trim() && agree.checked);
+  }
+  [id, pw].forEach((el) => el.addEventListener("input", refresh));
+  agree.addEventListener("change", refresh);
+
+  document.getElementById("ce-eye").addEventListener("click", () => {
+    pw.type = pw.type === "password" ? "text" : "password";
+  });
+
+  connect.addEventListener("click", () => {
+    // UI 단계: 자격증명을 저장/전송하지 않는다. 집계사 연동이 붙으면 이 자리에서 서버로 안전 전송한다.
+    connect.disabled = true;
+    statusEl.className = "status pending";
+    statusEl.textContent = "연결 요청 접수됨 · 집계 연동 준비 중";
+    msg.style.color = "#854d0e";
+    msg.textContent = "지금은 화면 준비 단계입니다. 매출 집계사(Hyphen 등) 연동이 완료되면, 이 계정으로 쿠팡이츠 매출이 자동 수집됩니다. (비밀번호는 저장하지 않았습니다.)";
+    // 메모리에서 비밀번호 즉시 제거
+    pw.value = "";
+    setTimeout(refresh, 50);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>쿠팡이츠 자동수집 · 정육비서</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:14px;background:#f3f4f6;color:#111827;font-family:system-ui,sans-serif}
+h1{font-size:22px;margin:2px 0 5px}.sub{font-size:13px;color:#64748b;line-height:1.55;margin-bottom:13px}
+.hero,.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.hero{border:1px solid #fecaca;background:#fff7f7}.hero b{display:block;font-size:17px;color:#b91c1c;margin-bottom:5px}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.step{position:relative;text-align:center;padding:13px 8px;border-radius:11px;background:#f8fafc;font-size:13px;font-weight:750}
+.step:not(:last-child):after{content:"›";position:absolute;right:-7px;top:10px;color:#94a3b8;font-size:22px;z-index:1}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.stat{background:#f8fafc;border-radius:10px;padding:12px;text-align:center}.stat b{display:block;font-size:22px}.stat span{font-size:11px;color:#64748b}
+.stat.review{background:#fff7ed}.stat.review b{color:#c2410c}.card h2{font-size:16px;margin:0 0 11px}
+.notice{border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:10px;padding:11px 12px;font-size:13px;line-height:1.55}
+.notice.bad{border-color:#fecaca;background:#fef2f2;color:#b91c1c}
+.orders{display:grid;gap:8px}.order{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:10px;padding:11px}.order b{display:block}.order small{display:block;color:#64748b;margin-top:3px}.badge{white-space:nowrap;border-radius:999px;padding:5px 8px;font-size:11px;font-weight:800;background:#dcfce7;color:#166534}.badge.review{background:#ffedd5;color:#9a3412}.badge.open{background:#dbeafe;color:#1d4ed8}
+.event{display:grid;grid-template-columns:100px 1fr 90px;gap:8px;align-items:center;border-bottom:1px solid #eef2f7;padding:9px 3px;font-size:13px}.event:last-child{border-bottom:0}.event time{color:#64748b}.event .error{color:#b91c1c;font-weight:750}
+@media(max-width:640px){.flow,.stats{grid-template-columns:1fr 1fr}.step:after{display:none}.event{grid-template-columns:82px 1fr}.event>:last-child{grid-column:2}}
+</style>
+</head>
+<body>
+<h1>쿠팡이츠 자동수집</h1>
+<div class="sub">사장님은 쿠팡이츠 주문을 받고 평소대로 상품을 준비해 저울 라벨만 출력하면 됩니다. 주문번호·금액·라벨은 설치된 에이전트가 자동으로 결합합니다.</div>
+
+<div class="hero">
+  <b>추가 입력 0회</b>
+  주문번호 입력, 금액 입력, 별도 완료 버튼 없이 자동수집합니다. 최초 현장 검증 중에는 그림자 모드로 기록만 하고 재고·매출은 건드리지 않습니다.
+</div>
+
+<div class="card">
+  <h2>매장 작업 흐름</h2>
+  <div class="flow">
+    <div class="step">쿠팡 주문 접수</div><div class="step">상품 준비</div><div class="step">저울·라벨 출력</div><div class="step">자동 매칭</div>
+  </div>
+  <div class="notice" id="mode" style="margin-top:11px">자동수집 상태를 확인하는 중입니다.</div>
+  <div class="stats">
+    <div class="stat"><b id="order-count">-</b><span>오늘 주문전표</span></div>
+    <div class="stat"><b id="label-count">-</b><span>오늘 저울라벨</span></div>
+    <div class="stat"><b id="matched-count">-</b><span>자동 매칭</span></div>
+    <div class="stat review"><b id="review-count">-</b><span>확인 필요</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>최근 자동수집 주문</h2>
+  <div class="orders" id="orders"><div class="sub">불러오는 중입니다.</div></div>
+</div>
+
+<div class="card">
+  <h2>예외·수집 기록</h2>
+  <div class="sub">정상 건은 자동 처리하고, 전표 해석 실패·미등록 라벨·재고 부족처럼 사람이 판단해야 하는 건만 여기에 표시합니다.</div>
+  <div id="events"><div class="sub">불러오는 중입니다.</div></div>
+</div>
+
+<script src="header.js?v=20260729-delivery-signal-1"></script>
+<script>
+const REST="https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const H=window.MEATOS_API_HEADERS,TENANT=window.MEATOS_TENANT,CTX=window.MEATOS_CONTEXT||{},STORE=CTX.storeId||null;
+const esc=value=>String(value??"").replace(/[&<>"]/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[char]));
+const won=value=>Math.round(Number(value)||0).toLocaleString("ko-KR");
+async function request(path){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+  try{const response=await fetch(REST+path,{headers:H,signal:controller.signal}),text=await response.text();let body;try{body=JSON.parse(text)}catch{}
+    if(!response.ok)throw new Error(body?.message||body?.error||("HTTP "+response.status));return body||[];
+  }finally{clearTimeout(timer)}
+}
+function startOfToday(){const now=new Date();now.setHours(0,0,0,0);return now.toISOString()}
+function badge(status){const css=status==="REVIEW"?"review":status==="OPEN"?"open":"";return"<span class='badge "+css+"'>"+esc(status)+"</span>"}
+async function load(){
+  const mode=document.getElementById("mode");
+  if(!CTX.isBusiness&&!window.MEATOS_GUEST_MODE){mode.className="notice bad";mode.textContent="승인된 기업 계정과 기본매장이 필요합니다.";return}
+  try{
+    const since=encodeURIComponent(startOfToday());
+    const [orders,events]=await Promise.all([
+      request("/delivery_order?company_id=eq."+TENANT+"&store_id=eq."+encodeURIComponent(STORE)+"&channel=eq.COUPANG_EATS&select=id,external_order_id,status,order_amount,scale_amount,capture_mode,shadow_mode,match_confidence,created_at,fulfilled_at&order=created_at.desc&limit=30"),
+      request("/delivery_capture_event?company_id=eq."+TENANT+"&store_id=eq."+encodeURIComponent(STORE)+"&captured_at=gte."+since+"&select=id,event_type,status,error_code,external_order_id,barcode,amount,captured_at,match_confidence,raw_product_name,printed_weight,printed_unit_price,printed_amount,parser_version&order=captured_at.desc&limit=200")
+    ]);
+    const todayOrders=events.filter(row=>row.event_type==="ORDER_RECEIPT");
+    const labels=events.filter(row=>row.event_type==="SCALE_LABEL"||row.event_type==="LABEL_PRINT");
+    const reviews=events.filter(row=>row.status==="REVIEW"||row.status==="FAILED");
+    document.getElementById("order-count").textContent=todayOrders.length;
+    document.getElementById("label-count").textContent=labels.length;
+    document.getElementById("matched-count").textContent=events.filter(row=>row.status==="MATCHED"||row.status==="PROCESSED").length;
+    document.getElementById("review-count").textContent=reviews.length;
+    const autoOrders=orders.filter(row=>row.capture_mode==="SERIAL_RECEIPT"||row.capture_mode==="AUTO");
+    const shadow=!autoOrders.length||autoOrders.some(row=>row.shadow_mode);
+    mode.className="notice"+(reviews.length?" bad":"");
+    mode.innerHTML=shadow?"<b>그림자 검증 모드:</b> 자동수집·매칭만 기록하며 재고와 매출은 변경하지 않습니다."
+      :"<b>자동 반영 모드:</b> 검증을 통과한 주문과 라벨이 재고·매출에 자동 반영됩니다.";
+    document.getElementById("orders").innerHTML=autoOrders.length?autoOrders.map(row=>
+      "<div class='order'><div><b>"+esc(row.external_order_id)+" · "+won(row.order_amount)+"원</b><small>라벨 "+won(row.scale_amount)+"원 · "+new Date(row.fulfilled_at||row.created_at).toLocaleString("ko-KR")+"</small></div>"+badge(row.status)+"</div>"
+    ).join(""):"<div class='sub'>아직 자동수집된 주문이 없습니다.</div>";
+    const visible=reviews.length?reviews:events.slice(0,20);
+    document.getElementById("events").innerHTML=visible.length?visible.map(row=>
+      "<div class='event'><time>"+new Date(row.captured_at).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})+"</time><div><b>"+esc(row.raw_product_name||row.event_type)+"</b><br><span>"+esc(row.external_order_id||row.barcode||"-")+(row.printed_weight?" · "+row.printed_weight+"kg":"")+(row.printed_unit_price?" · 단가 "+won(row.printed_unit_price)+"원":"")+(row.printed_amount!=null?" · 금액 "+won(row.printed_amount)+"원":"")+"</span></div><div class='"+(row.error_code?"error":"")+"'>"+esc(row.error_code||row.status)+"</div></div>"
+    ).join(""):"<div class='sub'>오늘 수집 기록이 없습니다.</div>";
+  }catch(error){mode.className="notice bad";mode.textContent="자동수집 현황을 불러오지 못했습니다: "+error.message}
+}
+load();setInterval(load,10000);
+</script>
+</body>
+</html>

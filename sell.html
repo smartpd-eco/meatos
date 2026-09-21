@@ -33,7 +33,7 @@
 </head>
 <body>
   <h1>판매 스캔 (자동 출고)</h1>
-  <div class="sub">저울 라벨/상품 바코드를 스캔하면 재고가 자동으로 빠지고 매출이 기록됩니다.</div>
+  <div class="sub" id="product-status">판매 가능한 재고 품목을 불러오는 중입니다.</div>
 
   <div class="scan">
     <input id="scan" type="text" inputmode="numeric" aria-label="상품 바코드 스캔" placeholder="여기를 누르고 바코드를 스캔하세요" autocomplete="off" />
@@ -115,9 +115,30 @@ async function loadMaps(){
     if(r.ok){ (await r.json()).forEach(m=>MAPS[m.barcode_key]=m); } }catch(e){}
 }
 async function loadProducts(){
-  try{ const r=await fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT+"&select=raw_product_name&limit=5000",{headers:H});
-    if(r.ok){ const s=new Set((await r.json()).map(x=>x.raw_product_name).filter(Boolean)); PRODUCTS=[...s].sort();
-      document.getElementById("prodlist").innerHTML = PRODUCTS.map(p=>"<option value=\""+esc(p)+"\">").join(""); } }catch(e){}
+  const status=document.getElementById("product-status");
+  try{
+    const storeFilter=STORE?"&store_id=eq."+encodeURIComponent(STORE):"";
+    const r=await fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT+storeFilter+"&is_active=eq.true&select=raw_product_name,unit,quantity,movement_type&limit=5000",{headers:H});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const balances=new Map();
+    (await r.json()).forEach(row=>{
+      const key=(row.raw_product_name||"")+"|"+(row.unit||"kg");
+      const sign=row.movement_type==="OUT"?-1:1;
+      balances.set(key,(balances.get(key)||0)+sign*(Number(row.quantity)||0));
+    });
+    PRODUCTS=[...balances.entries()]
+      .filter(([key,quantity])=>key.split("|")[0]&&quantity>0)
+      .map(([key])=>key.split("|")[0])
+      .filter((name,index,list)=>list.indexOf(name)===index)
+      .sort();
+    document.getElementById("prodlist").innerHTML = PRODUCTS.map(p=>"<option value=\""+esc(p)+"\">").join("");
+    status.textContent=PRODUCTS.length
+      ?("현재 매장에서 판매 가능한 재고 "+PRODUCTS.length+"종을 불러왔습니다.")
+      :"현재 매장에 판매 가능한 재고가 없습니다. 먼저 입고와 매장 귀속을 확인하세요.";
+  }catch(e){
+    PRODUCTS=[];
+    status.textContent="재고 품목을 불러오지 못했습니다: "+e.message;
+  }
 }
 loadMaps(); loadProducts();
 
@@ -215,8 +236,10 @@ async function record(map, qty, amount, barcode){
     quantity:qty, unit_price:price, amount:amount, channel:"STORE", memo:"스캔 판매",
     barcode:String(barcode||""), external_transaction_id:externalTransactionId, sold_at:new Date().toISOString(), source:"web-scan", is_cancelled:false };
   try{
-    const r1=await fetch(REST+"/inventory_movement",{method:"POST",headers:HW,body:JSON.stringify(mv)});
+    const r1=await fetch(REST+"/inventory_movement",{method:"POST",headers:{...HW,Prefer:"return=representation"},body:JSON.stringify(mv)});
     if(!r1.ok) throw new Error("재고 "+r1.status);
+    const movementRows=await r1.json();
+    sale.inventory_movement_id=movementRows[0]?.id||null;
     let r2=await fetch(REST+"/sales_record",{method:"POST",headers:HW,body:JSON.stringify(sale)});
     if(!r2.ok && r2.status===400){
       const legacySale={ tenant_id:TENANT, company_id:COMPANY, store_id:STORE, sale_date:sale.sale_date, item_name:sale.item_name,

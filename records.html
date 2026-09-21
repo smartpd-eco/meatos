@@ -34,6 +34,27 @@
   tfoot td { font-weight:800; background:#f9fafb; }
   .back { margin:8px 0; display:inline-block; color:#2563eb; cursor:pointer; }
   .tracelink { color:#2563eb; text-decoration:none; font-weight:700; white-space:nowrap; }
+  /* 제목줄 + 출력 버튼 */
+  .page-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:2px 0 12px; }
+  .page-head h1 { margin:0; }
+  .export-btn { flex:none; padding:10px 14px; border:0; border-radius:10px; background:#2563eb; color:#fff; font-weight:800; font-size:14px; cursor:pointer; white-space:nowrap; }
+  /* 카드 아코디언 */
+  .card-head { cursor:pointer; }
+  .caret { font-size:12px; color:#9ca3af; display:inline-block; transition:transform .15s; }
+  .card.expanded .caret { transform:rotate(180deg); }
+  .detail-inline { margin-top:10px; border-top:1px dashed #e5e7eb; padding-top:10px; }
+  /* 기간 조회 모달 */
+  .export-modal { position:fixed; inset:0; z-index:100000; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; padding:16px; }
+  .export-box { background:#fff; border-radius:14px; max-width:420px; width:100%; padding:18px; }
+  .export-box h3 { margin:0 0 4px; font-size:17px; }
+  .export-box .desc { color:#6b7280; font-size:13px; margin-bottom:12px; }
+  .export-row { display:flex; gap:8px; margin-bottom:10px; }
+  .export-row label { flex:1; font-size:12px; color:#6b7280; font-weight:700; }
+  .export-row input { width:100%; margin-top:4px; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; }
+  .export-actions { display:flex; gap:8px; margin-top:6px; }
+  .export-actions button { flex:1; min-height:46px; border:0; border-radius:10px; font-weight:800; font-size:15px; cursor:pointer; }
+  .export-actions .go { background:#2563eb; color:#fff; } .export-actions .cancel { background:#e5e7eb; color:#374151; }
+  .export-msg { font-size:13px; margin-top:8px; min-height:18px; }
   #trace-print-area { display:none; }
   @media print {
     body.trace-printing > *:not(#trace-print-area) { display:none !important; }
@@ -43,16 +64,15 @@
 </head>
 <body>
 <script src="header.js"></script>
-  <h1 id="page-title">명세서별 매입현황</h1>
+<script src="src/data/product-name-substitution.js?v=20260813-records-export"></script>
+  <div class="page-head">
+    <h1 id="page-title">명세서별 매입현황</h1>
+    <button id="export-btn" class="export-btn" type="button">📄 거래내역서 출력</button>
+  </div>
 
   <div id="listView">
     <input id="q" type="text" aria-label="공급자 또는 날짜 검색" placeholder="공급자 또는 날짜로 검색 (예: 좋은축산 / 2026-07)" />
     <div id="list"><p class="muted">불러오는 중...</p></div>
-  </div>
-
-  <div id="detailView" style="display:none">
-    <span class="back" id="back">‹ 목록으로</span>
-    <div id="detail"></div>
   </div>
 
 <script>
@@ -202,6 +222,7 @@ async function openTrace(no){
 document.addEventListener("click", function(e){ const a=e.target.closest && e.target.closest(".tracelink"); if(a){ e.preventDefault(); openTrace(a.dataset.no); } });
 
 let ALL = [];
+const PRODUCT_NAMES = window.MEATOS_PRODUCT_NAMES || null;
 const INITIAL_DOCUMENT_ID = new URLSearchParams(location.search).get("id");
 
 async function load() {
@@ -212,7 +233,10 @@ async function load() {
     if (!r.ok) throw new Error("HTTP " + r.status);
     ALL = await r.json();
     renderList(ALL);
-    if (INITIAL_DOCUMENT_ID) showDetail(INITIAL_DOCUMENT_ID);
+    if (INITIAL_DOCUMENT_ID) {
+      const card = document.querySelector('.card[data-id="' + (window.CSS && CSS.escape ? CSS.escape(INITIAL_DOCUMENT_ID) : INITIAL_DOCUMENT_ID) + '"]');
+      if (card) { toggleDetail(INITIAL_DOCUMENT_ID, card); card.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    }
   } catch (e) {
     document.getElementById("list").innerHTML = "<p class='muted'>불러오기 실패: " + esc(e.message) + "</p>";
   }
@@ -222,24 +246,52 @@ function supplierOf(d){ return (d.parsed_json && d.parsed_json.documentFields &&
 function itemsOf(d){ return (d.parsed_json && Array.isArray(d.parsed_json.lineItems)) ? d.parsed_json.lineItems : []; }
 function dateOf(d){ return d.invoice_date || (d.created_at ? d.created_at.slice(0,10) : "-"); }
 
+// ===== 축종/부위/등급 판별 (등급은 소만 표기) =====
+function speciesCategory(name){ try { return PRODUCT_NAMES ? PRODUCT_NAMES.categoryOf(name || "", {}) : "기타"; } catch(e) { return "기타"; } }
+function isBeef(name){ return speciesCategory(name) === "소고기"; }
+function meatKind(name){
+  const cat = speciesCategory(name), n = String(name || "");
+  if (cat === "소고기") { if (/한우/.test(n)) return "쇠고기(한우)"; if (/육우/.test(n)) return "쇠고기(육우)"; if (/젖소|홀스타인|착유/.test(n)) return "쇠고기(젖소)"; return "쇠고기"; }
+  if (cat === "돼지고기") return "돼지고기";
+  if (cat === "닭고기") return "닭고기";
+  return "";
+}
+function partName(name){ try { return (PRODUCT_NAMES ? (PRODUCT_NAMES.classify(name || "", {}).cut || "") : ""); } catch(e) { return ""; } }
+function gradeOfItem(it){ return isBeef(it.rawProductName) ? (it.grade || "") : ""; }
+
 function renderList(rows) {
   const el = document.getElementById("list");
   if (!rows.length) { el.innerHTML = "<p class='muted'>저장된 명세서가 없습니다.</p>"; return; }
   el.innerHTML = rows.map((d) =>
-    "<div class='card' data-id='" + d.id + "'>" +
-      "<div class='row1'><span class='sup'>" + esc(supplierOf(d)) + "</span><span class='amt'>" + won(d.total_amount) + "원</span></div>" +
-      "<div class='meta'>" + esc(dateOf(d)) + " · 품목 " + itemsOf(d).length + "건 · " + esc(d.document_code) + "</div>" +
+    "<div class='card' data-id='" + esc(d.id) + "'>" +
+      "<div class='card-head'>" +
+        "<div class='row1'><span class='sup'>" + esc(supplierOf(d)) + " <span class='caret'>▾</span></span><span class='amt'>" + won(d.total_amount) + "원</span></div>" +
+        "<div class='meta'>" + esc(dateOf(d)) + " · 품목 " + itemsOf(d).length + "건 · " + esc(d.document_code) + "</div>" +
+      "</div>" +
+      "<div class='detail-inline' style='display:none' data-open='0' data-rendered='0'></div>" +
     "</div>"
   ).join("");
-  el.querySelectorAll(".card").forEach((c) => c.addEventListener("click", () => showDetail(c.dataset.id)));
+  el.querySelectorAll(".card").forEach((c) => c.querySelector(".card-head").addEventListener("click", () => toggleDetail(c.dataset.id, c)));
 }
 
-function showDetail(id) {
-  const d = ALL.find((x) => x.id === id); if (!d) return;
+// 카드 클릭 → 하단 인라인 상세 펼침/접힘 (페이지 이동 없음)
+function toggleDetail(id, card) {
+  const cont = card.querySelector(".detail-inline"); if (!cont) return;
+  if (cont.dataset.rendered !== "1") {
+    const d = ALL.find((x) => x.id === id);
+    if (d) { renderDetailInto(cont, d); cont.dataset.rendered = "1"; }
+  }
+  const isOpen = cont.dataset.open === "1";
+  cont.style.display = isOpen ? "none" : "block";
+  cont.dataset.open = isOpen ? "0" : "1";
+  card.classList.toggle("expanded", !isOpen);
+}
+
+function renderDetailInto(cont, d) {
   const items = itemsOf(d);
   const rowsHtml = items.map((it,i) =>
     "<tr><td>"+(i+1)+"</td>"+
-    "<td class='name'>"+esc([it.rawProductName, it.grade].filter(Boolean).join(" ")||"-")+"</td>"+
+    "<td class='name'>"+esc([it.rawProductName, gradeOfItem(it)].filter(Boolean).join(" ")||"-")+"</td>"+
     "<td>"+esc(it.origin||"-")+"</td>"+
     "<td>"+esc(it.unit||"-")+"</td>"+
     "<td class='num'>"+(it.quantity!=null?esc(it.quantity):"-")+"</td>"+
@@ -247,30 +299,23 @@ function showDetail(id) {
     "<td class='num'>"+won(it.supplyAmount)+"</td>"+
     "<td>"+(it.traceOrImportNo ? "<a href='#' class='tracelink' data-no=\""+esc(it.traceOrImportNo)+"\">"+esc(it.traceOrImportNo)+" 🔎</a>" : "-")+"</td></tr>"
   ).join("");
-  document.getElementById("detail").innerHTML =
+  const posted = d.document_status === "POSTED";
+  cont.innerHTML =
     "<div class='invoice'><div class='invoice-title'>거 래 명 세 서</div>" +
     "<div class='ihead'><div><b>공급자</b>"+esc(supplierOf(d))+"</div><div><b>거래일자</b>"+esc(dateOf(d))+"</div></div>" +
     "<div class='twrap'><table><thead><tr><th>No</th><th>상품명 및 등급</th><th>원산지</th><th>단위</th><th>중량(kg)</th><th>단가</th><th>공급가액</th><th>이력번호</th></tr></thead>" +
     "<tbody>"+rowsHtml+"</tbody>" +
     "<tfoot><tr><td colspan='6'>합계금액</td><td class='num'>"+won(d.total_amount)+"</td><td></td></tr></tfoot></table></div></div>" +
-    "<p class='muted'>문서번호 "+esc(d.document_code)+" · 상태 <b id='doc-status'>"+esc(d.document_status)+"</b></p>" +
-    "<button id='post-btn' style='display:block;width:100%;margin-top:8px;padding:15px;font-size:16px;font-weight:800;border:none;border-radius:12px;color:#fff;cursor:pointer'></button>" +
-    "<div id='post-msg' class='muted' style='margin-top:8px'></div>";
-  const posted = d.document_status === "POSTED";
-  const btn = document.getElementById("post-btn");
-  btn.textContent = posted ? "✓ 재고 반영 완료" : "📦 재고 반영";
+    "<p class='muted'>문서번호 "+esc(d.document_code)+" · 상태 <b class='doc-status'>"+esc(d.document_status)+"</b></p>" +
+    "<button class='post-btn' type='button' style='display:block;width:100%;margin-top:8px;padding:15px;font-size:16px;font-weight:800;border:none;border-radius:12px;color:#fff;cursor:pointer;background:"+(posted?"#9ca3af":"#7c3aed")+"'>"+(posted?"✓ 재고 반영 완료":"📦 재고 반영")+"</button>" +
+    "<div class='post-msg muted' style='margin-top:8px'></div>";
+  const btn = cont.querySelector(".post-btn");
   btn.disabled = posted;
-  btn.style.background = posted ? "#9ca3af" : "#7c3aed";
-  if (!posted) btn.addEventListener("click", () => postToInventory(d, items));
-  document.getElementById("listView").style.display = "none";
-  document.getElementById("detailView").style.display = "block";
-  document.getElementById("page-title").textContent = "📥 매입현황";
-  document.title = "매입현황 · 정육비서";
-  window.scrollTo(0,0);
+  if (!posted) btn.addEventListener("click", () => postToInventory(d, items, cont));
 }
 
-async function postToInventory(d, items) {
-  const btn = document.getElementById("post-btn"), msg = document.getElementById("post-msg");
+async function postToInventory(d, items, cont) {
+  const btn = cont.querySelector(".post-btn"), msg = cont.querySelector(".post-msg");
   btn.disabled = true; msg.style.color = "#6b7280"; msg.textContent = "재고 반영 중...";
   const HW = { ...H, "Content-Type": "application/json" };
   const mv = items.map((it, i) => ({
@@ -286,7 +331,7 @@ async function postToInventory(d, items) {
     if (!r1.ok) throw new Error(r1.status + ": " + (await r1.text()).slice(0, 150));
     await fetch(REST + "/ocr_document?id=eq." + d.id, { method: "PATCH", headers: { ...HW, Prefer: "return=minimal" }, body: JSON.stringify({ document_status: "POSTED" }) });
     d.document_status = "POSTED";
-    const st = document.getElementById("doc-status"); if (st) st.textContent = "POSTED";
+    const st = cont.querySelector(".doc-status"); if (st) st.textContent = "POSTED";
     btn.textContent = "✓ 재고 반영 완료"; btn.style.background = "#9ca3af";
     msg.style.color = "#166534"; msg.textContent = "✓ 재고에 반영했습니다 (" + mv.length + "개 품목 IN)";
   } catch (e) {
@@ -294,22 +339,138 @@ async function postToInventory(d, items) {
   }
 }
 
-document.getElementById("back").addEventListener("click", () => {
-  if (INITIAL_DOCUMENT_ID) {
-    location.assign("purchases.html");
-    return;
-  }
-  document.getElementById("detailView").style.display = "none";
-  document.getElementById("listView").style.display = "block";
-  document.getElementById("page-title").textContent = "📋 명세서별 매입현황";
-  document.title = "명세서별 매입현황 · 정육비서";
-});
-
 document.getElementById("q").addEventListener("input", (e) => {
   const q = e.target.value.trim().toLowerCase();
   if (!q) { renderList(ALL); return; }
   renderList(ALL.filter((d) => (supplierOf(d)+" "+dateOf(d)+" "+d.document_code).toLowerCase().includes(q)));
 });
+
+// ===================== 거래내역서(별지 제38호서식) 기간조회 → 엑셀 출력 =====================
+function ymdLocal(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function openExportModal(){
+  let m = document.getElementById("export-modal");
+  if (!m) {
+    m = document.createElement("div"); m.id = "export-modal"; m.className = "export-modal";
+    const now = new Date(); const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    m.innerHTML =
+      "<div class='export-box'>" +
+        "<h3>거래내역서 출력</h3>" +
+        "<div class='desc'>축산물 위생관리법 시행규칙 [별지 제38호서식]. 선택한 기간의 매입 명세서를 엑셀로 내려받습니다. 등급·도축장명은 이력번호로 축산물이력을 조회해 채우며(소 등급만 표기), 이력 건수에 따라 잠시 걸릴 수 있습니다.</div>" +
+        "<div class='export-row'><label>시작일<input id='ex-from' type='date' value='"+ymdLocal(first)+"'></label><label>종료일<input id='ex-to' type='date' value='"+ymdLocal(now)+"'></label></div>" +
+        "<div class='export-actions'><button class='cancel' id='ex-cancel' type='button'>닫기</button><button class='go' id='ex-go' type='button'>엑셀 출력</button></div>" +
+        "<div class='export-msg' id='ex-msg'></div>" +
+      "</div>";
+    document.body.appendChild(m);
+    m.addEventListener("click", (e) => { if (e.target === m) m.style.display = "none"; });
+    m.querySelector("#ex-cancel").addEventListener("click", () => { m.style.display = "none"; });
+    m.querySelector("#ex-go").addEventListener("click", runExport);
+  }
+  m.style.display = "flex";
+}
+// 이력번호 → 축산물이력 조회 결과 캐시 (등급/도축장명)
+const traceInfoCache = new Map();
+async function fetchTraceInfo(no){
+  if (!no) return null;
+  if (traceInfoCache.has(no)) return traceInfoCache.get(no);
+  try {
+    const r = await fetch(TRACE_FN + "?traceNo=" + encodeURIComponent(no), { headers: H, signal: AbortSignal.timeout(20000) });
+    const b = await r.json(); const i = b.info || {};
+    const info = { grade: i.grade || "", abattoir: i.butcheryPlaceNm || "", species: i.species || "" };
+    traceInfoCache.set(no, info); return info;
+  } catch (e) { traceInfoCache.set(no, null); return null; }
+}
+async function fetchTraceInfosConcurrent(nos, onProgress){
+  const uniq = [...new Set(nos.filter(Boolean))];
+  let done = 0, idx = 0; const limit = Math.min(5, uniq.length || 1);
+  async function worker(){ while (idx < uniq.length) { const n = uniq[idx++]; await fetchTraceInfo(n); onProgress && onProgress(++done, uniq.length); } }
+  await Promise.all(Array.from({ length: limit }, () => worker()));
+}
+async function runExport(){
+  const from = document.getElementById("ex-from").value;
+  const to = document.getElementById("ex-to").value;
+  const msg = document.getElementById("ex-msg");
+  const go = document.getElementById("ex-go");
+  if (!from || !to) { msg.style.color = "#b91c1c"; msg.textContent = "시작일과 종료일을 선택하세요."; return; }
+  if (from > to) { msg.style.color = "#b91c1c"; msg.textContent = "시작일이 종료일보다 늦습니다."; return; }
+  const docs = ALL.filter((d) => { const dt = dateOf(d); return dt !== "-" && dt >= from && dt <= to; })
+    .sort((a, b) => dateOf(a).localeCompare(dateOf(b)));
+  const rows = [];
+  docs.forEach((d) => itemsOf(d).forEach((it) => rows.push({
+    name: it.rawProductName || "",
+    date: dateOf(d), kind: meatKind(it.rawProductName),
+    qty: (it.quantity != null && it.quantity !== "") ? it.quantity : "",
+    origin: it.origin || "", part: partName(it.rawProductName),
+    gradeOcr: gradeOfItem(it), grade: "", abattoir: "",
+    trace: it.traceOrImportNo || "", supplier: supplierOf(d)
+  })));
+  if (!rows.length) { msg.style.color = "#b91c1c"; msg.textContent = "해당 기간에 매입 명세서가 없습니다."; return; }
+  // 등급·도축장명은 OCR이 아니라 축산물이력에서 조회해 채운다.
+  go.disabled = true; msg.style.color = "#6b7280"; msg.textContent = "축산물이력에서 등급·도축장 조회 중…";
+  try {
+    await fetchTraceInfosConcurrent(rows.map((r) => r.trace), (d, t) => { msg.textContent = "축산물이력 조회 중… " + d + "/" + t; });
+  } catch (e) { /* 개별 실패는 무시하고 빈 값으로 진행 */ }
+  rows.forEach((r) => {
+    const info = r.trace ? traceInfoCache.get(r.trace) : null;
+    const isBeefRow = isBeef(r.name) || (info && /소|한우|육우|젖소/.test(info.species));
+    r.abattoir = (info && info.abattoir) || "";
+    r.grade = isBeefRow ? ((info && info.grade) || r.gradeOcr || "") : "";
+  });
+  const gradeCnt = rows.filter((r) => r.grade).length, abbrCnt = rows.filter((r) => r.abattoir).length;
+  downloadTransactionXls(rows, from, to);
+  go.disabled = false;
+  msg.style.color = "#166534";
+  msg.textContent = "✓ " + rows.length + "건 출력 (등급 " + gradeCnt + "건 · 도축장 " + abbrCnt + "건 이력반영)";
+}
+function downloadTransactionXls(rows, from, to){
+  const company = (window.MEATOS_CONTEXT && window.MEATOS_CONTEXT.companyName) || "";
+  const guide = "작성요령  ① 식육·포장육의 종류는 쇠고기, 돼지고기, 닭고기, 오리고기 등으로 적고, 국내산 쇠고기는 한우·육우·젖소를 ( )안에 함께 적습니다.  ② 물량(㎏)은 구입한 무게를 적습니다.  ③ 원산지는 국내산 또는 수입(수출국)으로 적습니다.  ④ 부위 명칭은 쇠고기·돼지고기에 한정합니다.  ⑤ 등급은 「축산법」에 따라 판정받은 육질등급(1++·1+·1·2 등)을 표시대상 부위에 한정하여 적습니다(소 위주).  ⑥ 이력번호는 이력관리법에 따른 이력번호를 적습니다.  ⑦ 매입처는 판매한 업소명(전화번호)을 적습니다.";
+  const cols = ["거래연월일","식육·포장육의 종류","물량(kg)","원산지","부위 명칭","등급","도축장명","이력번호","매입처"];
+  const th = cols.map((c) => "<th>"+esc(c)+"</th>").join("");
+  const body = rows.map((r) =>
+    "<tr>"+
+      "<td class='c'>"+esc(r.date)+"</td>"+
+      "<td class='c'>"+esc(r.kind)+"</td>"+
+      "<td class='r'>"+esc(r.qty)+"</td>"+
+      "<td class='c'>"+esc(r.origin)+"</td>"+
+      "<td class='c'>"+esc(r.part)+"</td>"+
+      "<td class='c'>"+esc(r.grade)+"</td>"+
+      "<td class='c'>"+esc(r.abattoir)+"</td>"+
+      "<td class='c'>"+esc(r.trace)+"</td>"+
+      "<td>"+esc(r.supplier)+"</td>"+
+    "</tr>"
+  ).join("");
+  const html =
+    "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>"+
+    "<head><meta charset='UTF-8'>"+
+    "<xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>거래내역서</x:Name>"+
+    "<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml>"+
+    "<style>"+
+    "table{border-collapse:collapse}"+
+    "td,th{border:0.5pt solid #000000;padding:4px 6px;font-size:10pt;font-family:'맑은 고딕',Malgun Gothic,sans-serif;vertical-align:middle;mso-number-format:'\\@'}"+
+    ".nb{border:none}"+
+    ".tit{font-size:18pt;font-weight:bold;text-align:center;letter-spacing:6pt}"+
+    ".sub{font-size:8pt;color:#444}"+
+    ".sub2{font-size:11pt;font-weight:bold}"+
+    ".hd{background:#f2f2f2;font-weight:bold;text-align:center}"+
+    ".c{text-align:center}.r{text-align:right}"+
+    "</style></head><body>"+
+    "<table>"+
+    "<colgroup><col width='90'><col width='150'><col width='70'><col width='90'><col width='90'><col width='70'><col width='140'><col width='150'><col width='150'></colgroup>"+
+    "<tr><td class='nb sub' colspan='9'>■ 축산물 위생관리법 시행규칙 [별지 제38호서식] &lt;개정 2017. 3. 7.&gt;</td></tr>"+
+    "<tr><td class='nb tit' colspan='9'>거 래 내 역 서</td></tr>"+
+    "<tr><td class='nb sub2' colspan='9'>판매업소명 ( "+esc(company)+" )　　조회기간 "+esc(from)+" ~ "+esc(to)+"</td></tr>"+
+    "<tr>"+cols.map((c)=>"<td class='hd'>"+esc(c)+"</td>").join("")+"</tr>"+
+    body+
+    "<tr><td class='nb sub' colspan='9' style='mso-number-format:General'>"+esc(guide)+"</td></tr>"+
+    "</table></body></html>";
+  const blob = new Blob(["﻿"+html], { type: "application/vnd.ms-excel;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "거래내역서_"+from+"_"+to+".xls";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+document.getElementById("export-btn").addEventListener("click", openExportModal);
 
 load();
 </script>

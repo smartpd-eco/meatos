@@ -50,18 +50,77 @@ export function estimateDocumentCropHints(image, analysis = {}) {
   const width = Number(image?.naturalWidth ?? image?.width ?? 0);
   const height = Number(image?.naturalHeight ?? image?.height ?? 0);
   const qualityScore = Number(analysis.qualityScore ?? 0);
-  const cropMargin = qualityScore >= 85 ? 0.03 : qualityScore >= 70 ? 0.05 : 0.08;
+  const detectedBounds = detectDarkBorderBounds(image);
+  const cropMargin = qualityScore >= 85 ? 0.01 : qualityScore >= 70 ? 0.015 : 0.02;
+  const padX = Math.round(width * cropMargin);
+  const padY = Math.round(height * cropMargin);
+  const suggestedBounds = detectedBounds
+    ? {
+        left: Math.max(0, detectedBounds.left - padX),
+        top: Math.max(0, detectedBounds.top - padY),
+        right: Math.min(width, detectedBounds.right + padX),
+        bottom: Math.min(height, detectedBounds.bottom + padY)
+      }
+    : { left: 0, top: 0, right: width, bottom: height };
   return {
     hasCropHint: width > 0 && height > 0,
+    cropApplied: Boolean(detectedBounds),
     cropMargin,
-    suggestedBounds: {
-      left: Math.round(width * cropMargin),
-      top: Math.round(height * cropMargin),
-      right: Math.round(width * (1 - cropMargin)),
-      bottom: Math.round(height * (1 - cropMargin))
-    },
+    suggestedBounds,
     documentConfidence: qualityScore >= 85 ? "HIGH" : qualityScore >= 70 ? "MEDIUM" : "LOW"
   };
+}
+
+// 문서 경계 전체를 추측해 잘라내면 표의 첫/마지막 행이 사라질 수 있다.
+// 따라서 사진 가장자리에 연속된 검은 띠가 명확할 때만 보수적으로 제거한다.
+function detectDarkBorderBounds(image) {
+  const sourceWidth = Number(image?.naturalWidth ?? image?.width ?? 0);
+  const sourceHeight = Number(image?.naturalHeight ?? image?.height ?? 0);
+  if (!sourceWidth || !sourceHeight) return null;
+  const scale = Math.min(1, 640 / Math.max(sourceWidth, sourceHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+  canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+  const rowUsable = (y) => bandIsUsable(pixels, canvas.width, canvas.height, "row", y);
+  const columnUsable = (x) => bandIsUsable(pixels, canvas.width, canvas.height, "column", x);
+  let top = 0;
+  let bottom = canvas.height - 1;
+  let left = 0;
+  let right = canvas.width - 1;
+  while (top < bottom && !rowUsable(top)) top += 1;
+  while (bottom > top && !rowUsable(bottom)) bottom -= 1;
+  while (left < right && !columnUsable(left)) left += 1;
+  while (right > left && !columnUsable(right)) right -= 1;
+  const retainedWidth = right - left + 1;
+  const retainedHeight = bottom - top + 1;
+  if (retainedWidth < canvas.width * 0.55 || retainedHeight < canvas.height * 0.55) return null;
+  const removedRatio = 1 - ((retainedWidth * retainedHeight) / (canvas.width * canvas.height));
+  if (removedRatio < 0.025) return null;
+  return {
+    left: Math.round(left / scale),
+    top: Math.round(top / scale),
+    right: Math.round((right + 1) / scale),
+    bottom: Math.round((bottom + 1) / scale)
+  };
+}
+
+function bandIsUsable(pixels, width, height, axis, position) {
+  const length = axis === "row" ? width : height;
+  let luminanceSum = 0;
+  let bright = 0;
+  for (let offset = 0; offset < length; offset += 1) {
+    const x = axis === "row" ? offset : position;
+    const y = axis === "row" ? position : offset;
+    const index = (y * width + x) * 4;
+    const luminance = (pixels[index] * 0.299) + (pixels[index + 1] * 0.587) + (pixels[index + 2] * 0.114);
+    luminanceSum += luminance;
+    if (luminance > 80) bright += 1;
+  }
+  const average = luminanceSum / Math.max(1, length);
+  return average >= 38 || bright / Math.max(1, length) >= 0.12;
 }
 
 export function summarizePreprocessingVariants(variants = []) {

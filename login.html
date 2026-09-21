@@ -287,6 +287,7 @@ $("su-btn").addEventListener("click", async () => {
 // 소셜 로그인 — Supabase Authentication에 활성화된 provider를 사용합니다.
 const PROVIDERS_ENABLED = { google:true, kakao:true, naver:true };
 const NAVER_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/naver-auth";
+const KAKAO_FN = "https://pkrsiqjzllyiafwpskll.functions.supabase.co/kakao-auth"; // 카카오 KOE205 근본해결: Supabase 네이티브 provider 대신 전용 Edge Function 경유
 async function social(provider){
   if(!PROVIDERS_ENABLED[provider]){
     const label = { google:"Google", kakao:"카카오", naver:"네이버", apple:"Apple" }[provider] || provider;
@@ -304,6 +305,7 @@ async function social(provider){
   }
   sessionStorage.setItem(SOCIAL_INTENT_KEY, JSON.stringify(intent));
   if(provider==="naver"){ msg("네이버로 이동 중…", true); location.href = NAVER_FN; return; }
+  if(provider==="kakao"){ msg("카카오로 이동 중…", true); location.href = KAKAO_FN; return; }
   const label = { google:"Google", kakao:"카카오" }[provider] || provider;
   msg(label + " 로그인으로 이동 중…", true);
   const callback = new URL("/login.html", location.origin);

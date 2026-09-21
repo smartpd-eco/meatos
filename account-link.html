@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<meta name="robots" content="noindex,nofollow" />
+<title>계정 연결 관리 · 정육비서</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f6f7f9; color:#17191d; font-family:system-ui,sans-serif; }
+  main { width:100%; max-width:900px; margin:0 auto; }
+  .title { margin:0 0 8px; font-size:32px; line-height:1.25; letter-spacing:-.025em; }
+  .sub { margin:0 0 24px; color:#50555d; font-size:15px; line-height:1.65; }
+  .summary,.panel { background:#fff; border:1px solid #e4e7eb; border-radius:16px; box-shadow:0 4px 18px rgba(16,24,40,.06); }
+  .summary { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:20px 24px; margin-bottom:16px; }
+  .summary__label { color:#6b7280; font-size:13px; font-weight:700; }
+  .summary__email { margin-top:4px; font-size:18px; font-weight:800; word-break:break-all; }
+  .safe { display:inline-flex; align-items:center; gap:6px; color:#0f7a3b; background:#ecfdf3; border:1px solid #b7e4c7; border-radius:999px; padding:8px 12px; font-size:13px; font-weight:800; white-space:nowrap; }
+  .panel { overflow:hidden; }
+  .panel__head { padding:20px 24px; border-bottom:1px solid #eceef1; }
+  .panel__head h2 { margin:0 0 6px; font-size:20px; }
+  .panel__head p { margin:0; color:#6b7280; font-size:14px; line-height:1.55; }
+  .providers { list-style:none; margin:0; padding:0; }
+  .provider { display:grid; grid-template-columns:48px minmax(0,1fr) auto; align-items:center; gap:14px; padding:18px 24px; border-bottom:1px solid #eceef1; }
+  .provider:last-child { border-bottom:0; }
+  .icon { width:44px; height:44px; border-radius:999px; display:grid; place-items:center; font-size:20px; font-weight:900; }
+  .icon.g { color:#4285f4; background:#fff; border:1px solid #dadce0; }
+  .icon.k { color:#191600; background:#fee500; }
+  .icon.n { color:#fff; background:#03c75a; }
+  .provider__name { font-size:16px; font-weight:800; }
+  .provider__state { margin-top:3px; color:#6b7280; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .provider__state.on { color:#0f7a3b; font-weight:700; }
+  .action { min-width:92px; min-height:44px; padding:10px 15px; border:1px solid #c51624; border-radius:10px; background:#c51624; color:#fff; font:inherit; font-size:14px; font-weight:800; cursor:pointer; }
+  .action.disconnect { color:#50555d; border-color:#d7dbe0; background:#fff; }
+  .action:disabled { opacity:.55; cursor:wait; }
+  .action.primary:disabled { opacity:1; cursor:default; color:#0f7a3b; border-color:#b7e4c7; background:#ecfdf3; }
+  .notice { margin-top:16px; padding:16px 18px; border:1px solid #f0d5b4; border-radius:14px; background:#fffaf3; color:#7c4a18; font-size:13px; line-height:1.65; }
+  .notice strong { display:block; margin-bottom:4px; color:#5c3513; }
+  .message { display:none; margin:0 0 16px; padding:13px 16px; border-radius:12px; font-size:14px; font-weight:700; line-height:1.55; }
+  .message.show { display:block; }
+  .message.ok { color:#166534; background:#ecfdf3; border:1px solid #b7e4c7; }
+  .message.error { color:#991b1b; background:#fff1f2; border:1px solid #fecdd3; }
+  @media(max-width:639px) {
+    .title { font-size:24px; }
+    .summary { align-items:flex-start; flex-direction:column; padding:18px; }
+    .panel__head { padding:18px; }
+    .provider { grid-template-columns:42px minmax(0,1fr); gap:12px; padding:16px 18px; }
+    .icon { width:40px; height:40px; }
+    .action { grid-column:1 / -1; width:100%; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1 class="title">계정 연결 관리</h1>
+  <p class="sub">처음 가입한 기본 로그인을 유지하고, 필요한 간편로그인만 직접 허용합니다. 공급자 이메일이 달라도 회사·재고·매출 데이터는 현재 계정에 그대로 유지됩니다.</p>
+
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+
+  <section class="summary" aria-label="기준 계정">
+    <div>
+      <div class="summary__label">데이터를 유지할 기준 계정</div>
+      <div class="summary__email" id="canonicalEmail">확인 중…</div>
+    </div>
+    <span class="safe">✓ 중복 계정 방지 적용</span>
+  </section>
+
+  <section class="panel">
+    <div class="panel__head">
+      <h2>간편로그인 연결</h2>
+      <p>연결 버튼을 누르면 해당 서비스에서 직접 본인 확인을 합니다. 비밀번호는 정육비서에 저장되지 않습니다.</p>
+    </div>
+    <ul class="providers">
+      <li class="provider" data-provider="google">
+        <span class="icon g" aria-hidden="true">G</span>
+        <div><div class="provider__name">Google</div><div class="provider__state">연결 상태 확인 중…</div></div>
+        <button class="action" type="button">연결</button>
+      </li>
+      <li class="provider" data-provider="kakao">
+        <span class="icon k" aria-hidden="true">●</span>
+        <div><div class="provider__name">카카오</div><div class="provider__state">연결 상태 확인 중…</div></div>
+        <button class="action" type="button">연결</button>
+      </li>
+      <li class="provider" data-provider="naver">
+        <span class="icon n" aria-hidden="true">N</span>
+        <div><div class="provider__name">네이버</div><div class="provider__state">연결 상태 확인 중…</div></div>
+        <button class="action" type="button">연결</button>
+      </li>
+    </ul>
+  </section>
+
+  <aside class="notice">
+    <strong>안전한 연결 원칙</strong>
+    기본 로그인은 중지할 수 없습니다. 다른 간편로그인은 본인 확인 후 사용자가 직접 허용한 경우에만 사용할 수 있으며, 사용을 중지해도 회사와 업무 데이터는 삭제되지 않습니다.
+  </aside>
+</main>
+
+<script src="runtime-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  "use strict";
+  var config = window.__MEATOS_SUPABASE__ || {};
+  var client = supabase.createClient(config.url, config.anonKey, {
+    auth: { persistSession:true, detectSessionInUrl:true }
+  });
+  var naverFunction = config.url + "/functions/v1/naver-auth";
+  var currentIdentities = [];
+  var externalIdentities = [];
+  var enabledProviders = [];
+  var primaryProvider = "unknown";
+
+  function maskEmail(email) {
+    var parts = String(email || "").split("@");
+    if (parts.length !== 2) return email || "";
+    var name = parts[0];
+    return name.slice(0, Math.min(2, name.length)) + "*".repeat(Math.max(2, name.length - 2)) + "@" + parts[1];
+  }
+
+  function showMessage(text, ok) {
+    var node = document.getElementById("message");
+    node.textContent = text;
+    node.className = "message show " + (ok ? "ok" : "error");
+  }
+
+  function friendlyError(error) {
+    var text = String(error && error.message || error || "");
+    if (/identity.*already|already.*identity|already linked/i.test(text)) {
+      return "이 간편로그인은 이미 다른 정육비서 계정에 연결되어 있습니다.";
+    }
+    if (/manual linking/i.test(text)) {
+      return "계정 연결 기능 설정이 아직 활성화되지 않았습니다. 관리자에게 문의해 주세요.";
+    }
+    if (/expired|invalid.*token|LINK_REQUEST_EXPIRED/i.test(text)) {
+      return "연결 시간이 만료되었습니다. 다시 연결해 주세요.";
+    }
+    return "계정을 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+  }
+
+  function nativeIdentity(provider) {
+    return currentIdentities.find(function (identity) { return identity.provider === provider; });
+  }
+
+  function externalIdentity(provider) {
+    return externalIdentities.find(function (identity) { return identity.provider === provider; });
+  }
+
+  function providerEnabled(provider) {
+    return enabledProviders.indexOf(provider) >= 0;
+  }
+
+  function renderProvider(provider) {
+    var row = document.querySelector("[data-provider='" + provider + "']");
+    var state = row.querySelector(".provider__state");
+    var button = row.querySelector(".action");
+    var identity = provider === "naver" ? externalIdentity(provider) : nativeIdentity(provider);
+    var primary = provider === primaryProvider;
+    var enabled = providerEnabled(provider);
+    button.className = "action";
+    button.disabled = false;
+    if (primary) {
+      var primaryEmail = identity && (provider === "naver"
+        ? identity.provider_email
+        : identity.identity_data && identity.identity_data.email);
+      state.textContent = "기본 로그인" + (primaryEmail ? " · " + maskEmail(primaryEmail) : "");
+      state.classList.add("on");
+      button.textContent = "기본 로그인";
+      button.classList.add("primary");
+      button.disabled = true;
+      button.onclick = null;
+    } else if (identity && enabled) {
+      var email = provider === "naver"
+        ? identity.provider_email
+        : identity.identity_data && identity.identity_data.email;
+      state.textContent = "추가 로그인 허용됨" + (email ? " · " + maskEmail(email) : "");
+      state.classList.add("on");
+      button.textContent = "사용 중지";
+      button.classList.add("disconnect");
+      button.onclick = function () { setProviderEnabled(provider, false, button); };
+    } else if (identity) {
+      var linkedEmail = provider === "naver"
+        ? identity.provider_email
+        : identity.identity_data && identity.identity_data.email;
+      state.textContent = "인증 연결됨 · 로그인 사용 안 함" + (linkedEmail ? " · " + maskEmail(linkedEmail) : "");
+      state.classList.remove("on");
+      button.textContent = "로그인 허용";
+      button.onclick = function () { setProviderEnabled(provider, true, button); };
+    } else {
+      state.textContent = "연결되지 않음";
+      state.classList.remove("on");
+      button.textContent = "연결";
+      button.classList.remove("disconnect");
+      button.onclick = function () { linkProvider(provider, button); };
+    }
+  }
+
+  async function refresh() {
+    var userResult = await client.auth.getUser();
+    var user = userResult.data && userResult.data.user;
+    if (!user) {
+      location.replace("/login.html?next=" + encodeURIComponent("/account-link.html"));
+      return;
+    }
+    document.getElementById("canonicalEmail").textContent = user.email || "이메일 미등록 계정";
+
+    var accountResult = await client
+      .from("account")
+      .select("signup_provider")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    if (accountResult.error) throw accountResult.error;
+    primaryProvider = accountResult.data && accountResult.data.signup_provider || "unknown";
+
+    var identityResult = await client.auth.getUserIdentities();
+    if (identityResult.error) throw identityResult.error;
+    currentIdentities = identityResult.data && identityResult.data.identities || [];
+
+    var externalResult = await client
+      .from("account_linked_identity")
+      .select("provider,provider_email,linked_at")
+      .order("linked_at", { ascending:true });
+    if (externalResult.error && externalResult.error.code !== "42P01") throw externalResult.error;
+    externalIdentities = externalResult.data || [];
+
+    var enabledResult = await client
+      .from("account_login_provider")
+      .select("provider")
+      .order("approved_at", { ascending:true });
+    if (enabledResult.error) throw enabledResult.error;
+    enabledProviders = (enabledResult.data || []).map(function(row){ return row.provider; });
+    ["google", "kakao", "naver"].forEach(renderProvider);
+  }
+
+  async function linkProvider(provider, button) {
+    button.disabled = true;
+    button.textContent = "본인 확인 중…";
+    try {
+      if (provider === "naver") {
+        var request = await client.rpc("begin_account_identity_link", { p_provider:"naver" });
+        if (request.error) throw request.error;
+        location.assign(naverFunction + "?mode=link&token=" + encodeURIComponent(request.data));
+        return;
+      }
+      var callback = new URL("/account-link.html", location.origin);
+      callback.searchParams.set("linked", provider);
+      var result = await client.auth.linkIdentity({
+        provider:provider,
+        options:{ redirectTo:callback.toString() }
+      });
+      if (result.error) throw result.error;
+    } catch (error) {
+      showMessage(friendlyError(error), false);
+      await refresh().catch(function () {});
+    }
+  }
+
+  async function setProviderEnabled(provider, enabled, button) {
+    if (!enabled && !confirm("이 간편로그인의 사용을 중지하시겠어요? 기본 로그인과 회사 데이터는 유지됩니다.")) return;
+    button.disabled = true;
+    button.textContent = enabled ? "허용 중…" : "중지 중…";
+    try {
+      var result = await client.rpc("set_account_login_provider_enabled", {
+        p_provider:provider,
+        p_enabled:enabled
+      });
+      if (result.error) throw result.error;
+      showMessage(enabled
+        ? "이 간편로그인을 사용할 수 있도록 허용했습니다."
+        : "이 간편로그인의 사용을 중지했습니다. 기본 로그인은 그대로 유지됩니다.", true);
+      await refresh();
+    } catch (error) {
+      showMessage(friendlyError(error), false);
+      await refresh().catch(function () {});
+    }
+  }
+
+  (async function init() {
+    try {
+      var params = new URLSearchParams(location.search);
+      var hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+      var callbackError = params.get("error_description") || params.get("error")
+        || hashParams.get("error_description") || hashParams.get("error");
+      await refresh();
+      if (callbackError) {
+        showMessage(friendlyError(callbackError), false);
+        history.replaceState(null, "", "/account-link.html");
+      } else if (params.get("linked")) {
+        var linkedProvider = params.get("linked");
+        var approval = await client.rpc("set_account_login_provider_enabled", {
+          p_provider:linkedProvider,
+          p_enabled:true
+        });
+        if (approval.error) throw approval.error;
+        await refresh();
+        showMessage("본인 확인이 완료되어 간편로그인이 연결되었습니다.", true);
+        history.replaceState(null, "", "/account-link.html");
+      }
+    } catch (error) {
+      showMessage(friendlyError(error), false);
+    }
+  })();
+})();
+</script>
+<script src="header.js"></script>
+</body>
+</html>

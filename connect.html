@@ -7,233 +7,385 @@
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>자동 판매연동 · 정육비서</title>
 <style>
-  * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
-  h1 { font-size:19px; margin:2px 0 4px; }
-  .sub { color:#6b7280; font-size:13px; margin-bottom:12px; }
-  .card { background:#fff; border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .card h2 { font-size:15px; margin:0 0 10px; }
-  .acct { display:flex; align-items:center; gap:10px; background:#dcfce7; color:#166534; border-radius:10px; padding:12px; font-weight:800; }
-  .acct.out { background:#fef2f2; color:#b91c1c; }
-  .steps { counter-reset:s; list-style:none; padding:0; margin:0; }
-  .steps li { position:relative; padding:10px 0 10px 34px; border-bottom:1px solid #f1f5f9; font-size:14px; }
-  .steps li:before { counter-increment:s; content:counter(s); position:absolute; left:0; top:9px; width:24px; height:24px; background:#16a34a; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; }
-  .steps li:last-child { border-bottom:none; }
-  button.primary, a.primary { display:block; width:100%; text-align:center; padding:15px; font-size:16px; font-weight:800; border:none; border-radius:12px; background:#16a34a; color:#fff; cursor:pointer; text-decoration:none; margin-top:6px; }
-  a.ghost { display:inline-block; color:#2563eb; text-decoration:none; font-weight:700; font-size:14px; margin-top:8px; }
-  .stat { display:flex; gap:8px; }
-  .stat .b { flex:1; background:#f8fafc; border-radius:10px; padding:12px; text-align:center; }
-  .stat .b b { display:block; font-size:20px; } .stat .b span { color:#6b7280; font-size:12px; }
-  .warn { background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:10px 12px; font-size:13px; margin-top:10px; }
-  code { background:#f3f4f6; padding:1px 6px; border-radius:6px; }
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,sans-serif;background:#f3f4f6;color:#111827;padding:14px}
+  h1{font-size:21px;margin:2px 0 4px}.sub{color:#6b7280;font-size:13px;margin-bottom:12px;line-height:1.55}
+  .card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .card h2{font-size:16px;margin:0 0 12px}.acct{display:flex;align-items:center;gap:10px;background:#dcfce7;color:#166534;border-radius:10px;padding:12px;font-weight:800}
+  .acct.out{background:#fef2f2;color:#b91c1c}.ready-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .ready{border:1px solid #e5e7eb;border-radius:12px;padding:12px;text-align:center;background:#f8fafc}
+  .ready b{display:block;font-size:15px;margin-top:5px}.ready span{font-size:12px;color:#6b7280}.ready.ok{background:#f0fdf4;border-color:#86efac}.ready.ok b{color:#166534}
+  .ready.bad{background:#fef2f2;border-color:#fca5a5}.ready.bad b{color:#b91c1c}
+  button.primary{display:block;width:100%;padding:15px;font-size:16px;font-weight:800;border:0;border-radius:12px;background:#16a34a;color:#fff;cursor:pointer;margin-top:12px}
+  button.primary:disabled{background:#9ca3af;cursor:not-allowed}.field{display:flex;gap:8px;align-items:end;margin-top:12px}.field label{flex:1;font-size:12px;color:#6b7280}
+  a.map-cta{display:none;margin-top:10px;padding:13px 16px;border-radius:11px;background:#2563eb;color:#fff;text-align:center;text-decoration:none;font-size:15px;font-weight:800}
+  a.map-cta.show{display:block}
+  .field input{display:block;width:100%;padding:11px;border:1px solid #d1d5db;border-radius:9px;font-size:15px;margin-top:4px}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:0}.steps li{position:relative;padding:10px 0 10px 34px;border-bottom:1px solid #f1f5f9;font-size:14px;line-height:1.5}
+  .steps li:before{counter-increment:s;content:counter(s);position:absolute;left:0;top:9px;width:24px;height:24px;background:#dc2626;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+  .steps li:last-child{border-bottom:0}.stat{display:flex;gap:8px}.stat .b{flex:1;background:#f8fafc;border-radius:10px;padding:12px;text-align:center}.stat .b b{display:block;font-size:20px}.stat .b span{color:#6b7280;font-size:12px}
+  .notice{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:11px 12px;font-size:13px;line-height:1.55;margin-top:10px}
+  .success{background:#f0fdf4;border-color:#86efac;color:#166534}.error{background:#fef2f2;border-color:#fca5a5;color:#b91c1c}
+  details.tech{margin-top:12px;border:1px solid #dbeafe;border-radius:12px;background:#eff6ff;padding:12px}
+  details.tech summary{cursor:pointer;color:#1d4ed8;font-weight:800}.tech-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+  .tech-grid label{font-size:12px;color:#475569}.tech-grid input{width:100%;margin-top:4px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px}
+  a.link{color:#2563eb;font-weight:800;text-decoration:none}.test-flow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.test-flow div{background:#f8fafc;border-radius:10px;padding:12px;text-align:center;font-size:13px}.test-flow b{display:block;margin-bottom:4px}
+  .field-check{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.field-check div{border:1px solid #e5e7eb;border-radius:10px;padding:11px 12px;font-size:13px;line-height:1.5;background:#fff}.field-check b{display:block;color:#111827;margin-bottom:3px}.danger-note{background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:10px;padding:12px;font-size:13px;line-height:1.55;margin-top:10px}
+  .loghead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.loghead h2{margin:0}
+  .log-clear{border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:9px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .loglist{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto;margin-top:8px}
+  .logrow{border:1px solid #e5e7eb;border-radius:10px;padding:9px 11px;background:#fff}
+  .logrow .top{display:flex;align-items:center;gap:8px;font-size:12px;color:#6b7280}
+  .logrow .bc{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;font-size:16px;letter-spacing:.5px;margin:4px 0 2px;color:#111827;word-break:break-all}
+  .logrow .meta{font-size:13px;color:#374151;line-height:1.45}
+  .badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px}
+  .badge.ok{background:#dcfce7;color:#166534}.badge.warn{background:#fef3c7;color:#92400e}.badge.bad{background:#fee2e2;color:#b91c1c}
+  .logtime{margin-left:auto;color:#9ca3af;font-size:11px;font-variant-numeric:tabular-nums}
+  .log-empty{color:#9ca3af;font-size:13px;text-align:center;padding:20px 0}
+  @media(max-width:640px){.ready-grid,.test-flow,.tech-grid,.field-check{grid-template-columns:1fr}.stat{flex-wrap:wrap}.stat .b{min-width:28%}}
 </style>
 </head>
 <body>
-  <h1>자동 판매연동</h1>
-  <div class="sub">계산대 바코드 스캔을 MEATOS와 연동합니다. 스캔하는 순간 <b>재고 자동 출고 + 매출 자동 기록</b>.</div>
+  <h1>POS 원클릭 자동 판매연동</h1>
+  <div class="sub">현장 검증 설치본은 기존 POS를 수정하지 않고 키보드 웨지 입력만 관찰합니다. 품목·중량·금액을 비교하되 <b>매출과 재고는 변경하지 않습니다.</b></div>
 
   <div class="card">
-    <div class="acct out" id="acct">로그인 후 이용하세요</div>
-    <a class="primary" id="dl" style="margin-top:12px">⬇️ 내 매장 연동 에이전트 다운로드</a>
-    <div class="sub" style="margin-top:8px">다운로드되는 프로그램에는 <b>사장님 매장 정보가 이미 연결</b>되어 있습니다. 설정 입력 필요 없음.</div>
-    <div class="warn" id="loginwarn" style="display:none">로그인해야 매장에 연결된 에이전트를 받을 수 있습니다. <a href="login.html" style="color:#92400e;font-weight:800">로그인 →</a></div>
+    <div class="acct out" id="acct">기업 연결 확인 중…</div>
+    <div class="ready-grid" style="margin-top:12px">
+      <div class="ready" id="r-company"><span>1. 기업 연동</span><b>확인 중</b></div>
+      <div class="ready" id="r-stock"><span>2. 판매 가능 재고</span><b>확인 중</b></div>
+      <div class="ready" id="r-map"><span>3. POS 바코드 매핑</span><b>확인 중</b></div>
+    </div>
+    <div class="field"><label>POS 단말 이름<input id="device" value="POS01" maxlength="40" /></label></div>
+    <details class="tech">
+      <summary>설치기사용 · 쿠팡이츠 무인 자동수집 설정</summary>
+      <div class="sub" style="margin:8px 0 0">사장님이 매일 입력하는 항목이 아닙니다. 설치할 때 쿠팡이츠 전표 출력과 저울 라벨 출력의 수신 전용 COM 포트를 한 번 연결합니다.</div>
+      <div class="tech-grid">
+        <label>쿠팡 전표 수신 포트<input id="receipt-port" placeholder="예: COM11" maxlength="5" /></label>
+        <label>저울 라벨 수신 포트<input id="label-port" placeholder="예: COM12 (고정 스캐너면 비움)" maxlength="5" /></label>
+        <label>통신속도<input id="serial-baud" type="number" value="9600" min="1200" max="115200" /></label>
+        <label>저울 바코드 접두어<input id="delivery-prefix" value="29" inputmode="numeric" maxlength="2" /></label>
+      </div>
+      <div class="notice success"><b>안전 기본값:</b> POS와 쿠팡이츠 모두 현장 검증 모드입니다. 입력·주문·라벨 매칭만 확인하며 재고와 매출은 변경하지 않습니다.</div>
+    </details>
+    <button class="primary" id="install" disabled>사전 조건 확인 중…</button>
+    <a class="map-cta" id="map-cta" href="sell.html">3번 해결하기 · 재고 상품 바코드 연결</a>
+    <div class="notice" id="install-msg">설치 전 기업·재고·상품 매핑을 자동 점검합니다.</div>
   </div>
 
   <div class="card">
-    <h2>설치 방법 (1회만)</h2>
+    <h2>설치 방법</h2>
     <ol class="steps">
-      <li><b>AutoHotkey v2</b> 설치 → <a class="ghost" href="https://www.autohotkey.com" target="_blank" rel="noopener">autohotkey.com 열기</a></li>
-      <li>위 버튼으로 받은 <code>meatos-scan-agent.ahk</code> 를 <b>더블클릭 실행</b> (트레이에 아이콘 표시)</li>
-      <li>MEATOS <b>판매 스캔</b>에서 품목 바코드를 <b>1회 등록</b> → <a class="ghost" href="sell.html">판매 스캔 열기</a></li>
-      <li>이제 계산대에서 스캔하면 <b>재고·매출 자동 반영</b> (아래에서 실시간 확인)</li>
+      <li>재고가 있는 테스트 품목 3개에 실제 바코드를 먼저 연결합니다.</li>
+      <li>이 화면 위쪽의 빨간 <b>Windows 현장 검증 설치 프로그램 받기</b> 버튼을 누릅니다.</li>
+      <li>다운로드한 파일을 더블클릭합니다. 별도 AutoHotkey 설치나 설정 입력은 없습니다.</li>
+      <li>Windows SmartScreen이 표시되면 <b>추가 정보 → 실행</b>을 선택합니다. 정식 인증서 적용 전 파일럿 단계 안내입니다.</li>
+      <li>설치 완료 메시지와 작업표시줄 트레이의 MEATOS 아이콘을 확인합니다. Windows 로그인 시 자동 실행됩니다.</li>
     </ol>
-    <div class="warn">부팅 시 자동 실행하려면: .ahk 바로가기를 <code>shell:startup</code> 폴더에 넣으세요. (다음 업데이트에서 설치형 .exe 제공 예정)</div>
   </div>
 
   <div class="card">
-    <h2>📡 연동 상태 (오늘)</h2>
+    <h2>테스트 절차와 판정 기준</h2>
+    <div class="test-flow">
+      <div><b>① 재고 확인</b>판매할 품목의 현재고가 0보다 커야 합니다.</div>
+      <div><b>② 바코드 연결</b><a class="link" href="sell.html">판매 스캔</a>에서 실제 라벨을 1회 스캔해 재고 품목과 연결합니다.</div>
+      <div><b>③ POS 동시 확인</b>메모장에서 13자리 코드+Enter가 입력되는지 확인한 뒤 POS 판매화면에서 같은 라벨을 스캔합니다.</div>
+      <div><b>④ 결과 비교</b>아래 관찰 건의 품목·중량·금액을 POS 판매 상세와 비교합니다. 매출·재고 값은 변하지 않아야 합니다.</div>
+    </div>
+    <div class="danger-note"><b>중요:</b> 키보드 웨지는 스캔과 결제 완료를 구분하지 못합니다. 정상 판매 3건 외에 <b>결제 전 취소 1건·결제 후 반품 1건</b>을 반드시 재현하고, POS 판매 상세 화면 또는 내보내기 파일을 확보해야 운영 전환을 판단할 수 있습니다.</div>
+    <div class="notice"><b>선행조건:</b> Windows 10/11, USB HID 키보드형 스캐너, 인터넷 HTTPS 접속, 승인된 기업 계정과 기본매장, 판매 가능한 재고, 테스트 바코드 매핑 3건. POS 원본 프로그램·DB에는 쓰지 않습니다.</div>
+  </div>
+
+  <div class="card">
+    <h2>현장에 가져갈 것</h2>
+    <div class="field-check">
+      <div><b>POS 자료</b>정상 판매·결제 전 취소·반품 화면, 일별 판매 상세 또는 CSV</div>
+      <div><b>라벨 3종</b>바코드 원문과 품목명·중량·단가·금액이 함께 보이는 라벨</div>
+      <div><b>장비 정보</b>POS·전자저울·라벨프린터 모델명과 장치관리자 COM 포트 화면</div>
+      <div><b>쿠팡 자료</b>주문 전표 3건, 대응 라벨 전체, 전표·라벨 출력 설정 화면</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>연동 상태 (오늘)</h2>
     <div class="stat">
-      <div class="b"><b id="s-cnt">-</b><span>스캔 처리</span></div>
-      <div class="b"><b id="s-pending">-</b><span>미등록 대기</span></div>
-      <div class="b"><b id="s-last">-</b><span>마지막 스캔</span></div>
+      <div class="b"><b id="s-cnt">-</b><span>정상 관찰</span></div>
+      <div class="b"><b id="s-pending">-</b><span>확인 필요</span></div>
+      <div class="b"><b id="s-last">-</b><span>마지막 입력</span></div>
     </div>
     <div class="sub" id="s-msg" style="margin-top:10px">상태 확인 중…</div>
   </div>
 
-<script src="header.js"></script>
+  <div class="card">
+    <div class="loghead">
+      <h2>에이전트 상태 (원격)</h2>
+    </div>
+    <div class="sub" style="margin:0 0 8px">매장에 가지 않아도 이 화면에서 확인합니다. 에이전트가 10분마다 보고합니다 · 15분 넘게 신호가 없으면 <b>오프라인</b>으로 표시됩니다.</div>
+    <div id="agent-health-list" class="loglist"><div class="log-empty">상태 확인 중…</div></div>
+  </div>
+
+  <div class="card">
+    <div class="loghead">
+      <h2>실시간 스캔 로그</h2>
+      <button id="log-clear" type="button" class="log-clear">화면 지우기</button>
+    </div>
+    <div class="sub" style="margin:0">계산대에서 라벨을 스캔하면 이 목록에 즉시 나타납니다. 바코드·품목·중량·금액을 확인용으로만 보여주며 <b>매출·재고는 변경되지 않습니다.</b> '화면 지우기'는 목록 표시만 비우고 서버 기록은 그대로 보존합니다.</div>
+    <div id="log-list" class="loglist"><div class="log-empty">대기 중… 계산대에서 라벨을 스캔해 보세요.</div></div>
+  </div>
+
+<script src="header.js?v=20260729-pos-installer-2"></script>
 <script>
-const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
-const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
-const H = window.MEATOS_API_HEADERS;
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+const REST="https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const ANON="sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
+const H=window.MEATOS_API_HEADERS;
+const TENANT=window.MEATOS_TENANT;
+const CONTEXT=window.MEATOS_CONTEXT||{};
+const STORE_ID=CONTEXT.storeId||null;
+const IS_BUSINESS=Boolean(CONTEXT.isBusiness&&CONTEXT.companyId&&STORE_ID&&window.MEATOS_IS_AUTHENTICATED);
+const STORE_NAME=CONTEXT.companyName||"내 매장";
+const esc=(s)=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+let READY={company:false,stock:false,mapping:false};
 
-(async () => { try {
-  if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
-  if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
-} catch(e){} })();
-
-// 로그인 계정 → 에이전트에 자동 바인딩
-let USER = null; try { USER = JSON.parse(localStorage.getItem("meatos_user_cache")||"null"); } catch(e){}
-const TENANT = window.MEATOS_TENANT;
-const IS_BUSINESS = Boolean(window.MEATOS_CONTEXT && window.MEATOS_CONTEXT.isBusiness);
-const STORE_ID = window.MEATOS_CONTEXT && window.MEATOS_CONTEXT.storeId;
-const STORE_NAME = (USER && (USER.company_name||USER.name)) ? (USER.company_name||USER.name) : "내 매장";
-const DEVICE = STORE_NAME.replace(/[^0-9A-Za-z가-힣]/g,"").slice(0,20) || "POS01";
-
-const acct = document.getElementById("acct");
-if (IS_BUSINESS) { acct.className="acct"; acct.textContent = "🏪 " + STORE_NAME + " · 기업 공간"; document.getElementById("loginwarn").style.display="none"; }
-else { acct.className="acct out"; acct.textContent = "체험 공간 · 테스트 데이터"; document.getElementById("loginwarn").style.display="block"; }
-
-function ahkText(value){ return String(value ?? "").replace(/"/g, '""'); }
-
-// 로그인 사용자만 매장 전용 연동 키를 발급받는다. 원문 키는 다운로드 파일에만 포함되고 DB에는 해시만 저장된다.
-async function issueAgentKey(){
-  if(!IS_BUSINESS || !STORE_ID || !window.MEATOS_IS_AUTHENTICATED) throw new Error("로그인된 기업 매장 정보가 필요합니다.");
-  const r=await fetch(REST+"/rpc/issue_pos_agent_key",{
-    method:"POST",
-    headers:{...H,"Content-Type":"application/json"},
-    body:JSON.stringify({p_store_id:STORE_ID,p_device:DEVICE})
-  });
-  const body=await r.json().catch(()=>null);
-  if(!r.ok || !body?.ok || !body.agentKey) throw new Error(body?.message || body?.error || ("HTTP "+r.status));
-  return body;
-}
-
-// 계정이 박힌 에이전트(.ahk) 생성 → 다운로드
-function buildAgent(config){ return `#Requires AutoHotkey v2.0
-#SingleInstance Force
-Persistent()
-; MEATOS 스캔 캡처 에이전트 (자동 생성 · ${ahkText(STORE_NAME)} 연결됨)
-global RPC_URL := "${REST}/rpc/process_pos_sale_event"
-global ANON_KEY := "${ANON}"
-global AGENT_KEY := "${ahkText(config.agentKey)}"
-global DEVICE := "${ahkText(config.device || DEVICE)}"
-global DEBOUNCE_MS := 2000
-global MAX_SCAN_MS := 1200
-global lastCode := "", lastTick := 0, logCount := 0, scanStartTick := 0
-global LOG_DIR := A_AppData "\\MEATOS\\logs"
-global LOG_FILE := LOG_DIR "\\pos-agent.log"
-DirCreate(LOG_DIR)
-Log("AGENT_STARTED device=" DEVICE)
-TrayTip("MEATOS 스캔 에이전트", "${ahkText(STORE_NAME)} 연동 실행 중", 1)
-Loop {
-    scanStartTick := 0
-    ih := InputHook("V", "{Enter}{Tab}")
-    ih.OnChar := ScanChar
-    ih.Start()
-    ih.Wait()
-    ProcessScan(ih.Input, ih.EndKey)
-}
-ScanChar(ih, char) {
-    global scanStartTick
-    if (scanStartTick = 0)
-        scanStartTick := A_TickCount
-}
-ProcessScan(code, endKey) {
-    global lastCode, lastTick, DEBOUNCE_MS, MAX_SCAN_MS, scanStartTick
-    code := Trim(code)
-    elapsed := scanStartTick ? A_TickCount - scanStartTick : 999999
-    if !RegExMatch(code, "^[0-9A-Za-z._-]{6,64}$") || elapsed > MAX_SCAN_MS
-        return
-    now := A_TickCount
-    if (code = lastCode && (now - lastTick) < DEBOUNCE_MS)
-        return
-    lastCode := code, lastTick := now
-    Log("BARCODE_DETECTED code=" code " endKey=" endKey " elapsedMs=" elapsed)
-    SendToServer(code)
-}
-SendToServer(code) {
-    global RPC_URL, ANON_KEY, AGENT_KEY, DEVICE, logCount
-    soldAt := FormatTime(A_NowUTC, "yyyy-MM-ddTHH:mm:ssZ")
-    txId := DEVICE "-" FormatTime(A_NowUTC, "yyyyMMddHHmmss") "-" A_TickCount "-" code
-    body := "{""p_agent_token"":""" . AGENT_KEY . """,""p_barcode"":""" . code . """,""p_quantity"":null,""p_sale_amount"":null,""p_sold_at"":""" . soldAt . """,""p_external_transaction_id"":""" . txId . """,""p_device"":""" . DEVICE . """}"
-    try {
-        Log("SEND_STARTED code=" code " transaction=" txId)
-        req := ComObject("WinHttp.WinHttpRequest.5.1")
-        req.Open("POST", RPC_URL, false)
-        req.SetTimeouts(5000, 5000, 10000, 15000)
-        req.SetRequestHeader("apikey", ANON_KEY)
-        req.SetRequestHeader("Authorization", "Bearer " ANON_KEY)
-        req.SetRequestHeader("Content-Type", "application/json")
-        req.Send(body)
-        status := req.Status
-        response := req.ResponseText
-        if (status >= 200 && status < 300 && InStr(response, """ok"":true")) {
-            logCount += 1
-            A_IconTip := "MEATOS 스캔 · 오늘 " logCount "건"
-            Log("SEND_SUCCEEDED code=" code " status=" status " transaction=" txId)
-            TrayTip("판매 반영 완료", code, 1)
-        } else {
-            reason := FailureReason(response)
-            Log("SEND_FAILED code=" code " status=" status " reason=" reason " transaction=" txId)
-            TrayTip("판매 반영 실패", reason, 3)
-        }
-    } catch as e {
-        Log("SEND_FAILED code=" code " status=NETWORK_ERROR reason=" e.Message)
-        TrayTip("전송 실패(네트워크)", code, 3)
-    }
-}
-FailureReason(response) {
-    if InStr(response, "AGENT_NOT_AUTHENTICATED")
-        return "연동 인증 오류"
-    if InStr(response, "STORE_NOT_FOUND")
-        return "매장 연결 오류"
-    if InStr(response, "BARCODE_NOT_MAPPED")
-        return "미등록 바코드"
-    if InStr(response, "INSUFFICIENT_STOCK")
-        return "재고 부족"
-    if InStr(response, "DUPLICATE_EVENT")
-        return "중복 거래"
-    if InStr(response, "SALE_VALUE_REQUIRED")
-        return "판매값 확인 필요"
-    return "서버 오류"
-}
-Log(message) {
-    global LOG_FILE
-    try FileAppend(FormatTime(, "yyyy-MM-dd HH:mm:ss") " " message "\`n", LOG_FILE, "UTF-8")
-}
-A_TrayMenu.Delete()
-A_TrayMenu.Add("MEATOS 스캔 에이전트 (${ahkText(STORE_NAME)})", (*) => 0)
-A_TrayMenu.Add("로그 폴더 열기", (*) => Run(LOG_DIR))
-A_TrayMenu.Add()
-A_TrayMenu.Add("종료", (*) => ExitApp())
-`; }
-document.getElementById("dl").addEventListener("click", async (e)=>{
-  e.preventDefault();
-  const button=e.currentTarget;
-  if(!IS_BUSINESS){ document.getElementById("loginwarn").style.display="block"; return; }
-  const original=button.textContent; button.textContent="연동 키 발급 중…"; button.setAttribute("aria-busy","true");
+async function requestJson(url,options={}){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
   try{
-    const config=await issueAgentKey();
-    const blob = new Blob([buildAgent(config)], { type:"text/plain;charset=utf-8" });
-    const a=document.createElement("a"); const objectUrl=URL.createObjectURL(blob);
-    a.href=objectUrl; a.download="meatos-scan-agent.ahk"; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
-    document.getElementById("s-msg").textContent="매장 전용 에이전트를 발급했습니다. 기존 같은 매장·기기의 에이전트 키는 만료됩니다.";
+    const response=await fetch(url,{...options,headers:options.headers||H,signal:controller.signal});
+    const text=await response.text();let body=null;try{body=JSON.parse(text)}catch{}
+    if(!response.ok)throw new Error(body?.message||body?.error||("HTTP "+response.status));
+    return body;
+  }finally{clearTimeout(timer)}
+}
+function setReady(id,ok,label){
+  const el=document.getElementById(id);el.className="ready "+(ok?"ok":"bad");el.querySelector("b").textContent=label;
+}
+function updateInstallButton(){
+  // 설치 다운로드는 '기업(기본매장) 연동'만 되면 가능. 재고·바코드 매핑은 설치 후 해도 되므로 다운로드를 막지 않는다.
+  const button=document.getElementById("install"),ok=READY.company;
+  button.disabled=!ok;button.textContent=ok?"Windows 현장 검증 설치 프로그램 받기":"기업 연동(기본매장 연결) 후 설치할 수 있습니다";
+  document.getElementById("map-cta").classList.toggle("show",READY.company&&!READY.mapping);
+}
+async function preflight(){
+  READY.company=IS_BUSINESS;
+  setReady("r-company",READY.company,READY.company?(STORE_NAME+" 연결됨"):"기업 승인·기본매장 필요");
+  const acct=document.getElementById("acct");
+  acct.className=READY.company?"acct":"acct out";
+  acct.textContent=READY.company?("🏪 "+STORE_NAME+" · 기업 매장 연결 완료"):"기업 계정 또는 기본매장 연결이 필요합니다.";
+  if(!READY.company){setReady("r-stock",false,"기업 연결 후 확인");setReady("r-map",false,"기업 연결 후 확인");updateInstallButton();return}
+  try{
+    const storeFilter=STORE_ID?"&store_id=eq."+encodeURIComponent(STORE_ID):"";
+    const [moves,maps]=await Promise.all([
+      requestJson(REST+"/inventory_movement?tenant_id=eq."+TENANT+storeFilter+"&select=raw_product_name,unit,quantity,movement_type&limit=5000"),
+      requestJson(REST+"/product_barcode?tenant_id=eq."+TENANT+"&or=(store_id.eq."+encodeURIComponent(STORE_ID)+",store_id.is.null)&select=barcode_key,raw_product_name,unit&limit=5000")
+    ]);
+    const stock=new Map();
+    (moves||[]).forEach(row=>{const key=(row.raw_product_name||"")+"|"+(row.unit||"kg"),sign=row.movement_type==="OUT"?-1:1;stock.set(key,(stock.get(key)||0)+sign*(Number(row.quantity)||0))});
+    const positiveKeys=new Set([...stock.entries()].filter(([,value])=>value>0).map(([key])=>key));
+    const positive=positiveKeys.size;
+    const saleableMaps=(maps||[]).filter(row=>positiveKeys.has((row.raw_product_name||"")+"|"+(row.unit||"kg")));
+    READY.stock=positive>0;READY.mapping=saleableMaps.length>0;
+    setReady("r-stock",READY.stock,READY.stock?(positive+"개 품목 판매 가능"):"현재고가 있는 품목 없음");
+    setReady("r-map",READY.mapping,READY.mapping?(saleableMaps.length+"개 판매 바코드 연결"):"재고 상품 바코드 연결 필요");
+    document.getElementById("install-msg").className="notice "+(READY.stock&&READY.mapping?"success":"");
+    document.getElementById("install-msg").innerHTML=READY.stock&&READY.mapping
+      ?"현장 검증 준비가 끝났습니다. 설치 후 정상 3건·결제 전 취소 1건·반품 1건을 순서대로 확인하세요."
+      :"현장 검증 전에 파란 <b>3번 해결하기</b> 버튼에서 재고가 있는 테스트 품목 3개와 바코드를 연결하세요.";
   }catch(error){
-    document.getElementById("s-msg").textContent="에이전트 발급 실패: "+error.message;
-  }finally{
-    button.textContent=original; button.removeAttribute("aria-busy");
+    setReady("r-stock",false,"조회 실패");setReady("r-map",false,"조회 실패");
+    document.getElementById("install-msg").className="notice error";
+    document.getElementById("install-msg").textContent="사전 점검 실패: "+error.message;
   }
-});
-
-// 실시간 연동 상태
-async function status(){
-  try{
-    const d=new Date(); const day=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-    const r=await fetch(REST+"/scan_event?tenant_id=eq."+TENANT+"&scanned_at=gte."+day+"T00:00:00&select=status,matched_product,scanned_at&order=scanned_at.desc&limit=200",{headers:H});
-    if(!r.ok){ document.getElementById("s-msg").textContent="상태 테이블이 아직 없습니다(마이그레이션 실행 필요)."; return; }
-    const rows=await r.json();
-    const proc=rows.filter(x=>x.status==="PROCESSED"), pend=rows.filter(x=>x.status!=="PROCESSED");
-    document.getElementById("s-cnt").textContent=proc.length;
-    document.getElementById("s-pending").textContent=pend.length;
-    document.getElementById("s-last").textContent = rows[0] ? (rows[0].scanned_at||"").slice(11,16) : "-";
-    document.getElementById("s-msg").innerHTML = rows.length
-      ? ("최근: " + (rows[0].matched_product?("<b>"+esc(rows[0].matched_product)+"</b> 자동 출고"):"미등록 대기 — 판매 스캔에서 품목 지정"))
-      : "아직 스캔이 없습니다. 에이전트 실행 후 계산대에서 라벨을 찍어보세요.";
-  }catch(e){ document.getElementById("s-msg").textContent="상태 확인 실패."; }
+  updateInstallButton();
 }
-status(); setInterval(status, 5000);
+async function issueAgentKey(device){
+  return requestJson(REST+"/rpc/issue_pos_agent_key",{
+    method:"POST",headers:{...H,"Content-Type":"application/json"},
+    body:JSON.stringify({p_store_id:STORE_ID,p_device:device})
+  });
+}
+function appendBytes(left,right){
+  const joined=new Uint8Array(left.length+right.length);joined.set(left,0);joined.set(right,left.length);return joined;
+}
+document.getElementById("install").addEventListener("click",async()=>{
+  const button=document.getElementById("install"),msg=document.getElementById("install-msg");
+  if(!READY.company)return;
+  const device=(document.getElementById("device").value||"POS01").trim().replace(/[^0-9A-Za-z가-힣._-]/g,"").slice(0,40)||"POS01";
+  const cleanPort=value=>/^COM[1-9][0-9]?$/i.test(String(value||"").trim())?String(value).trim().toUpperCase():"";
+  const receiptPort=cleanPort(document.getElementById("receipt-port").value);
+  const labelPort=cleanPort(document.getElementById("label-port").value);
+  const serialBaud=Math.max(1200,Math.min(115200,Number(document.getElementById("serial-baud").value)||9600));
+  const deliveryPrefix=(document.getElementById("delivery-prefix").value||"29").replace(/\D/g,"").slice(0,2)||"29";
+  button.disabled=true;button.textContent="매장 연결 설치 파일 생성 중…";msg.className="notice";msg.textContent="기존 같은 단말 키는 안전하게 만료하고 새 연결키를 발급합니다.";
+  try{
+    const setupResponse=await fetch("downloads/MEATOS-POS-Setup.exe?v="+Date.now(),{cache:"no-store"});
+    if(!setupResponse.ok)throw new Error("설치 원본 다운로드 실패");
+    const setup=new Uint8Array(await setupResponse.arrayBuffer());
+    const config=await issueAgentKey(device);
+    if(!config?.ok||!config.agentKey)throw new Error(config?.error||"에이전트 키 발급 실패");
+    const payload={
+      rpcUrl:REST+"/rpc/capture_pos_sale_observation_agent",anonKey:ANON,agentKey:config.agentKey,
+      device:config.device||device,storeName:config.storeName||STORE_NAME,
+      companyId:config.companyId,storeId:config.storeId,issuedAt:new Date().toISOString(),
+      deliveryAutoCaptureEnabled:Boolean(receiptPort),
+      coupangReceiptPort:receiptPort,scaleLabelPort:labelPort,
+      deliverySerialBaud:serialBaud,deliveryBarcodePrefix:deliveryPrefix,
+      deliveryShadowMode:true,deliveryFinalizeIdleSeconds:240
+    };
+    const overlay=new TextEncoder().encode("\nMEATOS_POS_CONFIG_V1\n"+JSON.stringify(payload));
+    const blob=new Blob([appendBytes(setup,overlay)],{type:"application/vnd.microsoft.portable-executable"});
+    const url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="MEATOS-POS-설치-"+device+"-"+new Date().toISOString().slice(0,10).replace(/-/g,"")+".exe";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
+    msg.className="notice success";msg.textContent="매출·재고를 변경하지 않는 현장 검증 설치본을 생성했습니다. 다운로드한 EXE를 실행하세요."+((!READY.stock||!READY.mapping)?" (실제 판매 테스트 전에 '3번 해결하기'에서 재고 상품 바코드 3건을 연결하세요.)":"");
+  }catch(error){msg.className="notice error";msg.textContent="설치 프로그램 생성 실패: "+error.message}
+  finally{button.disabled=false;button.textContent="Windows 현장 검증 설치 프로그램 다시 받기"}
+});
+// scanned_at(UTC/ISO)을 한국시간 HH:MM으로 표시. tz 표시가 없으면 UTC로 간주.
+function fmtKstTime(ts){
+  if(!ts)return "-";
+  const iso=/[zZ]|[+\-]\d\d:?\d\d$/.test(ts)?ts:(String(ts).replace(" ","T")+"Z");
+  const d=new Date(iso);
+  if(isNaN(d.getTime()))return String(ts).slice(11,16)||"-";
+  return d.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Seoul"});
+}
+async function status(){
+  if(!IS_BUSINESS)return;
+  try{
+    // scanned_at은 UTC(timestamptz)로 저장된다. '오늘'은 한국시간(KST=UTC+9) 기준으로 잡아야 한다.
+    const kstNow=new Date(Date.now()+9*3600*1000);
+    const kstDay=kstNow.toISOString().slice(0,10);            // KST 기준 오늘 날짜(YYYY-MM-DD)
+    const startUtc=new Date(kstDay+"T00:00:00+09:00").toISOString(); // KST 0시를 UTC로 환산
+    const rows=await requestJson(REST+"/scan_event?tenant_id=eq."+TENANT+"&scanned_at=gte."+encodeURIComponent(startUtc)+"&select=status,matched_product,scanned_at,error_code&order=scanned_at.desc&limit=200");
+    const processed=rows.filter(row=>row.status==="OBSERVED"||row.status==="PROCESSED"),pending=rows.filter(row=>row.status!=="OBSERVED"&&row.status!=="PROCESSED");
+    document.getElementById("s-cnt").textContent=processed.length;document.getElementById("s-pending").textContent=pending.length;
+    document.getElementById("s-last").textContent=rows[0]?fmtKstTime(rows[0].scanned_at):"-";
+    document.getElementById("s-msg").innerHTML=rows.length
+      ?("최근: "+(rows[0].matched_product?("<b>"+esc(rows[0].matched_product)+"</b>"):(rows[0].error_code||"확인 필요")))
+      :"설치 후 실제 POS에서 라벨을 스캔하면 관찰 결과가 즉시 표시됩니다. 매출·재고는 변하지 않습니다.";
+  }catch(error){document.getElementById("s-msg").textContent="상태 확인 실패: "+error.message}
+}
+// 🧪 테스트(가상) 재고 3종 원클릭 생성 — 실제 창고 재고와 무관, 스캔→출고 검증용
+(function mountSeedButton(){
+  function seedRow(name,qty,price){
+    return { tenant_id:TENANT, company_id:TENANT, store_id:STORE_ID, movement_type:"IN", raw_product_name:name,
+      origin:"국내산", unit:"kg", quantity:qty, unit_price:price, amount:Math.round(qty*price),
+      movement_date:new Date().toISOString().slice(0,10), memo:"【테스트】가상 재고 시드" };
+  }
+  function mount(){
+    const anchor=document.getElementById("install-msg");
+    if(!anchor||document.getElementById("seedTestStock"))return;
+    const btn=document.createElement("button");
+    btn.id="seedTestStock";btn.type="button";btn.textContent="🧪 테스트 재고 3종 생성 (가상)";
+    btn.style.cssText="display:block;width:100%;margin-top:10px;padding:12px;border:1px dashed #9333ea;border-radius:11px;background:#faf5ff;color:#6b21a8;font-weight:800;cursor:pointer;font-size:14px";
+    btn.addEventListener("click",async()=>{
+      if(!IS_BUSINESS){alert("기업(기본매장) 연동 후 사용할 수 있어요.");return;}
+      if(!confirm("테스트용 가상 재고 3종을 등록할까요?\n· 삼겹살 10kg · 목살 10kg · 한우 꽃갈비 5kg\n\n실제 창고 재고와 별개이며, 나중에 재고현황 '재고 실사(조정)'로 0으로 되돌릴 수 있어요."))return;
+      btn.disabled=true;const old=btn.textContent;btn.textContent="생성 중…";
+      try{
+        const rows=[seedRow("삼겹살",10,19800),seedRow("목살",10,18500),seedRow("한우 꽃갈비",5,80000)];
+        const r=await fetch(REST+"/inventory_movement",{method:"POST",headers:{...H,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(rows)});
+        if(!r.ok)throw new Error((await r.text()).slice(0,160)||("HTTP "+r.status));
+        btn.textContent="✓ 생성됨 · 재점검 중…";await preflight();
+        btn.textContent="✓ 완료 · 이제 '판매 스캔'에서 라벨을 이 재고에 연결하세요";
+      }catch(e){alert("테스트 재고 생성 실패: "+e.message);btn.textContent=old;}
+      finally{btn.disabled=false;}
+    });
+    anchor.insertAdjacentElement("afterend",btn);
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mount);else mount();
+}());
+// ── 실시간 스캔 로그 (바코드 포함) ──────────────────────────────
+const LOG_CLEAR_KEY="meatos_scanlog_clear_"+TENANT;
+function tsMs(ts){const iso=/[zZ]|[+\-]\d\d:?\d\d$/.test(ts)?ts:(String(ts).replace(" ","T")+"Z");const n=Date.parse(iso);return isNaN(n)?0:n;}
+function fmtKstClock(ts){
+  if(!ts)return "--:--:--";
+  const d=new Date(tsMs(ts));if(isNaN(d.getTime())||!tsMs(ts))return "--:--:--";
+  return d.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false,timeZone:"Asia/Seoul"});
+}
+function renderScanLog(rows){
+  const box=document.getElementById("log-list");if(!box)return;
+  const clearMs=Number(localStorage.getItem(LOG_CLEAR_KEY)||0);
+  const shown=(rows||[]).filter(r=>!clearMs||tsMs(r.scanned_at)>clearMs);
+  if(!shown.length){box.innerHTML='<div class="log-empty">표시할 스캔이 없습니다. 계산대에서 라벨을 스캔해 보세요.</div>';return;}
+  box.innerHTML=shown.map(r=>{
+    const ok=r.status==="OBSERVED"||r.status==="PROCESSED";
+    const notMapped=r.error_code==="BARCODE_NOT_MAPPED";
+    const cls=ok?"ok":(notMapped?"bad":"warn");
+    const label=ok?"관찰됨":(notMapped?"미매핑":(r.error_code||r.status||"확인"));
+    const qty=(r.quantity!=null&&r.quantity!=="")?(" · "+Number(r.quantity)+"kg"):"";
+    const amt=(r.sale_amount!=null&&r.sale_amount!=="")?(" · "+Number(r.sale_amount).toLocaleString("ko-KR")+"원"):"";
+    const detail=ok
+      ?("<b>"+esc(r.matched_product||"-")+"</b>"+qty+amt)
+      :(r.matched_product?esc(r.matched_product):("연결된 재고 상품이 없습니다"+(notMapped?" · 판매 스캔에서 바코드를 재고에 연결하세요":(r.error_code?(" ("+esc(r.error_code)+")"):""))));
+    return '<div class="logrow"><div class="top"><span class="badge '+cls+'">'+label+'</span>'
+      +(r.device?('<span>'+esc(r.device)+'</span>'):'')
+      +'<span class="logtime">'+fmtKstClock(r.scanned_at)+'</span></div>'
+      +'<div class="bc">'+esc(r.barcode||"-")+'</div>'
+      +'<div class="meta">'+detail+'</div></div>';
+  }).join("");
+}
+// ── 에이전트 원격 상태 ───────────────────────────────────────────
+function fmtAgo(ts){
+  if(!ts)return "보고 없음";
+  const ms=Date.now()-tsMs(ts);
+  if(ms<0)return "방금";
+  const min=Math.floor(ms/60000);
+  if(min<1)return "방금 전";
+  if(min<60)return min+"분 전";
+  const hr=Math.floor(min/60);
+  if(hr<24)return hr+"시간 전";
+  return Math.floor(hr/24)+"일 전";
+}
+function renderAgentHealth(rows){
+  const box=document.getElementById("agent-health-list");if(!box)return;
+  if(!rows||!rows.length){box.innerHTML='<div class="log-empty">설치된 에이전트가 없습니다. 위에서 설치 프로그램을 받아 설치하세요.</div>';return;}
+  box.innerHTML=rows.map(r=>{
+    const staleMs=15*60*1000;
+    const heartbeatMs=r.last_heartbeat_at?(Date.now()-tsMs(r.last_heartbeat_at)):Infinity;
+    const online=r.is_active&&heartbeatMs<staleMs;
+    const elevatedOk=r.is_elevated===true;
+    const hookOk=r.hook_ok===true;
+    const cls=!r.is_active?"bad":(online&&elevatedOk&&hookOk?"ok":(online?"warn":"bad"));
+    const label=!r.is_active?"연동 해제됨":(online?(elevatedOk&&hookOk?"정상":"확인 필요"):"오프라인");
+    const bits=[];
+    if(r.is_active){
+      bits.push("관리자 권한: "+(r.is_elevated==null?"확인 전":(elevatedOk?"예":"<b>아니오 · POS가 관리자 권한이면 입력을 못 받을 수 있음</b>")));
+      bits.push("키보드 훅: "+(r.hook_ok==null?"확인 전":(hookOk?"정상":"<b>실패</b>")));
+      bits.push("마지막 신호: "+fmtAgo(r.last_heartbeat_at));
+      bits.push("마지막 캡처: "+fmtAgo(r.last_used_at));
+      if(r.agent_version)bits.push("버전: "+esc(r.agent_version));
+    }
+    const errorLine=r.last_error?('<div class="meta" style="color:#b91c1c;margin-top:3px">최근 오류: '+esc(r.last_error)+' ('+fmtAgo(r.last_error_at)+')</div>'):"";
+    return '<div class="logrow"><div class="top"><span class="badge '+cls+'">'+label+'</span>'
+      +'<span>'+esc(r.device||"POS01")+'</span>'
+      +'<span class="logtime">'+esc(r.store_name||"")+'</span></div>'
+      +'<div class="meta">'+bits.join(" · ")+'</div>'+errorLine+'</div>';
+  }).join("");
+}
+async function agentHealth(){
+  if(!IS_BUSINESS)return;
+  try{
+    const rows=await requestJson(REST+"/rpc/get_pos_agent_health",{
+      method:"POST",headers:{...H,"Content-Type":"application/json"},
+      body:JSON.stringify({p_store_id:STORE_ID})
+    });
+    renderAgentHealth(rows||[]);
+  }catch(error){
+    const box=document.getElementById("agent-health-list");
+    if(box)box.innerHTML='<div class="log-empty">상태 조회 실패: '+esc(error.message)+'</div>';
+  }
+}
+async function scanLog(){
+  if(!IS_BUSINESS)return;
+  try{
+    const rows=await requestJson(REST+"/scan_event?tenant_id=eq."+TENANT+"&select=scanned_at,status,barcode,device,matched_product,error_code,quantity,sale_amount&order=scanned_at.desc&limit=50");
+    renderScanLog(rows||[]);
+  }catch(e){/* 상단 상태창이 오류를 표시하므로 여기선 조용히 무시 */}
+}
+(function(){const b=document.getElementById("log-clear");if(b)b.addEventListener("click",()=>{
+  localStorage.setItem(LOG_CLEAR_KEY,String(Date.now()));
+  const box=document.getElementById("log-list");if(box)box.innerHTML='<div class="log-empty">화면을 비웠습니다. 지금부터 새로 스캔되는 항목만 표시됩니다.</div>';
+});}());
+preflight();status();scanLog();agentHealth();
+setInterval(()=>{status();scanLog();},4000);
+setInterval(agentHealth,30000);
 </script>
 </body>
 </html>

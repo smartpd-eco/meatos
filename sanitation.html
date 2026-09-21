@@ -1,165 +1,462 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="robots" content="noindex,nofollow" />
-<meta http-equiv="Cache-Control" content="no-store" />
-<title>금일 정육일지 · 정육비서</title>
-<style>
-  * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
-  h1 { font-size:20px; margin:2px 0 4px; }
-  .sub { color:#6b7280; font-size:13px; margin-bottom:12px; }
-  .bar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
-  .bar a { flex:1; text-align:center; padding:12px; border-radius:10px; background:#e5e7eb; color:#111827; text-decoration:none; font-weight:700; }
-  .card { background:#fff; border-radius:12px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .card h2 { font-size:16px; margin:0 0 10px; }
-  .head { display:flex; gap:8px; flex-wrap:wrap; }
-  .head label { flex:1; min-width:120px; font-size:13px; color:#6b7280; }
-  .head input, .head select, input[type=text], textarea { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; margin-top:4px; }
-  .chk { display:flex; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid #f1f5f9; font-size:15px; }
-  .chk input { width:22px; height:22px; }
-  .temps { display:flex; gap:10px; }
-  .temps > div { flex:1; }
-  textarea { min-height:64px; resize:vertical; }
-  .ai b { font-size:20px; } .ai .row { display:flex; gap:8px; }
-  .ai .box { flex:1; background:#f8fafc; border-radius:10px; padding:12px; text-align:center; }
-  button.primary { display:block; width:100%; padding:16px; font-size:17px; font-weight:800; border:none; border-radius:12px; background:#16a34a; color:#fff; cursor:pointer; margin-bottom:10px; }
-  button.print { background:#2563eb; }
-  .msg { padding:6px 4px; font-size:14px; }
-  @media print { .noprint{display:none!important;} body{background:#fff;padding:0;} .card{box-shadow:none;border:1px solid #e5e7eb;} }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <title>축산물 일일 위생 점검표 · 정육비서</title>
+  <style>
+    :root {
+      --brand:#c91624; --brand-soft:#fff1f2; --ink:#172033; --muted:#687386;
+      --line:#dfe4eb; --surface:#fff; --page:#f4f6f9; --good:#16803c;
+      --normal:#b66a00; --bad:#c91624; --blue:#2367d1;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--page); color:var(--ink); font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif; }
+    button,input,select,textarea { font:inherit; }
+    .page { width:min(1120px,calc(100% - 28px)); margin:0 auto; padding:24px 0 48px; }
+    .hero,.sheet,.score-panel,.comment-card { background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:0 8px 28px rgba(23,32,51,.06); }
+    .hero { display:flex; justify-content:space-between; align-items:center; gap:18px; padding:22px 24px; margin-bottom:14px; }
+    h1 { margin:0 0 6px; font-size:clamp(23px,4vw,34px); letter-spacing:-.04em; }
+    .sub { margin:0; color:var(--muted); line-height:1.55; }
+    .top-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .btn { border:0; border-radius:11px; min-height:44px; padding:0 16px; font-weight:800; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+    .btn-secondary { background:#edf1f6; color:var(--ink); }
+    .btn-blue { background:var(--blue); color:#fff; }
+    .btn-primary { background:var(--brand); color:#fff; }
+    .legend { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+    .legend-item { padding:13px 14px; border-radius:14px; border:1px solid var(--line); background:#fff; text-align:center; font-weight:800; }
+    .legend-item small { display:block; margin-top:3px; font-weight:600; color:var(--muted); }
+    .legend-item.good { border-color:#a8dfb8; background:#f0fff4; color:var(--good); }
+    .legend-item.normal { border-color:#f3cf96; background:#fff9ec; color:var(--normal); }
+    .legend-item.bad { border-color:#f1b8be; background:#fff3f4; color:var(--bad); }
+    .sheet { overflow:hidden; }
+    .meta { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; padding:18px 20px; border-bottom:1px solid var(--line); background:#fbfcfe; }
+    label.field { display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:800; color:#4d5869; }
+    .field input,.field select,textarea { width:100%; min-height:44px; border:1px solid #cfd6e0; border-radius:10px; background:#fff; padding:10px 12px; color:var(--ink); }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; min-width:820px; }
+    th,td { border-bottom:1px solid var(--line); padding:12px 10px; vertical-align:middle; }
+    th { background:#f1f4f8; font-size:13px; color:#4b5565; text-align:center; }
+    td.no { width:52px; text-align:center; font-weight:900; color:var(--brand); }
+    td.group { width:118px; text-align:center; font-weight:800; background:#fafbfd; }
+    td.item { min-width:320px; font-size:15px; line-height:1.45; font-weight:650; }
+    .mobile-group { display:none; }
+    td.rating { width:110px; text-align:center; }
+    .rating-choice { position:relative; display:block; }
+    .rating-choice input { position:absolute; opacity:0; pointer-events:none; }
+    .rating-choice span { min-height:42px; border:1px solid #ccd3dd; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; background:#fff; font-weight:900; }
+    .rating-choice small { font-size:10px; font-weight:700; color:var(--muted); margin-top:1px; }
+    .rating-choice input:focus-visible + span { outline:3px solid rgba(35,103,209,.25); }
+    .rating-choice.good input:checked + span { background:#eaf9ef; border-color:#48a765; color:var(--good); }
+    .rating-choice.normal input:checked + span { background:#fff4d9; border-color:#d9932f; color:var(--normal); }
+    .rating-choice.bad input:checked + span { background:#ffe8ea; border-color:#df5b66; color:var(--bad); }
+    .temp-evidence { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+    .temp-evidence label { font-size:12px; color:var(--muted); }
+    .temp-evidence input { width:100%; margin-top:4px; padding:7px 8px; border:1px solid #ccd3dd; border-radius:8px; }
+    .score-panel { display:grid; grid-template-columns:180px 1fr; gap:20px; align-items:center; padding:20px 22px; margin-top:14px; }
+    .score-number { text-align:center; }
+    .score-number strong { font-size:48px; line-height:1; letter-spacing:-.04em; color:var(--brand); }
+    .score-number span { color:var(--muted); font-weight:800; }
+    .progress { height:12px; background:#e8ecf1; border-radius:999px; overflow:hidden; margin:8px 0 10px; }
+    .progress > div { height:100%; width:0; background:linear-gradient(90deg,var(--brand),#f06a75); transition:width .2s ease; }
+    #score-message { margin:0; font-weight:800; line-height:1.5; }
+    .comment-card { padding:18px 20px; margin-top:14px; }
+    .comment-card h2 { margin:0 0 9px; font-size:18px; }
+    .ai-advice { padding:14px 16px; background:#f1f6ff; border-left:4px solid var(--blue); border-radius:10px; line-height:1.55; color:#24436f; font-weight:700; }
+    .notes { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+    textarea { min-height:90px; resize:vertical; }
+    .signatures { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+    .bottom-actions { display:flex; gap:10px; margin-top:14px; }
+    .bottom-actions .btn { flex:1; min-height:52px; }
+    #save-message { margin:10px 2px 0; min-height:22px; font-weight:700; }
+    .print-report { display:none; }
+    @page { size:A4 portrait; margin:10mm; }
+    @media print {
+      header,.mt-header,.guest-banner,.page > :not(.print-report) { display:none!important; }
+      body { background:#fff; color:#111; }
+      .page { width:100%; padding:0; }
+      .print-report { display:block; }
+      .print-report h1 { margin:0 0 8mm; text-align:center; font-size:22px; letter-spacing:-.02em; }
+      .print-meta { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; border:1px solid #333; margin-bottom:5mm; }
+      .print-meta div { min-height:11mm; padding:3mm; border-right:1px solid #777; font-size:12px; }
+      .print-meta div:last-child { border-right:0; }
+      .print-meta b { display:block; margin-bottom:1.5mm; font-size:10px; color:#555; }
+      .print-report table { min-width:0; border:1px solid #333; }
+      .print-report th,.print-report td { border-right:1px solid #777; border-bottom:1px solid #777; padding:3mm 2.5mm; font-size:11px!important; }
+      .print-report th:last-child,.print-report td:last-child { border-right:0; }
+      .print-report th { background:#f2f2f2!important; color:#111; }
+      .print-report td:nth-child(1),.print-report td:nth-child(3),.print-report td:nth-child(4) { text-align:center; }
+      .print-report tfoot td { font-weight:900; background:#f7f7f7!important; }
+      .print-footnote { margin:4mm 0 0; text-align:right; font-size:10px; color:#555; }
+    }
+    @media screen and (max-width:720px) {
+      .page { width:min(100% - 18px,1120px); padding-top:12px; }
+      .hero { align-items:flex-start; flex-direction:column; padding:18px; }
+      .top-actions { width:100%; }
+      .top-actions .btn { flex:1; padding:0 10px; font-size:13px; }
+      .legend { grid-template-columns:1fr; gap:6px; }
+      .legend-item { display:flex; align-items:center; justify-content:space-between; text-align:left; padding:10px 12px; }
+      .legend-item small { margin:0; }
+      .meta { grid-template-columns:1fr; }
+      .score-panel { grid-template-columns:1fr; gap:10px; }
+      .notes,.signatures { grid-template-columns:1fr; }
+      .sheet { overflow:visible; border:0; background:transparent; box-shadow:none; }
+      .table-wrap { overflow:visible; }
+      table { min-width:0; display:block; }
+      thead { display:none; }
+      tbody { display:block; }
+      #checklist-body tr {
+        display:grid;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:8px;
+        margin-bottom:12px;
+        padding:17px 15px 15px;
+        border:1px solid var(--line);
+        border-radius:16px;
+        background:#fff;
+        box-shadow:0 5px 18px rgba(23,32,51,.06);
+      }
+      #checklist-body td { display:block; width:auto; border:0; padding:0; }
+      #checklist-body td.no,#checklist-body td.group { display:none; }
+      #checklist-body td.item { grid-column:1 / -1; min-width:0; margin-bottom:4px; font-size:16px; line-height:1.5; }
+      .mobile-group { display:block; margin-bottom:5px; color:var(--blue); font-size:13px; font-weight:900; }
+      td.rating { grid-column:auto; }
+      .rating-choice span { min-height:58px; border-radius:12px; font-size:20px; }
+      .rating-choice small { font-size:11px; }
+      .temp-evidence { margin-top:12px; }
+      .temp-evidence input { min-height:44px; font-size:16px; }
+    }
+  </style>
 </head>
 <body>
-<script src="header.js"></script>
-  <h1>금일 정육일지</h1>
-  <div class="sub">매일 위생·작업 점검을 기록합니다. 저장하면 홈 알림현황에 "작성 완료"로 표시됩니다.</div>
-  <div class="bar noprint"><a href="sanitation-list.html">📚 지난 일지</a></div>
+  <script src="header.js"></script>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <h1>축산물 일일 위생 점검표</h1>
+        <p class="sub">매일 10개 항목을 평가합니다. 100점 만점 중 80점 이상을 꾸준히 유지하세요.</p>
+      </div>
+      <div class="top-actions noprint">
+        <a class="btn btn-primary" href="sanitation-list.html">축산물 월별 위생 점검표</a>
+      </div>
+    </section>
 
-  <div class="card">
-    <div class="head">
-      <label>작성일<input id="f-date" type="text" readonly></label>
-      <label>담당자<input id="f-worker" type="text" placeholder="이름"></label>
-      <label>근무조<select id="f-shift"><option>전일</option><option>오전</option><option>오후</option></select></label>
+    <section class="legend" aria-label="점수 평가 기준">
+      <div class="legend-item good">1 · 매우 잘됨 <small>10점</small></div>
+      <div class="legend-item normal">2 · 보통 <small>5점</small></div>
+      <div class="legend-item bad">3 · 불량 <small>1점</small></div>
+    </section>
+
+    <section class="sheet">
+      <div class="meta">
+        <label class="field">점검일<input id="work-date" type="date" /></label>
+        <label class="field">점검자<input id="worker-name" type="text" maxlength="50" placeholder="점검자 이름" /></label>
+        <label class="field">근무 구분
+          <select id="work-shift"><option>전일</option><option>오전</option><option>오후</option></select>
+        </label>
+      </div>
+      <div class="table-wrap">
+        <table aria-label="축산물 일일 위생 점검표 점검 항목">
+          <thead>
+            <tr>
+              <th rowspan="2">번호</th><th rowspan="2">구분</th><th rowspan="2">점검 항목</th>
+              <th colspan="3">평가</th>
+            </tr>
+            <tr><th>1<br />10점</th><th>2<br />5점</th><th>3<br />1점</th></tr>
+          </thead>
+          <tbody id="checklist-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="score-panel" aria-live="polite">
+      <div class="score-number"><strong id="total-score">0</strong><span> / 100점</span></div>
+      <div>
+        <div><b id="completion-count">0개 평가</b></div>
+        <div class="progress"><div id="score-progress"></div></div>
+        <p id="score-message">아직 확인할 항목이 남았어요. 천천히 마무리해 주세요.</p>
+      </div>
+    </section>
+
+    <section class="comment-card">
+      <h2>AI 위생관리 조언</h2>
+      <div class="ai-advice" id="ai-advice">아직 10개 항목이 남았어요. 빠뜨린 곳 없이 천천히 확인해 주세요.</div>
+      <div class="notes">
+        <label class="field">지적 사항<textarea id="finding-note" placeholder="보통·불량 항목의 원인을 기록하세요."></textarea></label>
+        <label class="field">개선 조치 사항<textarea id="action-note" placeholder="담당자·조치 내용·완료 시점을 기록하세요."></textarea></label>
+      </div>
+      <div class="signatures">
+        <label class="field">점검자 확인<input id="worker-signature" type="text" maxlength="50" placeholder="성명" /></label>
+        <label class="field">관리자 확인<input id="manager-signature" type="text" maxlength="50" placeholder="성명" /></label>
+      </div>
+    </section>
+
+    <div class="bottom-actions noprint">
+      <button class="btn btn-primary" id="save-button" type="button">점검표 저장</button>
+      <button class="btn btn-blue" id="print-button" type="button">축산물 일일 위생 점검표 인쇄</button>
     </div>
-  </div>
+    <div id="save-message" role="status"></div>
 
-  <div id="form"></div>
+    <section class="print-report" aria-hidden="true">
+      <h1>축산물 일일 위생 점검표</h1>
+      <div class="print-meta">
+        <div><b>점검일</b><span id="print-work-date">-</span></div>
+        <div><b>점검자</b><span id="print-worker-name">-</span></div>
+        <div><b>근무 구분</b><span id="print-work-shift">-</span></div>
+        <div><b>현재 총점</b><span id="print-total-score">0 / 100점</span></div>
+      </div>
+      <table aria-label="축산물 일일 위생 점검표 인쇄 결과">
+        <thead>
+          <tr><th>번호</th><th>점검 항목</th><th>현재 상태</th><th>점수</th></tr>
+        </thead>
+        <tbody id="print-checklist-body"></tbody>
+        <tfoot>
+          <tr><td colspan="3">합계</td><td id="print-score-sum">0점</td></tr>
+        </tfoot>
+      </table>
+      <p class="print-footnote">현재 입력·저장된 점검 결과를 기준으로 출력했습니다.</p>
+    </section>
+  </main>
 
-  <div class="card ai">
-    <h2>⑦ AI 자동 점검</h2>
-    <div class="row">
-      <div class="box"><b id="ai-expiry">-</b><div>유통기한 임박·만료</div></div>
-      <div class="box"><b id="ai-ocr">-</b><div>OCR 검토 대기</div></div>
-      <div class="box"><b id="ai-stock">-</b><div>재고 품목</div></div>
-    </div>
-  </div>
+  <script src="src/data/sanitation-scoring.js"></script>
+  <script>
+    const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+    const TENANT_ID = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
+    const H = window.MEATOS_API_HEADERS;
+    const HW = { ...H, "Content-Type": "application/json" };
+    const scoring = window.MEATOS_SANITATION;
+    const evaluations = {};
+    const byId = (id) => document.getElementById(id);
+    const esc = (value) => String(value ?? "").replace(/[&<>"]/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[char]));
+    const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-  <div class="card">
-    <h2>⑧ 특이사항</h2>
-    <textarea id="f-memo" aria-label="특이사항" placeholder="특이사항을 입력하세요"></textarea>
-  </div>
+    function groupRowSpans() {
+      return scoring.ITEMS.reduce((map, item) => {
+        map[item.group] = (map[item.group] || 0) + 1;
+        return map;
+      }, {});
+    }
 
-  <div class="card">
-    <h2>전자서명</h2>
-    <div class="head">
-      <label>담당자 서명<input id="sig-worker" type="text" placeholder="담당자 성명"></label>
-      <label>관리자 서명<input id="sig-manager" type="text" placeholder="관리자 성명"></label>
-    </div>
-  </div>
+    function renderChecklist() {
+      const spans = groupRowSpans();
+      const renderedGroups = new Set();
+      byId("checklist-body").innerHTML = scoring.ITEMS.map((item, index) => {
+        const groupCell = renderedGroups.has(item.group)
+          ? ""
+          : `<td class="group" rowspan="${spans[item.group]}">${esc(item.group)}</td>`;
+        renderedGroups.add(item.group);
+        const temperatureFields = item.id === "pre_temperature"
+          ? `<div class="temp-evidence">
+              <label>냉장실 ℃<input id="fridge-temp" type="number" step="0.1" placeholder="예: 3.5" /></label>
+              <label>냉동실 ℃<input id="freezer-temp" type="number" step="0.1" placeholder="예: -20" /></label>
+            </div>`
+          : "";
+        return `<tr data-item-id="${item.id}">
+          <td class="no">${index + 1}</td>${groupCell}
+          <td class="item"><span class="mobile-group">${esc(item.group)} · ${index + 1}번</span>${esc(item.text)}${temperatureFields}</td>
+          ${[1,2,3].map((rating) => `<td class="rating">
+            <label class="rating-choice ${rating === 1 ? "good" : rating === 2 ? "normal" : "bad"}">
+              <input type="radio" name="rating-${item.id}" value="${rating}" aria-label="${esc(item.short)} ${rating}번 ${scoring.RATING_LABELS[rating]}" />
+              <span>${rating}<small>${scoring.RATING_LABELS[rating]}</small></span>
+            </label>
+          </td>`).join("")}
+        </tr>`;
+      }).join("");
 
-  <button class="primary" id="saveBtn">💾 저장</button>
-  <button class="primary print noprint" id="printBtn">🖨️ 인쇄 / PDF 저장</button>
-  <div class="msg" id="saveMsg"></div>
+      document.querySelectorAll("input[type=radio][name^=rating-]").forEach((input) => {
+        input.addEventListener("change", () => {
+          evaluations[input.name.replace("rating-", "")] = Number(input.value);
+          refreshScore();
+        });
+      });
+      ["fridge-temp", "freezer-temp"].forEach((id) => byId(id).addEventListener("input", refreshScore));
+    }
 
-<script>
-const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
-const ANON_KEY = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
-const TENANT_ID = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
-const H = window.MEATOS_API_HEADERS;
-const HW = { ...H, "Content-Type": "application/json" };
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
-function localToday(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-const todayStr = localToday();
-document.getElementById("f-date").value = todayStr;
+    function currentTemperatures() {
+      return { fridge: byId("fridge-temp").value, freezer: byId("freezer-temp").value };
+    }
 
-(async () => { try {
-  if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map(x=>x.unregister())); }
-  if (window.caches) { const k = await caches.keys(); await Promise.all(k.map(x=>caches.delete(x))); }
-} catch(e){} })();
+    function refreshScore() {
+      const result = scoring.calculate(evaluations);
+      byId("total-score").textContent = result.total;
+      byId("completion-count").textContent = `${result.completed}개 평가`;
+      byId("score-progress").style.width = `${result.total}%`;
+      byId("score-message").textContent = scoring.scoreMessage(result.total, result.isComplete, byId("work-date").value);
+      byId("ai-advice").textContent = scoring.dailyAdvice(evaluations, currentTemperatures());
+    }
 
-const SECTIONS = [
-  { key:"check_personal", title:"① 개인 위생", items:["손 세척 완료","위생복 착용","위생모 착용","마스크 착용","장갑 착용","장신구 제거","건강상태 이상 없음"] },
-  { key:"check_equipment", title:"② 작업장 위생", items:["작업대 청결","칼 세척","도마 세척","톱 세척","분쇄기 세척","진공포장기 세척","바닥 청소","배수구 청소"] },
-  { key:"check_inventory", title:"④ 원료육 점검", items:["변색 없음","이취 없음","포장 이상 없음","이력번호 확인","유통기한 확인"] },
-  { key:"check_store", title:"⑤ 매장 위생", items:["쇼케이스 청결","진열상태 양호","쓰레기 처리 완료","해충 흔적 없음","환기 완료"] },
-  { key:"check_sale", title:"⑥ 판매 전 점검", items:["가격표 확인","원산지 표시","축산물이력 표시","소비기한 확인","할인상품 확인"] }
-];
+    function legacySection(ids) {
+      const result = {};
+      ids.forEach((id) => {
+        const item = scoring.ITEMS.find((entry) => entry.id === id);
+        result[item.text] = Number(evaluations[id]) === 1;
+      });
+      return result;
+    }
 
-function renderForm(){
-  const host = document.getElementById("form");
-  // 개인/작업장
-  let html = "";
-  html += sectionCard(SECTIONS[0]);
-  html += sectionCard(SECTIONS[1]);
-  // ③ 냉장고
-  html += "<div class='card'><h2>③ 냉장고 점검</h2><div class='temps'>"+
-    "<div><label>냉장온도(℃)<input id='fridge' type='number' step='0.1' placeholder='예: 2.0'></label></div>"+
-    "<div><label>냉동온도(℃)<input id='freezer' type='number' step='0.1' placeholder='예: -18.0'></label></div></div>"+
-    "<div class='chk'><input type='checkbox' id='fridge-ok'><label for='fridge-ok'>온도 정상</label></div></div>";
-  html += sectionCard(SECTIONS[2]);
-  html += sectionCard(SECTIONS[3]);
-  html += sectionCard(SECTIONS[4]);
-  host.innerHTML = html;
-}
-function sectionCard(s){
-  return "<div class='card' data-sec='"+s.key+"'><h2>"+esc(s.title)+"</h2>"+
-    s.items.map((it,i)=>"<div class='chk'><input type='checkbox' id='"+s.key+"_"+i+"' data-item=\""+esc(it)+"\"><label for='"+s.key+"_"+i+"'>"+esc(it)+"</label></div>").join("")+"</div>";
-}
-renderForm();
+    function serializedItems() {
+      return scoring.calculate(evaluations).items.map((item) => ({
+        id:item.id, group:item.group, text:item.text, short:item.short,
+        rating:item.rating, label:item.label, points:item.points
+      }));
+    }
 
-async function loadAi(){
-  try{
-    const t=new Date(); t.setHours(0,0,0,0); const lim=new Date(t.getTime()+3*86400000).toISOString().slice(0,10);
-    const exp=await (await fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT_ID+"&expiry_date=not.is.null&expiry_date=lte."+lim+"&select=id",{headers:H})).json();
-    document.getElementById("ai-expiry").textContent=(exp.length||0)+"건";
-    const rev=await (await fetch(REST+"/ocr_document?tenant_id=eq."+TENANT_ID+"&document_status=eq.REVIEW_REQUIRED&select=id",{headers:H})).json();
-    document.getElementById("ai-ocr").textContent=(rev.length||0)+"건";
-    const inv=await (await fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT_ID+"&select=raw_product_name",{headers:H})).json();
-    const kinds=new Set(inv.map(x=>x.raw_product_name)); document.getElementById("ai-stock").textContent=kinds.size+"종";
-  }catch(e){}
-}
-loadAi();
+    function renderPrintReport() {
+      const result = scoring.calculate(evaluations);
+      const temperatures = currentTemperatures();
+      byId("print-work-date").textContent = byId("work-date").value || "-";
+      byId("print-worker-name").textContent = byId("worker-name").value.trim() || "-";
+      byId("print-work-shift").textContent = byId("work-shift").value || "-";
+      byId("print-total-score").textContent = `${result.total} / 100점`;
+      byId("print-score-sum").textContent = `${result.total}점`;
+      byId("print-checklist-body").innerHTML = result.items.map((item, index) => {
+        const temperatureText = item.id === "pre_temperature"
+          ? ` · 냉장 ${temperatures.fridge === "" ? "-" : `${temperatures.fridge}℃`}, 냉동 ${temperatures.freezer === "" ? "-" : `${temperatures.freezer}℃`}`
+          : "";
+        const status = item.rating
+          ? `${item.rating} · ${item.label}${temperatureText}`
+          : `미평가${temperatureText}`;
+        return `<tr>
+          <td>${index + 1}</td>
+          <td>${esc(item.text)}</td>
+          <td>${esc(status)}</td>
+          <td>${item.points || 0}점</td>
+        </tr>`;
+      }).join("");
+    }
 
-function collectSection(key){
-  const out={}; document.querySelectorAll("[data-sec='"+key+"'] input[data-item]").forEach(inp=>{ out[inp.dataset.item]=inp.checked; }); return out;
-}
-document.getElementById("saveBtn").addEventListener("click", async ()=>{
-  const msg=document.getElementById("saveMsg"); msg.style.color="#6b7280"; msg.textContent="저장 중...";
-  const row={
-    tenant_id:TENANT_ID, work_date:todayStr,
-    worker_name:(document.getElementById("f-worker").value||"").trim()||null,
-    work_shift:document.getElementById("f-shift").value,
-    check_personal:collectSection("check_personal"),
-    check_equipment:collectSection("check_equipment"),
-    check_refrigerator:{ "온도 정상": document.getElementById("fridge-ok").checked },
-    fridge_temp: document.getElementById("fridge").value!==""?Number(document.getElementById("fridge").value):null,
-    freezer_temp: document.getElementById("freezer").value!==""?Number(document.getElementById("freezer").value):null,
-    check_inventory:collectSection("check_inventory"),
-    check_store:collectSection("check_store"),
-    check_sale:collectSection("check_sale"),
-    ai_snapshot:{ expiry:document.getElementById("ai-expiry").textContent, ocr:document.getElementById("ai-ocr").textContent, stock:document.getElementById("ai-stock").textContent },
-    memo:(document.getElementById("f-memo").value||"").trim()||null,
-    signature:{ worker:(document.getElementById("sig-worker").value||"").trim(), manager:(document.getElementById("sig-manager").value||"").trim() }
-  };
-  try{
-    const r=await fetch(REST+"/daily_sanitation_logs",{method:"POST",headers:{...HW,Prefer:"return=minimal"},body:JSON.stringify(row)});
-    if(!r.ok) throw new Error(r.status+": "+(await r.text()).slice(0,150));
-    msg.style.color="#166534"; msg.textContent="✓ 정육일지 저장 완료 ("+todayStr+")";
-  }catch(e){ msg.style.color="#b91c1c"; msg.textContent="저장 실패: "+e.message; }
-});
-document.getElementById("printBtn").addEventListener("click", ()=>window.print());
-</script>
+    async function getExisting(date) {
+      const url = `${REST}/daily_sanitation_logs?tenant_id=eq.${TENANT_ID}&work_date=eq.${date}&select=*&order=created_at.desc&limit=1`;
+      const response = await fetch(url, { headers:H });
+      if (!response.ok) throw new Error(`기존 점검표 조회 실패 (${response.status})`);
+      return (await response.json())[0] || null;
+    }
+
+    async function getLatestTemplate(date) {
+      const url = `${REST}/daily_sanitation_logs?tenant_id=eq.${TENANT_ID}&work_date=lt.${date}&select=*&order=work_date.desc,created_at.desc&limit=1`;
+      const response = await fetch(url, { headers:H });
+      if (!response.ok) throw new Error(`최근 작성 양식 조회 실패 (${response.status})`);
+      return (await response.json())[0] || null;
+    }
+
+    function applyExisting(row) {
+      Object.keys(evaluations).forEach((key) => delete evaluations[key]);
+      document.querySelectorAll("input[type=radio][name^=rating-]").forEach((input) => { input.checked = false; });
+      const items = Array.isArray(row?.evaluation_items) ? row.evaluation_items : [];
+      items.forEach((item) => {
+        if (!item?.id || !scoring.RATING_POINTS[Number(item.rating)]) return;
+        evaluations[item.id] = Number(item.rating);
+        const input = document.querySelector(`input[name="rating-${item.id}"][value="${Number(item.rating)}"]`);
+        if (input) input.checked = true;
+      });
+      byId("worker-name").value = row?.worker_name || "";
+      byId("work-shift").value = row?.work_shift || "전일";
+      byId("fridge-temp").value = row?.fridge_temp ?? "";
+      byId("freezer-temp").value = row?.freezer_temp ?? "";
+      byId("finding-note").value = row?.finding_note || row?.memo || "";
+      byId("action-note").value = row?.corrective_action || "";
+      byId("worker-signature").value = row?.signature?.worker || "";
+      byId("manager-signature").value = row?.signature?.manager || "";
+      refreshScore();
+    }
+
+    async function loadDate() {
+      const message = byId("save-message");
+      message.style.color = "#687386";
+      message.textContent = "점검표를 불러오는 중입니다.";
+      try {
+        const selectedDate = byId("work-date").value;
+        const row = await getExisting(selectedDate);
+        if (row) {
+          applyExisting(row);
+          message.textContent = "선택한 날짜의 저장된 점검표를 불러왔습니다.";
+          return;
+        }
+        const latest = await getLatestTemplate(selectedDate);
+        applyExisting(latest);
+        if (latest) {
+          message.style.color = "#1f5fbf";
+          message.textContent = `${latest.work_date} 최종 작성 양식을 불러왔습니다. 점검일은 ${selectedDate}로 유지되며, 오늘 상태를 확인한 뒤 저장해 주세요.`;
+        } else {
+          message.textContent = "이전에 저장된 양식이 없어 새 점검표로 시작합니다.";
+        }
+      } catch (error) {
+        applyExisting(null);
+        message.style.color = "#c91624";
+        message.textContent = error.message;
+      }
+    }
+
+    async function save() {
+      const result = scoring.calculate(evaluations);
+      const message = byId("save-message");
+      if (!result.isComplete) {
+        message.style.color = "#c91624";
+        message.textContent = `미평가 항목 ${result.remaining}개가 있습니다. 10개 항목을 모두 평가하세요.`;
+        return;
+      }
+      const row = {
+        tenant_id:TENANT_ID,
+        work_date:byId("work-date").value,
+        worker_name:byId("worker-name").value.trim() || null,
+        work_shift:byId("work-shift").value,
+        evaluation_items:serializedItems(),
+        total_score:result.total,
+        ai_advice:scoring.dailyAdvice(evaluations, currentTemperatures()),
+        score_version:"SANITATION-100-V1",
+        check_personal:legacySection(["personal_uniform","personal_health"]),
+        check_equipment:legacySection(["pre_tools","pre_facility","during_tools","after_tools","after_facility"]),
+        check_refrigerator:legacySection(["pre_temperature"]),
+        fridge_temp:byId("fridge-temp").value === "" ? null : Number(byId("fridge-temp").value),
+        freezer_temp:byId("freezer-temp").value === "" ? null : Number(byId("freezer-temp").value),
+        check_inventory:legacySection(["pre_documents"]),
+        check_store:legacySection(["pre_facility","after_facility"]),
+        check_sale:legacySection(["during_behavior"]),
+        finding_note:byId("finding-note").value.trim() || null,
+        corrective_action:byId("action-note").value.trim() || null,
+        memo:byId("finding-note").value.trim() || null,
+        signature:{ worker:byId("worker-signature").value.trim(), manager:byId("manager-signature").value.trim() }
+      };
+      message.style.color = "#687386";
+      message.textContent = "저장 중입니다.";
+      byId("save-button").disabled = true;
+      try {
+        const existing = await getExisting(row.work_date);
+        const url = existing ? `${REST}/daily_sanitation_logs?id=eq.${existing.id}` : `${REST}/daily_sanitation_logs`;
+        const response = await fetch(url, {
+          method:existing ? "PATCH" : "POST",
+          headers:{ ...HW, Prefer:"return=minimal" },
+          body:JSON.stringify(row)
+        });
+        if (!response.ok) throw new Error((await response.text()).slice(0, 180) || `HTTP ${response.status}`);
+        message.style.color = "#16803c";
+        message.textContent = `${row.work_date} 축산물 일일 위생 점검표가 ${result.total}점으로 저장됐습니다.`;
+      } catch (error) {
+        message.style.color = "#c91624";
+        message.textContent = `저장 실패: ${error.message}`;
+      } finally {
+        byId("save-button").disabled = false;
+      }
+    }
+
+    renderChecklist();
+    const requestedDate = new URLSearchParams(window.location.search).get("date");
+    const requestedDateValue = requestedDate ? new Date(`${requestedDate}T00:00:00`) : null;
+    const hasValidRequestedDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || "")
+      && requestedDateValue
+      && !Number.isNaN(requestedDateValue.getTime())
+      && localDate(requestedDateValue) === requestedDate;
+    byId("work-date").value = hasValidRequestedDate ? requestedDate : localDate();
+    byId("work-date").addEventListener("change", loadDate);
+    byId("save-button").addEventListener("click", save);
+    byId("print-button").addEventListener("click", () => {
+      renderPrintReport();
+      window.print();
+    });
+    window.addEventListener("beforeprint", renderPrintReport);
+    loadDate();
+  </script>
 </body>
 </html>

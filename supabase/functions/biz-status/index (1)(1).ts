@@ -1,0 +1,60 @@
+// 사업자등록 상태 조회 (국세청 사업자등록정보 상태조회 API 프록시)
+// 브라우저에서 CORS로 직접 못 부르므로 이 함수가 대리 호출한다.
+// 배포: verify_jwt=false. 시크릿: DATA_GO_KR_KEY (공공데이터포털 활용신청 키)
+import { requireAuthenticatedUser } from "../_shared/tenant-auth.ts";
+
+declare const Deno: {
+  env: { get(key: string): string | undefined };
+  serve(handler: (request: Request) => Response | Promise<Response>): void;
+};
+
+function cors() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+function json(o: unknown, s = 200) {
+  return new Response(JSON.stringify(o), { status: s, headers: { ...cors(), "content-type": "application/json" } });
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors() });
+  const auth = await requireAuthenticatedUser(req);
+  if (auth.ok === false) return json({ ok: false, message: auth.message }, auth.status);
+  try {
+    const body = await req.json().catch(() => ({}));
+    const bno = String(body.b_no ?? "").replace(/\D/g, "");
+    if (bno.length !== 10) return json({ ok: false, message: "사업자번호 10자리를 입력하세요." }, 400);
+    const key = Deno.env.get("DATA_GO_KR_KEY") ?? "";
+    if (!key) return json({ ok: false, message: "DATA_GO_KR_KEY 미설정" }, 503);
+
+    const url = "https://api.odcloud.kr/api/nts-businessman/v1/status?returnType=JSON&serviceKey=" + encodeURIComponent(key);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ b_no: [bno] }),
+    });
+    const text = await res.text();
+    let j: any;
+    try { j = JSON.parse(text); } catch {
+      // JSON이 아님(대개 XML/HTML) = 서비스키 미인증/전파지연/미승인
+      return json({ ok: false, message: "국세청 API 키가 아직 인증되지 않았습니다(승인 직후 전파 지연이거나 키 값/유형 확인 필요).", raw: text.slice(0, 300) });
+    }
+    if (!Array.isArray(j.data)) {
+      const msg = (j && (j.msg || j.message || j.returnAuthMsg || j.errMsg)) || "조회 실패";
+      return json({ ok: false, message: msg, raw: j });
+    }
+    const d = j.data[0] || {};
+    // b_stt: 계속사업자/휴업자/폐업자,  b_stt_cd: 01/02/03. 미등록이면 tax_type 에 안내문.
+    const active = d.b_stt_cd === "01";
+    return json({
+      ok: true, b_no: bno, active,
+      b_stt: d.b_stt || d.tax_type || "미등록",
+      b_stt_cd: d.b_stt_cd || null, tax_type: d.tax_type || null,
+    });
+  } catch (e) {
+    return json({ ok: false, message: String(e) }, 500);
+  }
+});
