@@ -259,18 +259,26 @@ async function record(map, qty, amount, barcode){
     const movementRows=await r1.json();
     sale.inventory_movement_id=movementRows[0]?.id||null;
     let r2=await fetch(REST+"/sales_record",{method:"POST",headers:HW,body:JSON.stringify(sale)});
+    let r2bodyFirst = r2.ok ? "" : await r2.clone().text().catch(()=>"");
     if(!r2.ok && r2.status===400){
       const legacySale={ tenant_id:TENANT, company_id:COMPANY, store_id:STORE, sale_date:sale.sale_date, item_name:sale.item_name,
         quantity:sale.quantity, unit_price:sale.unit_price, amount:sale.amount, channel:sale.channel, memo:sale.memo };
       r2=await fetch(REST+"/sales_record",{method:"POST",headers:HW,body:JSON.stringify(legacySale)});
     }
-    if(!r2.ok) throw new Error("매출 "+r2.status);
+    if(!r2.ok){
+      const r2bodySecond = await r2.text().catch(()=>"");
+      throw new Error("매출 "+r2.status+" | 1차:"+r2bodyFirst+" | 2차:"+r2bodySecond);
+    }
     today.cnt++; today.amt+=amount;
     document.getElementById("k-cnt").textContent=today.cnt;
     document.getElementById("k-amt").textContent=won(today.amt);
     addRow(map.raw_product_name, qty, amount);
     toast("✓ "+map.raw_product_name+" "+kg(qty)+"kg 출고");
-  }catch(e){ toast("⚠ 실패: "+e.message); }
+  }catch(e){
+    toast("⚠ 실패: "+e.message);
+    const dbg = document.getElementById("debug-ctx");
+    if(dbg) dbg.textContent = "에러 상세: " + e.message;
+  }
   focusScan();
 }
 function addRow(name, qty, amt){
