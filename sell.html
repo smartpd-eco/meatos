@@ -191,6 +191,12 @@ document.getElementById("l-cancel").addEventListener("click", ()=>{ document.get
 document.getElementById("l-save").addEventListener("click", async ()=>{
   const name=document.getElementById("l-name").value.trim();
   if(!name){ alert("품목을 선택/입력하세요."); return; }
+  // 재고(입고)에 등록된 품목 목록에서만 고르게 강제 — 오타·임의 이름 등록 방지
+  if(PRODUCTS.length>0 && !PRODUCTS.includes(name)){
+    alert("재고에 등록된 품목명만 선택할 수 있습니다.\n목록에서 정확히 골라주세요: "+name);
+    document.getElementById("l-name").focus();
+    return;
+  }
   const price0=document.getElementById("l-price").value;
   if(price0===""){ alert("가격을 입력하세요."); return; }
   const weigh_type=autoWeighType(PENDING);
