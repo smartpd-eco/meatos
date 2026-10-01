@@ -50,13 +50,7 @@
     <div style="color:#6b7280;font-size:13px">바코드 <b id="l-code"></b> — 어떤 품목인가요? 한 번만 지정하면 다음부턴 자동입니다.</div>
     <label>품목 선택<input class="f" id="l-name" list="prodlist" placeholder="재고 품목명" /></label>
     <datalist id="prodlist"></datalist>
-    <label>계산 방식<select class="f" id="l-type">
-      <option value="PRICE_EMBED">바코드에 금액 내장 (저울 라벨·가장 흔함)</option>
-      <option value="MANUAL">무게 직접 입력</option>
-      <option value="WEIGHT_EMBED">바코드에 중량(g) 내장</option>
-      <option value="FIXED">개당(포장상품)</option>
-    </select></label>
-    <label>100g당 단가(원) <span style="color:#9ca3af">· 개당상품은 개당가격</span><input class="f" id="l-price" type="number" step="1" placeholder="예: 12500" /></label>
+    <label id="l-price-label">100g당 단가(원)<input class="f" id="l-price" type="number" step="1" placeholder="예: 12500" /></label>
     <button class="primary" id="l-save">등록하고 판매 처리</button>
     <button class="primary gray" id="l-cancel" style="margin-top:8px">취소</button>
   </div>
