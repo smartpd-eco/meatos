@@ -170,20 +170,31 @@ function handleScan(code){
   else { openConfirm(map, p); }  // MANUAL
 }
 
+// 바코드 모양으로 계산 방식을 자동 판단 (사장님께는 묻지 않음)
+// - 저울 라벨(13자리, '2'로 시작): 거의 전부 "바코드에 금액 내장" 방식 → PRICE_EMBED
+// - 일반 상품 바코드(포장상품 등): 개당 고정가 → FIXED
+function autoWeighType(p){ return p.instore ? "PRICE_EMBED" : "FIXED"; }
+
 function openLearn(p){
   PENDING = p;
   document.getElementById("confirm").style.display="none";
   document.getElementById("learn").style.display="block";
   document.getElementById("l-code").textContent = p.raw;
-  document.getElementById("l-name").value=""; document.getElementById("l-price").value=""; document.getElementById("l-type").value="MANUAL";
+  document.getElementById("l-name").value=""; document.getElementById("l-price").value="";
+  const priceLabel = document.getElementById("l-price-label");
+  const priceInput = document.getElementById("l-price");
+  if(p.instore){ priceLabel.firstChild.textContent="100g당 단가(원)"; priceInput.placeholder="예: 12500"; }
+  else { priceLabel.firstChild.textContent="개당 가격(원)"; priceInput.placeholder="예: 3900"; }
   document.getElementById("l-name").focus();
 }
 document.getElementById("l-cancel").addEventListener("click", ()=>{ document.getElementById("learn").style.display="none"; focusScan(); });
 document.getElementById("l-save").addEventListener("click", async ()=>{
   const name=document.getElementById("l-name").value.trim();
   if(!name){ alert("품목을 선택/입력하세요."); return; }
-  const weigh_type=document.getElementById("l-type").value;
-  const p100=Number(document.getElementById("l-price").value)||null;   // 라벨의 100g당 단가(개당상품은 개당가격)
+  const price0=document.getElementById("l-price").value;
+  if(price0===""){ alert("가격을 입력하세요."); return; }
+  const weigh_type=autoWeighType(PENDING);
+  const p100=Number(price0)||null;   // 저울상품은 100g당 단가, 개당상품은 개당가격
   const price = p100==null ? null : (weigh_type==="FIXED" ? p100 : p100*10);  // 무게상품은 원/kg 로 환산
   const map={ tenant_id:TENANT, company_id:COMPANY, store_id:STORE, barcode_key:String(PENDING.key), raw_product_name:name, unit:"kg", default_price:price, weigh_type };
   try{
