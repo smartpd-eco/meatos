@@ -75,6 +75,7 @@
   <div class="toast" id="toast"></div>
 
 <script src="header.js"></script>
+<script src="src/data/product-name-substitution.js?v=20260804-species-storage-1"></script>
 <script>
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
@@ -99,8 +100,22 @@ function focusScan(){ try{ scanEl.focus(); }catch(e){} }
 focusScan(); document.addEventListener("click", (e)=>{ if(!e.target.closest("input,select,button")) focusScan(); });
 
 let MAPS = {};   // barcode_key -> mapping row
-let PRODUCTS = []; // 재고 품목명 목록
+let PRODUCTS = []; // 재고 품목명 목록(통합 표시명)
 let today = { cnt:0, amt:0 };
+
+// 재고현황(stock.html)과 동일한 "AI 통합" 품목명 정규화 라이브러리.
+// 거래처마다 다르게 적힌 품목명(예: 냉장 삼겹(장터), 냉장 삼겹(장터) 국내산, 냉장 삼겹살)을
+// 하나의 대표 이름으로 묶어서 보여준다. 로드 실패 시 원본 이름 그대로 쓰도록 안전하게 처리.
+const PN = window.MEATOS_PRODUCT_NAMES || null;
+function resolveName(raw){
+  if(PN){
+    try{
+      const r = PN.resolve(raw, {});
+      if(r && r.displayName) return { key:String(r.key||raw), displayName:r.displayName };
+    }catch(e){}
+  }
+  return { key:String(raw||""), displayName:String(raw||"") };
+}
 
 function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none", 1800); }
 
@@ -119,19 +134,24 @@ async function loadProducts(){
   const status=document.getElementById("product-status");
   try{
     const storeFilter=STORE?"&store_id=eq."+encodeURIComponent(STORE):"";
-    const r=await fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT+storeFilter+"&is_active=eq.true&select=raw_product_name,unit,quantity,movement_type&limit=5000",{headers:H});
+    const invRequest = fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT+storeFilter+"&is_active=eq.true&select=raw_product_name,unit,quantity,movement_type&limit=5000",{headers:H});
+    if(PN){ try{ await PN.loadRemoteLearning({restUrl:REST, headers:H, tenantId:TENANT}); }catch(e){} }
+    const r = await invRequest;
     if(!r.ok)throw new Error("HTTP "+r.status);
-    const balances=new Map();
+    const balances=new Map(); // 통합키 -> {qty, displayName}
     (await r.json()).forEach(row=>{
-      const key=(row.raw_product_name||"")+"|"+(row.unit||"kg");
+      const resolved=resolveName(row.raw_product_name);
+      const key=resolved.key+"|"+(row.unit||"kg");
       const sign=row.movement_type==="OUT"?-1:1;
-      balances.set(key,(balances.get(key)||0)+sign*(Number(row.quantity)||0));
+      const entry=balances.get(key)||{ qty:0, name:resolved.displayName };
+      entry.qty+=sign*(Number(row.quantity)||0);
+      balances.set(key,entry);
     });
-    PRODUCTS=[...balances.entries()]
-      .filter(([key,quantity])=>key.split("|")[0]&&quantity>0)
-      .map(([key])=>key.split("|")[0])
+    PRODUCTS=[...balances.values()]
+      .filter(e=>e.name&&e.qty>0)
+      .map(e=>e.name)
       .filter((name,index,list)=>list.indexOf(name)===index)
-      .sort();
+      .sort((a,b)=>a.localeCompare(b,"ko"));
     document.getElementById("prodlist").innerHTML = PRODUCTS.map(p=>"<option value=\""+esc(p)+"\">").join("");
     status.textContent=PRODUCTS.length
       ?("현재 매장에서 판매 가능한 재고 "+PRODUCTS.length+"종을 불러왔습니다.")
