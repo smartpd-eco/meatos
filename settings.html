@@ -49,6 +49,13 @@
   <div class="group">
     <a class="item" id="acct-login" href="login.html"><span class="l">로그인 / 회원가입<small>이메일 · 간편 로그인</small></span><span class="r">›</span></a>
     <div class="item" id="acct-logout" style="cursor:pointer;display:none"><span class="l">로그아웃<small id="acct-who"></small></span><span class="r">›</span></div>
+    <a class="item" id="acct-delete" href="account-delete.html" style="display:none"><span class="l" style="color:#b91c1c">계정 삭제(회원 탈퇴)<small>로그인 정보와 개인정보 삭제</small></span><span class="r">›</span></a>
+  </div>
+
+  <div class="sec">약관 · 정책</div>
+  <div class="group">
+    <a class="item" href="terms.html"><span class="l">이용약관</span><span class="r">›</span></a>
+    <a class="item" href="privacy.html"><span class="l"><b>개인정보처리방침</b></span><span class="r">›</span></a>
   </div>
 
 <script src="header.js"></script>
@@ -62,6 +69,7 @@
     if(u){
       document.getElementById("acct-login").style.display="none";
       var lo=document.getElementById("acct-logout"); lo.style.display="flex";
+      document.getElementById("acct-delete").style.display="flex";
       document.getElementById("acct-who").textContent=" "+(u.company_name||u.name||u.email||"");
       lo.addEventListener("click", function(){
         if(confirm("로그아웃 하시겠어요?")){

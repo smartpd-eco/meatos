@@ -30,11 +30,14 @@ const pages = [
   "delivery-sales.html", "delivery-connect.html", "account-link.html", "settlement.html",
   "safety-stock.html", "auto-order.html", "sanitation.html", "sanitation-list.html",
   "policy.html", "alerts.html", "fresh-stock-settings.html",
+  // 스토어 등록 필수 페이지 (약관·개인정보처리방침·계정 삭제)
+  "terms.html", "privacy.html", "account-delete.html",
 ];
 // 공통 자원 (app.js 제외)
 const assets = [
   "header.js", "styles.css", "runtime-config.js", "sw.js", "manifest.webmanifest",
   "fresh-stock.css", "fresh-stock-page.js", "fresh-stock-settings.js",
+  "legal.css", "legal-info.js",
 ];
 // 디렉터리 (페이지들이 참조하는 스크립트/아이콘 + POS 설치본)
 const dirs = ["src", "services/product", "icons", "downloads"];

@@ -273,6 +273,9 @@
     }
 
     .footer { text-align: center; padding: var(--space-6) 0; color: var(--text-muted); font-size: 12px; }
+    .footer-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 8px; margin-bottom: 6px; font-size: 13px; }
+    .footer-links a { color: var(--text-secondary); text-decoration: none; padding: 4px 2px; }
+    .footer-links a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -429,6 +432,9 @@
       </section>
 
       <footer class="footer">
+        <nav class="footer-links" aria-label="약관 및 정책">
+          <a href="terms.html">이용약관</a><span aria-hidden="true">·</span><a href="privacy.html"><b>개인정보처리방침</b></a><span aria-hidden="true">·</span><a href="account-delete.html">계정 삭제</a>
+        </nav>
         © 2026 MEATOS · 정육비서
       </footer>
 

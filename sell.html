@@ -34,7 +34,6 @@
 <body>
   <h1>판매 스캔 (자동 출고)</h1>
   <div class="sub" id="product-status">판매 가능한 재고 품목을 불러오는 중입니다.</div>
-  <div id="debug-ctx" style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#78350f;word-break:break-all">진단 정보 확인 중…</div>
 
   <div class="scan">
     <input id="scan" type="text" inputmode="numeric" aria-label="상품 바코드 스캔" placeholder="여기를 누르고 바코드를 스캔하세요" autocomplete="off" />
@@ -119,11 +118,6 @@ function resolveName(raw){
 
 function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none", 1800); }
 
-(function(){
-  const el = document.getElementById("debug-ctx");
-  if(!el) return;
-  el.textContent = "진단: tenant=" + TENANT + " · company=" + (COMPANY||"(없음)") + " · store=" + (STORE||"(없음·NULL)");
-})();
 
 async function loadMaps(){
   try{ const storeFilter=STORE ? "&or=(store_id.eq."+encodeURIComponent(STORE)+",store_id.is.null)" : "&store_id=is.null";
@@ -279,15 +273,17 @@ async function record(map, qty, amount, barcode){
     const movementRows=await r1.json();
     sale.inventory_movement_id=movementRows[0]?.id||null;
     let r2=await fetch(REST+"/sales_record",{method:"POST",headers:HW,body:JSON.stringify(sale)});
-    let r2bodyFirst = r2.ok ? "" : await r2.clone().text().catch(()=>"");
+    const r2bodyFirst = r2.ok ? "" : await r2.clone().text().catch(()=>"");
     if(!r2.ok && r2.status===400){
       const legacySale={ tenant_id:TENANT, company_id:COMPANY, store_id:STORE, sale_date:sale.sale_date, item_name:sale.item_name,
         quantity:sale.quantity, unit_price:sale.unit_price, amount:sale.amount, channel:sale.channel, memo:sale.memo };
       r2=await fetch(REST+"/sales_record",{method:"POST",headers:HW,body:JSON.stringify(legacySale)});
     }
     if(!r2.ok){
+      // 상세 원인은 화면 대신 콘솔에만 남긴다 (운영 화면에는 짧은 안내만 표시).
       const r2bodySecond = await r2.text().catch(()=>"");
-      throw new Error("매출 "+r2.status+" | 1차:"+r2bodyFirst+" | 2차:"+r2bodySecond);
+      console.error("[판매 스캔] 매출 저장 실패", r2.status, { first:r2bodyFirst, second:r2bodySecond });
+      throw new Error("매출 저장 "+r2.status);
     }
     today.cnt++; today.amt+=amount;
     document.getElementById("k-cnt").textContent=today.cnt;
@@ -296,8 +292,6 @@ async function record(map, qty, amount, barcode){
     toast("✓ "+map.raw_product_name+" "+kg(qty)+"kg 출고");
   }catch(e){
     toast("⚠ 실패: "+e.message);
-    const dbg = document.getElementById("debug-ctx");
-    if(dbg) dbg.textContent = "에러 상세: " + e.message;
   }
   focusScan();
 }

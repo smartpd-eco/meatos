@@ -265,7 +265,9 @@
       var table = parsedUrl.pathname.split("/").filter(Boolean).pop();
       var isOwnAccountRead = isAuthenticated && table === "account" && (method === "GET" || method === "HEAD");
       var isBusinessActivation = isAuthenticated && table === "activate_own_business_tenant" && method === "POST";
-      if (isOwnAccountRead || isBusinessActivation) return nativeFetch(input, init);
+      // 계정 삭제(회원 탈퇴)는 사업장 연동 전 회원도 반드시 할 수 있어야 한다 (Google Play 요건).
+      var isAccountDeletion = isAuthenticated && table === "request_account_deletion" && method === "POST";
+      if (isOwnAccountRead || isBusinessActivation || isAccountDeletion) return nativeFetch(input, init);
       if (method !== "GET" && method !== "HEAD") {
         return Promise.resolve(new Response(JSON.stringify({
           code:"DEMO_READ_ONLY",
@@ -284,9 +286,9 @@
     location.assign("/");
   }
 
+  // 쿠팡이츠 매출연동(delivery-connect.html)은 집계사 연동 전이라 메뉴에서 숨긴다(스토어 심사: 미완성 기능 노출 금지).
   var MENU = [
     ["🧾 판매 스캔", "sell.html"],
-    ["🛵 쿠팡이츠 매출연동", "delivery-connect.html"],
     ["🔗 자동 판매연동", "connect.html"],
     ["📥 매입현황", "purchases.html"],
     ["💰 매출현황", "sales.html"],
@@ -298,6 +300,12 @@
     ["🏢 사업장 연동", "business-verify.html"],
     ["🔐 계정 연결 관리", "account-link.html"],
     ["⚙️ 환경설정", "settings.html"]
+  ];
+  // 약관·정책·계정 삭제: 로그인 여부·역할과 관계없이 항상 노출 (Google Play·개인정보보호법 요건)
+  var LEGAL_MENU = [
+    ["📄 이용약관", "terms.html"],
+    ["🔒 개인정보처리방침", "privacy.html"],
+    ["🗑️ 계정 삭제", "account-delete.html"]
   ];
 
   // 기존 역할별 메뉴 노출 규칙을 유지한다. 실제 데이터 통제는 RLS가 담당한다.
@@ -393,6 +401,9 @@
     ".mt-drawer__nav{flex:1;overflow-y:auto;padding:var(--space-3,12px);}" +
     ".mt-drawer__item{display:flex;width:100%;align-items:center;padding:14px var(--space-4,16px);text-decoration:none;color:var(--text-primary,#17191d);font-weight:700;font-size:16px;border-radius:var(--radius-md,12px);margin-bottom:4px;transition:var(--transition,all .2s ease);background:transparent;text-align:left;}" +
     ".mt-drawer__item:hover{background:var(--bg-page,#f6f7f9);}" +
+    ".mt-drawer__group{margin-top:12px;padding-top:12px;border-top:1px solid var(--divider,#eceef1);}" +
+    ".mt-drawer__group-title{display:block;padding:4px var(--space-4,16px) 6px;font-size:13px;font-weight:700;color:var(--text-muted,#6b7280);}" +
+    ".mt-drawer__item--sub{font-size:15px;padding:11px var(--space-4,16px);color:var(--text-secondary,#50555d);}" +
     ".mt-drawer__footer{padding:var(--space-5,24px);border-top:1px solid var(--divider,#eceef1);}" +
     ".mt-drawer__logout{width:100%;min-height:44px;border:1px solid var(--border-default,#d7dbe0)!important;border-radius:var(--radius-sm,10px);background:#fff;color:var(--text-primary,#17191d);font-weight:700;}" +
     ".mt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9001;display:none;}" +
@@ -489,6 +500,10 @@
     "<nav class='mt-drawer__nav'>" +
       MENU.map(function (m) { return "<a class='mt-drawer__item' href='" + m[1] + "'>" + m[0] + "</a>"; }).join("") +
       (/sales(\.html)?$/.test(location.pathname) ? "<button class='mt-drawer__item' id='mtSaleInput' type='button'>➕ 판매입력</button>" : "") +
+      "<div class='mt-drawer__group' role='group' aria-label='약관 및 정책'>" +
+        "<span class='mt-drawer__group-title'>약관 · 정책</span>" +
+        LEGAL_MENU.map(function (m) { return "<a class='mt-drawer__item mt-drawer__item--sub' href='" + m[1] + "'>" + m[0] + "</a>"; }).join("") +
+      "</div>" +
     "</nav>" +
     "<div class='mt-drawer__footer'>" +
       "<button class='mt-drawer__logout' id='mtLogoutBtn' type='button'>로그아웃</button>" +

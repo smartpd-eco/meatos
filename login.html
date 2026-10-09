@@ -38,8 +38,12 @@
   .social .k { background:#FEE500; color:#191600; border-color:#FEE500; }
   .social .n { background:#03C75A; color:#fff; border-color:#03C75A; }
   .social .a { background:#6b7280; color:#fff; border-color:#6b7280; }
-  .foot { margin-top:18px; }
+  .foot { margin-top:18px; text-align:center; }
   .foot a { color:#6b7280; font-size:13px; text-decoration:none; }
+  .foot-sep { color:#c4c8ce; font-size:13px; margin:0 8px; }
+  label.consent { display:flex; gap:10px; align-items:flex-start; margin-top:16px; font-size:14px; font-weight:600; line-height:1.55; color:#17191D; cursor:pointer; }
+  label.consent input { width:20px; height:20px; min-height:0; margin:2px 0 0; padding:0; flex:0 0 auto; }
+  label.consent a { color:#2463D4; }
   .social-guide { margin:10px 2px 0; color:#6b7280; font-size:12px; line-height:1.55; text-align:center; }
   @media (max-width:639px) {
     body { padding:12px 12px 32px; }
@@ -65,7 +69,6 @@
       <button class="g" onclick="social('google')"><span class="ic" aria-hidden="true"><svg viewBox="0 0 18 18" focusable="false"><path fill="#4285F4" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.797 2.716v2.258h2.909c1.702-1.567 2.684-3.878 2.684-6.614Z"/><path fill="#34A853" d="M9 18c2.43 0 4.468-.806 5.956-2.181l-2.909-2.258c-.806.54-1.835.859-3.047.859-2.344 0-4.328-1.585-5.037-3.714H.956v2.332A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.963 10.706A5.41 5.41 0 0 1 3.682 9c0-.592.102-1.167.281-1.706V4.962H.956A9 9 0 0 0 0 9c0 1.45.347 2.824.956 4.038l3.007-2.332Z"/><path fill="#EA4335" d="M9 3.58c1.322 0 2.508.454 3.441 1.346l2.581-2.581C13.464.892 11.426 0 9 0A9 9 0 0 0 .956 4.962l3.007 2.332C4.672 5.165 6.656 3.58 9 3.58Z"/></svg></span>구글로 로그인</button>
       <button class="k" onclick="social('kakao')"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path fill="#191600" d="M12 3C6.48 3 2 6.48 2 10.78c0 2.74 1.82 5.15 4.57 6.54l-1.16 4.24a.45.45 0 0 0 .69.48l5.08-3.4c.27.02.54.03.82.03 5.52 0 10-3.48 10-7.89S17.52 3 12 3Z"/></svg></span>카카오로 로그인</button>
       <button class="n" onclick="social('naver')"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path fill="#fff" d="M5 4h5.1l4.8 7.08V4H19v16h-5.1L9.1 12.92V20H5V4Z"/></svg></span>네이버로 로그인</button>
-      <button class="a" onclick="social('apple')"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path fill="#fff" d="M15.65 5.19c.9-1.08.82-2.06.8-2.41-1.39.08-3 1-3.91 2.04-.8.88-1.5 1.97-1.39 3.01 1.51.12 3.48-.76 4.5-2.64ZM18.94 12.42c-.02-2.3 1.88-3.4 1.97-3.45-1.08-1.58-2.76-1.8-3.35-1.83-1.42-.15-2.78.84-3.5.84-.73 0-1.84-.82-3.02-.8-1.55.02-2.98.9-3.78 2.29-1.62 2.8-.41 6.94 1.16 9.21.77 1.11 1.68 2.35 2.88 2.3 1.15-.05 1.59-.74 2.98-.74 1.38 0 1.78.74 3 .72 1.24-.02 2.03-1.12 2.79-2.24.89-1.29 1.25-2.54 1.27-2.61-.03-.01-2.38-.92-2.4-3.69Z"/></svg></span>Apple로 로그인</button>
     </div>
     <p class="social-guide" id="social-guide">처음 이용하는 분은 간편로그인으로 바로 가입되며, 기존 회원은 가입한 로그인으로 연결됩니다.</p>
 
@@ -85,13 +88,14 @@
       <label>이메일(아이디)<input id="su-email" type="email" placeholder="you@example.com" autocomplete="username" /></label>
       <label>비밀번호<input id="su-pw" type="password" placeholder="6자 이상" autocomplete="new-password" /></label>
       <label>비밀번호 확인<input id="su-pw2" type="password" placeholder="비밀번호 재입력" autocomplete="new-password" /></label>
+      <label class="consent"><input type="checkbox" id="su-agree" /><span>[필수] <a href="terms.html" target="_blank" rel="noopener">이용약관</a> 및 <a href="privacy.html" target="_blank" rel="noopener"><b>개인정보처리방침</b></a>을 확인했으며 동의합니다.</span></label>
       <button class="primary" id="su-btn">회원가입</button>
     </div>
 
     <div class="msg" id="msg"></div>
   </div>
 
-  <div class="foot"><a href="index.html">메인 화면으로 이동</a></div>
+  <div class="foot"><a href="index.html">메인 화면으로 이동</a><span class="foot-sep">·</span><a href="terms.html">이용약관</a><span class="foot-sep">·</span><a href="privacy.html"><b>개인정보처리방침</b></a></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -269,6 +273,7 @@ $("su-btn").addEventListener("click", async () => {
   const company = $("su-company").value.trim(), name = $("su-name").value.trim();
   const email = $("su-email").value.trim(), pw = $("su-pw").value, pw2 = $("su-pw2").value;
   if(!company || !name || !email || !pw){ msg("모든 항목을 입력하세요."); return; }
+  if(!$("su-agree").checked){ msg("이용약관 및 개인정보처리방침에 동의해 주세요."); return; }
   if(pw.length < 6){ msg("비밀번호는 6자 이상이어야 합니다."); return; }
   if(pw !== pw2){ msg("비밀번호가 일치하지 않습니다."); return; }
   clearSocialIntent();
@@ -300,6 +305,10 @@ async function social(provider){
     intent.name = $("su-name").value.trim();
     if(!intent.company || !intent.name){
       msg("간편가입을 시작하려면 회사명과 담당자명을 먼저 입력하세요.");
+      return;
+    }
+    if(!$("su-agree").checked){
+      msg("간편가입을 시작하려면 이용약관 및 개인정보처리방침에 동의해 주세요.");
       return;
     }
   }

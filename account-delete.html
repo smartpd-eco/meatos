@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>계정 삭제 · 정육비서</title>
+<link rel="stylesheet" href="legal.css" />
+<style>
+  .del-box { background:#fff; border:1px solid var(--border-default,#e4e7eb); border-radius:14px; padding:22px 24px; margin-bottom:16px; box-shadow:0 4px 18px rgba(16,24,40,.06); }
+  .del-box h2 { margin-top:0; }
+  .del-who { display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; background:#f7f8fa; border-radius:10px; padding:12px 14px; margin:0 0 14px; font-size:15px; }
+  .del-who b { font-size:16px; }
+  .del-check { display:flex; gap:10px; align-items:flex-start; margin:14px 0 6px; font-size:16px; font-weight:700; color:var(--text-primary,#17191d); cursor:pointer; }
+  .del-check input { width:22px; height:22px; margin-top:3px; flex:0 0 auto; }
+  .del-field { display:block; margin-top:14px; font-size:15px; }
+  .del-field select, .del-field input { display:block; box-sizing:border-box; width:100%; max-width:100%; margin-top:6px; padding:10px 12px; font-size:16px; }
+  .del-btn { display:inline-flex; align-items:center; justify-content:center; width:100%; min-height:52px; margin-top:18px; border:0; border-radius:12px; background:var(--danger-red,#d71f2b); color:#fff; font-size:17px; font-weight:800; cursor:pointer; }
+  .del-btn:disabled { background:#e5a1a7; cursor:not-allowed; }
+  .del-btn.secondary { background:#fff; color:var(--text-primary,#17191d); border:1px solid var(--border-default,#e4e7eb); text-decoration:none; }
+  .del-msg { margin-top:12px; font-size:15px; font-weight:700; min-height:22px; }
+  .del-msg.err { color:#b91c1c; }
+  .del-msg.ok { color:#166534; }
+  .del-done { text-align:center; padding:32px 24px; }
+  .del-done .icon { font-size:44px; line-height:1; margin-bottom:10px; }
+  .del-warn { background:#fff7ed; border:1px solid #fdba74; color:#9a3412; border-radius:10px; padding:12px 14px; font-size:15px; margin:0 0 12px; }
+</style>
+</head>
+<body>
+<script src="header.js"></script>
+<main class="legal">
+  <h1>계정 삭제(회원 탈퇴)</h1>
+  <p class="legal-meta"><span data-legal="serviceName"></span> 계정과 개인정보 삭제를 요청하는 페이지입니다. 앱을 설치하지 않아도 이 페이지에서 삭제할 수 있습니다.</p>
+
+  <section>
+    <h2>삭제되는 정보와 보관되는 정보</h2>
+    <h3>즉시 삭제</h3>
+    <ul>
+      <li>로그인 계정(이메일·비밀번호, 간편로그인 연결)</li>
+      <li>이름, 이메일, 전화번호 등 개인 식별 정보</li>
+      <li>사업장 구성원 자격과 권한</li>
+    </ul>
+    <h3>법령에 따라 일정 기간 보관 후 파기</h3>
+    <ul>
+      <li>사업장 업무 기록(매입·매출·재고·카드 정산 등): 회사 단위 장부 자료로 5년 보관하며, 탈퇴한 분의 이름·이메일과는 분리됩니다. 같은 사업장의 다른 구성원은 계속 이용할 수 있습니다.</li>
+      <li>서비스 접속 기록: 3개월 · 계정 삭제 처리 기록: 1년</li>
+    </ul>
+    <p class="note">자세한 내용은 <a href="privacy.html">개인정보처리방침</a>을 확인해 주세요. 삭제한 계정은 되돌릴 수 없습니다.</p>
+  </section>
+
+  <!-- 로그인 전 -->
+  <div class="del-box" id="del-guest" style="display:none">
+    <h2>삭제 방법</h2>
+    <ol>
+      <li>아래 <b>로그인하고 계정 삭제하기</b>를 누릅니다.</li>
+      <li>가입할 때 사용한 방법(이메일·구글·카카오·네이버)으로 로그인합니다.</li>
+      <li>이 페이지로 돌아오면 확인 후 <b>계정 삭제</b>를 누릅니다.</li>
+    </ol>
+    <a class="del-btn" id="del-login" href="login.html?next=%2Faccount-delete.html">로그인하고 계정 삭제하기</a>
+    <p class="note" style="margin-top:14px">로그인이 어려우면 가입한 이메일 주소를 적어 <a data-legal="supportEmail"></a> 로 삭제를 요청해 주세요. 본인 확인 후 처리 결과를 알려 드립니다.</p>
+  </div>
+
+  <!-- 로그인 후 -->
+  <div class="del-box" id="del-member" style="display:none">
+    <h2>계정 삭제</h2>
+    <div class="del-who"><span>삭제할 계정</span><b id="del-email">-</b><span id="del-company"></span></div>
+    <div class="del-warn" id="del-owner-warn" style="display:none">사업장 대표 계정입니다. 탈퇴 후에도 사업장 업무 기록은 보관되며, 다른 구성원이 있다면 대표 권한을 넘겨줄 사람을 먼저 정해 두는 것이 좋습니다.</div>
+    <label class="del-field">탈퇴 사유 (선택)
+      <select id="del-reason">
+        <option value="">선택 안 함</option>
+        <option value="사용하지 않음">더 이상 사용하지 않음</option>
+        <option value="기능 부족">필요한 기능이 없음</option>
+        <option value="사용 어려움">사용이 어려움</option>
+        <option value="다른 서비스 이용">다른 서비스를 이용함</option>
+        <option value="개인정보 우려">개인정보가 걱정됨</option>
+        <option value="기타">기타</option>
+      </select>
+    </label>
+    <label class="del-check"><input type="checkbox" id="del-agree" /> <span>위 내용을 확인했으며, 계정을 삭제하면 되돌릴 수 없다는 것에 동의합니다.</span></label>
+    <label class="del-field">확인을 위해 <b>계정삭제</b> 라고 입력해 주세요
+      <input id="del-confirm" type="text" autocomplete="off" placeholder="계정삭제" />
+    </label>
+    <button class="del-btn" id="del-run" type="button" disabled>계정 삭제</button>
+    <div class="del-msg" id="del-msg" role="status" aria-live="polite"></div>
+  </div>
+
+  <!-- 완료 -->
+  <div class="del-box del-done" id="del-done" style="display:none">
+    <div class="icon" aria-hidden="true">✅</div>
+    <h2>계정이 삭제되었습니다</h2>
+    <p>그동안 정육비서를 이용해 주셔서 감사합니다.</p>
+    <a class="del-btn secondary" href="index.html">메인 화면으로</a>
+  </div>
+</main>
+<script src="legal-info.js"></script>
+<script>
+(function () {
+  var SB_URL = "https://pkrsiqjzllyiafwpskll.supabase.co";
+  var REST = SB_URL + "/rest/v1";
+  var H = window.MEATOS_API_HEADERS || {};
+  var CTX = window.MEATOS_CONTEXT || {};
+  var user = null;
+  try { user = JSON.parse(localStorage.getItem("meatos_user_cache") || "null"); } catch (e) { user = null; }
+  var loggedIn = Boolean(window.MEATOS_IS_AUTHENTICATED && user);
+
+  var guestBox = document.getElementById("del-guest");
+  var memberBox = document.getElementById("del-member");
+  var doneBox = document.getElementById("del-done");
+  var agree = document.getElementById("del-agree");
+  var confirmInput = document.getElementById("del-confirm");
+  var runBtn = document.getElementById("del-run");
+  var msg = document.getElementById("del-msg");
+
+  function setMsg(text, kind) { msg.textContent = text || ""; msg.className = "del-msg" + (kind ? " " + kind : ""); }
+  function clearLocalSession() {
+    Object.keys(localStorage).forEach(function (k) {
+      if (k.indexOf("meatos_") === 0 || k.indexOf("sb-") === 0) localStorage.removeItem(k);
+    });
+    try { sessionStorage.clear(); } catch (e) {}
+  }
+
+  if (!loggedIn) {
+    guestBox.style.display = "block";
+    return;
+  }
+
+  memberBox.style.display = "block";
+  document.getElementById("del-email").textContent = user.email || "(이메일 정보 없음)";
+  document.getElementById("del-company").textContent = CTX.isBusiness && CTX.companyName ? "· " + CTX.companyName : "";
+  if (CTX.isBusiness && /OWNER/i.test(String(user.role || ""))) document.getElementById("del-owner-warn").style.display = "block";
+
+  function refresh() {
+    runBtn.disabled = !(agree.checked && confirmInput.value.replace(/\s+/g, "") === "계정삭제");
+  }
+  agree.addEventListener("change", refresh);
+  confirmInput.addEventListener("input", refresh);
+
+  runBtn.addEventListener("click", async function () {
+    if (runBtn.disabled) return;
+    if (!confirm("정말 계정을 삭제할까요?\n삭제한 계정은 되돌릴 수 없습니다.")) return;
+    runBtn.disabled = true;
+    setMsg("계정을 삭제하는 중입니다…");
+    try {
+      var response = await fetch(REST + "/rpc/request_account_deletion", {
+        method: "POST",
+        headers: Object.assign({}, H, { "Content-Type": "application/json" }),
+        body: JSON.stringify({ p_reason: document.getElementById("del-reason").value || null })
+      });
+      var text = await response.text();
+      if (!response.ok) {
+        if (response.status === 401 || /JWT|AUTH_REQUIRED/i.test(text)) throw new Error("AUTH");
+        if (/PGRST202|request_account_deletion/i.test(text) && response.status === 404) throw new Error("NOT_READY");
+        throw new Error("HTTP_" + response.status);
+      }
+      clearLocalSession();
+      memberBox.style.display = "none";
+      doneBox.style.display = "block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      var code = String(error && error.message || "");
+      if (code === "AUTH") {
+        setMsg("로그인이 만료되었습니다. 다시 로그인한 뒤 삭제해 주세요.", "err");
+        setTimeout(function () { location.assign("login.html?next=%2Faccount-delete.html"); }, 1600);
+        return;
+      }
+      if (code === "NOT_READY") {
+        setMsg("계정 삭제 기능이 아직 서버에 적용되지 않았습니다. 고객 문의 이메일로 요청해 주세요.", "err");
+      } else {
+        setMsg("계정을 삭제하지 못했습니다. 잠시 후 다시 시도하거나 고객 문의 이메일로 요청해 주세요. (" + code + ")", "err");
+      }
+      refresh();
+    }
+  });
+})();
+</script>
+</body>
+</html>
