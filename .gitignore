@@ -34,3 +34,24 @@ artifacts/ocr/ppstructure-*/
 .eslintcache
 *.tsbuildinfo
 .vercel/
+
+# ── 잡파일 정리 (2026-10-09) ─────────────────────────────────────
+# 문서·코드를 Word로 변환한 사본 — 원본은 .md / .html 로 관리
+*.docx
+# 다운로드 중복 사본: "파일 (1).ext", "파일(1).ext", "파일 (1)(1).ext", "파일(2).ext"
+*(1).*
+*(2).*
+# 작업·빌드 산출물
+.build/
+.tmp/
+artifacts/
+output/
+Claude outputs/
+supabase/.temp/
+# 사업자 제출 서류 (개인·사업자 정보 포함 — 저장소에 올리지 않음)
+여신협회_제출서류/
+# 특허·정부지원 문서 생성 스크립트 (출원 전 기밀 — 저장소에 올리지 않음)
+scripts/create_meatos_patent_docx.py
+scripts/inspect_patent_docx.py
+scripts/validate_meatos_patent_docx.py
+scripts/create_meatos_government_support_brief.py
