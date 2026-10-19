@@ -45,17 +45,18 @@
 </style>
 </head>
 <body>
-  <h1>POS 원클릭 자동 판매연동</h1>
-  <div class="sub">현장 검증 설치본은 기존 POS를 수정하지 않고 키보드 웨지 입력만 관찰합니다. 품목·중량·금액을 비교하되 <b>매출과 재고는 변경하지 않습니다.</b></div>
+  <h1>POS 원클릭 자동 연동</h1>
+  <div class="sub">기존 POS를 수정하지 않고 계산대에서 찍는 저울 라벨을 받아 <b>바로 매출로 기록</b>합니다. 품목 지정은 필요 없고, 지정된 품목은 재고도 자동으로 차감됩니다. 결제 전 취소·반품은 매출현황에서 판매취소로 정리합니다.</div>
 
   <div class="card">
     <div class="acct out" id="acct">기업 연결 확인 중…</div>
     <div class="ready-grid" style="margin-top:12px">
       <div class="ready" id="r-company"><span>1. 기업 연동</span><b>확인 중</b></div>
-      <div class="ready" id="r-stock"><span>2. 판매 가능 재고</span><b>확인 중</b></div>
-      <div class="ready" id="r-map"><span>3. POS 바코드 매핑</span><b>확인 중</b></div>
+      <div class="ready" id="r-stock"><span>2. 재고 (선택)</span><b>확인 중</b></div>
+      <div class="ready" id="r-map"><span>3. 품목 지정 (선택)</span><b>확인 중</b></div>
     </div>
     <div class="field"><label>POS 단말 이름<input id="device" value="POS01" maxlength="40" /></label></div>
+    <div class="field"><label>판매 기록 방식<select id="record-mode" style="width:100%;margin-top:4px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px"><option value="record" selected>매출 기록 (권장)</option><option value="observe">관찰만 · 매출·재고 미반영 (현장 검증용)</option></select></label></div>
     <details class="tech">
       <summary>설치기사용 · 쿠팡이츠 무인 자동수집 설정</summary>
       <div class="sub" style="margin:8px 0 0">사장님이 매일 입력하는 항목이 아닙니다. 설치할 때 쿠팡이츠 전표 출력과 저울 라벨 출력의 수신 전용 COM 포트를 한 번 연결합니다.</div>
@@ -65,7 +66,7 @@
         <label>통신속도<input id="serial-baud" type="number" value="9600" min="1200" max="115200" /></label>
         <label>저울 바코드 접두어<input id="delivery-prefix" value="29" inputmode="numeric" maxlength="2" /></label>
       </div>
-      <div class="notice success"><b>안전 기본값:</b> POS와 쿠팡이츠 모두 현장 검증 모드입니다. 입력·주문·라벨 매칭만 확인하며 재고와 매출은 변경하지 않습니다.</div>
+      <div class="notice success"><b>안전 기본값:</b> 쿠팡이츠 자동수집은 현장 검증 모드입니다. 주문·라벨 매칭만 확인하며 재고와 매출은 변경하지 않습니다.</div>
     </details>
     <button class="primary" id="install" disabled>사전 조건 확인 중…</button>
     <a class="map-cta" id="map-cta" href="sell.html">3번 해결하기 · 재고 상품 바코드 연결</a>
@@ -75,8 +76,7 @@
   <div class="card">
     <h2>설치 방법</h2>
     <ol class="steps">
-      <li>재고가 있는 테스트 품목 3개에 실제 바코드를 먼저 연결합니다.</li>
-      <li>이 화면 위쪽의 빨간 <b>Windows 현장 검증 설치 프로그램 받기</b> 버튼을 누릅니다.</li>
+      <li>이 화면 위쪽의 빨간 <b>Windows POS 연동 설치 프로그램 받기</b> 버튼을 누릅니다. 품목 지정이나 재고 입력은 미리 하지 않아도 됩니다.</li>
       <li>다운로드한 파일을 더블클릭합니다. 별도 AutoHotkey 설치나 설정 입력은 없습니다.</li>
       <li>Windows SmartScreen이 표시되면 <b>추가 정보 → 실행</b>을 선택합니다. 정식 인증서 적용 전 파일럿 단계 안내입니다.</li>
       <li>설치 완료 메시지와 작업표시줄 트레이의 MEATOS 아이콘을 확인합니다. Windows 로그인 시 자동 실행됩니다.</li>
@@ -86,13 +86,13 @@
   <div class="card">
     <h2>테스트 절차와 판정 기준</h2>
     <div class="test-flow">
-      <div><b>① 재고 확인</b>판매할 품목의 현재고가 0보다 커야 합니다.</div>
-      <div><b>② 바코드 연결</b><a class="link" href="sell.html">판매 스캔</a>에서 실제 라벨을 1회 스캔해 재고 품목과 연결합니다.</div>
-      <div><b>③ POS 동시 확인</b>메모장에서 13자리 코드+Enter가 입력되는지 확인한 뒤 POS 판매화면에서 같은 라벨을 스캔합니다.</div>
-      <div><b>④ 결과 비교</b>아래 관찰 건의 품목·중량·금액을 POS 판매 상세와 비교합니다. 매출·재고 값은 변하지 않아야 합니다.</div>
+      <div><b>① 스캔 확인</b>메모장에서 13자리 코드+Enter가 입력되는지 확인합니다.</div>
+      <div><b>② 판매 3건</b>POS 판매화면에서 라벨 3장을 스캔합니다. 아래 로그와 <a class="link" href="brief.html">오늘의 돈</a> 매출에 금액이 바로 잡혀야 합니다.</div>
+      <div><b>③ 품목 지정</b>"품목 미지정"으로 보이는 건은 오늘의 돈에서 한 번만 지정합니다. 지난 판매도 품목명으로 바뀝니다.</div>
+      <div><b>④ 마감 대조</b>하루 마감 때 POS 일계표 합계와 정육비서 매출 합계를 비교합니다.</div>
     </div>
-    <div class="danger-note"><b>중요:</b> 키보드 웨지는 스캔과 결제 완료를 구분하지 못합니다. 정상 판매 3건 외에 <b>결제 전 취소 1건·결제 후 반품 1건</b>을 반드시 재현하고, POS 판매 상세 화면 또는 내보내기 파일을 확보해야 운영 전환을 판단할 수 있습니다.</div>
-    <div class="notice"><b>선행조건:</b> Windows 10/11, USB HID 키보드형 스캐너, 인터넷 HTTPS 접속, 승인된 기업 계정과 기본매장, 판매 가능한 재고, 테스트 바코드 매핑 3건. POS 원본 프로그램·DB에는 쓰지 않습니다.</div>
+    <div class="danger-note"><b>중요:</b> 스캐너는 스캔과 결제 완료를 구분하지 못합니다. <b>결제 전에 취소한 물건이나 반품</b>은 <a class="link" href="sales.html">매출현황</a>에서 해당 건을 판매취소하면 매출과 재고가 함께 정리됩니다.</div>
+    <div class="notice"><b>선행조건:</b> Windows 10/11, USB HID 키보드형 스캐너, 인터넷 HTTPS 접속, 승인된 기업 계정과 기본매장. POS 원본 프로그램·DB에는 쓰지 않습니다.</div>
   </div>
 
   <div class="card">
@@ -108,7 +108,7 @@
   <div class="card">
     <h2>연동 상태 (오늘)</h2>
     <div class="stat">
-      <div class="b"><b id="s-cnt">-</b><span>정상 관찰</span></div>
+      <div class="b"><b id="s-cnt">-</b><span>정상 수신</span></div>
       <div class="b"><b id="s-pending">-</b><span>확인 필요</span></div>
       <div class="b"><b id="s-last">-</b><span>마지막 입력</span></div>
     </div>
@@ -128,7 +128,7 @@
       <h2>실시간 스캔 로그</h2>
       <button id="log-clear" type="button" class="log-clear">화면 지우기</button>
     </div>
-    <div class="sub" style="margin:0">계산대에서 라벨을 스캔하면 이 목록에 즉시 나타납니다. 바코드·품목·중량·금액을 확인용으로만 보여주며 <b>매출·재고는 변경되지 않습니다.</b> '화면 지우기'는 목록 표시만 비우고 서버 기록은 그대로 보존합니다.</div>
+    <div class="sub" style="margin:0">계산대에서 라벨을 스캔하면 이 목록에 즉시 나타납니다. 매출 기록 설치본은 이 스캔이 그대로 매출로 들어가고, 관찰용 설치본은 확인용으로만 남습니다. '화면 지우기'는 목록 표시만 비우고 서버 기록은 그대로 보존합니다.</div>
     <div id="log-list" class="loglist"><div class="log-empty">대기 중… 계산대에서 라벨을 스캔해 보세요.</div></div>
   </div>
 
@@ -160,8 +160,8 @@ function setReady(id,ok,label){
 function updateInstallButton(){
   // 설치 다운로드는 '기업(기본매장) 연동'만 되면 가능. 재고·바코드 매핑은 설치 후 해도 되므로 다운로드를 막지 않는다.
   const button=document.getElementById("install"),ok=READY.company;
-  button.disabled=!ok;button.textContent=ok?"Windows 현장 검증 설치 프로그램 받기":"기업 연동(기본매장 연결) 후 설치할 수 있습니다";
-  document.getElementById("map-cta").classList.toggle("show",READY.company&&!READY.mapping);
+  button.disabled=!ok;button.textContent=ok?"Windows POS 연동 설치 프로그램 받기":"기업 연동(기본매장 연결) 후 설치할 수 있습니다";
+  document.getElementById("map-cta").classList.toggle("show",false);
 }
 async function preflight(){
   READY.company=IS_BUSINESS;
@@ -182,12 +182,10 @@ async function preflight(){
     const positive=positiveKeys.size;
     const saleableMaps=(maps||[]).filter(row=>positiveKeys.has((row.raw_product_name||"")+"|"+(row.unit||"kg")));
     READY.stock=positive>0;READY.mapping=saleableMaps.length>0;
-    setReady("r-stock",READY.stock,READY.stock?(positive+"개 품목 판매 가능"):"현재고가 있는 품목 없음");
-    setReady("r-map",READY.mapping,READY.mapping?(saleableMaps.length+"개 판매 바코드 연결"):"재고 상품 바코드 연결 필요");
-    document.getElementById("install-msg").className="notice "+(READY.stock&&READY.mapping?"success":"");
-    document.getElementById("install-msg").innerHTML=READY.stock&&READY.mapping
-      ?"현장 검증 준비가 끝났습니다. 설치 후 정상 3건·결제 전 취소 1건·반품 1건을 순서대로 확인하세요."
-      :"현장 검증 전에 파란 <b>3번 해결하기</b> 버튼에서 재고가 있는 테스트 품목 3개와 바코드를 연결하세요.";
+    setReady("r-stock",true,READY.stock?(positive+"개 품목 재고 있음"):"없어도 시작 가능");
+    setReady("r-map",true,(maps||[]).length?((maps||[]).length+"개 품목 지정됨"):"나중에 지정해도 됨");
+    document.getElementById("install-msg").className="notice success";
+    document.getElementById("install-msg").innerHTML="설치 준비가 끝났습니다. 품목 지정이나 기초 재고 없이도 라벨 금액은 바로 매출로 기록됩니다.";
   }catch(error){
     setReady("r-stock",false,"조회 실패");setReady("r-map",false,"조회 실패");
     document.getElementById("install-msg").className="notice error";
@@ -213,6 +211,7 @@ document.getElementById("install").addEventListener("click",async()=>{
   const labelPort=cleanPort(document.getElementById("label-port").value);
   const serialBaud=Math.max(1200,Math.min(115200,Number(document.getElementById("serial-baud").value)||9600));
   const deliveryPrefix=(document.getElementById("delivery-prefix").value||"29").replace(/\D/g,"").slice(0,2)||"29";
+  const recordMode=document.getElementById("record-mode").value==="observe"?"observe":"record";
   button.disabled=true;button.textContent="매장 연결 설치 파일 생성 중…";msg.className="notice";msg.textContent="기존 같은 단말 키는 안전하게 만료하고 새 연결키를 발급합니다.";
   try{
     const setupResponse=await fetch("downloads/MEATOS-POS-Setup.exe?v="+Date.now(),{cache:"no-store"});
@@ -221,7 +220,7 @@ document.getElementById("install").addEventListener("click",async()=>{
     const config=await issueAgentKey(device);
     if(!config?.ok||!config.agentKey)throw new Error(config?.error||"에이전트 키 발급 실패");
     const payload={
-      rpcUrl:REST+"/rpc/capture_pos_sale_observation_agent",anonKey:ANON,agentKey:config.agentKey,
+      rpcUrl:REST+"/rpc/"+(recordMode==="observe"?"capture_pos_sale_observation_agent":"record_pos_sale_agent"),anonKey:ANON,agentKey:config.agentKey,
       device:config.device||device,storeName:config.storeName||STORE_NAME,
       companyId:config.companyId,storeId:config.storeId,issuedAt:new Date().toISOString(),
       deliveryAutoCaptureEnabled:Boolean(receiptPort),
@@ -233,9 +232,11 @@ document.getElementById("install").addEventListener("click",async()=>{
     const blob=new Blob([appendBytes(setup,overlay)],{type:"application/vnd.microsoft.portable-executable"});
     const url=URL.createObjectURL(blob),a=document.createElement("a");
     a.href=url;a.download="MEATOS-POS-설치-"+device+"-"+new Date().toISOString().slice(0,10).replace(/-/g,"")+".exe";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
-    msg.className="notice success";msg.textContent="매출·재고를 변경하지 않는 현장 검증 설치본을 생성했습니다. 다운로드한 EXE를 실행하세요."+((!READY.stock||!READY.mapping)?" (실제 판매 테스트 전에 '3번 해결하기'에서 재고 상품 바코드 3건을 연결하세요.)":"");
+    msg.className="notice success";msg.textContent=recordMode==="observe"
+      ?"매출·재고를 변경하지 않는 관찰용 설치본을 생성했습니다. 다운로드한 EXE를 실행하세요."
+      :"매출 기록용 설치본을 생성했습니다. 다운로드한 EXE를 실행하면 계산대 스캔이 바로 매출로 기록됩니다. (이미 설치된 PC는 이 파일로 다시 설치하면 바뀝니다)";
   }catch(error){msg.className="notice error";msg.textContent="설치 프로그램 생성 실패: "+error.message}
-  finally{button.disabled=false;button.textContent="Windows 현장 검증 설치 프로그램 다시 받기"}
+  finally{button.disabled=false;button.textContent="Windows POS 연동 설치 프로그램 다시 받기"}
 });
 // scanned_at(UTC/ISO)을 한국시간 HH:MM으로 표시. tz 표시가 없으면 UTC로 간주.
 function fmtKstTime(ts){
@@ -258,7 +259,7 @@ async function status(){
     document.getElementById("s-last").textContent=rows[0]?fmtKstTime(rows[0].scanned_at):"-";
     document.getElementById("s-msg").innerHTML=rows.length
       ?("최근: "+(rows[0].matched_product?("<b>"+esc(rows[0].matched_product)+"</b>"):(rows[0].error_code||"확인 필요")))
-      :"설치 후 실제 POS에서 라벨을 스캔하면 관찰 결과가 즉시 표시됩니다. 매출·재고는 변하지 않습니다.";
+      :"설치 후 실제 POS에서 라벨을 스캔하면 결과가 즉시 표시됩니다.";
   }catch(error){document.getElementById("s-msg").textContent="상태 확인 실패: "+error.message}
 }
 // 🧪 테스트(가상) 재고 3종 원클릭 생성 — 실제 창고 재고와 무관, 스캔→출고 검증용
@@ -308,11 +309,12 @@ function renderScanLog(rows){
     const ok=r.status==="OBSERVED"||r.status==="PROCESSED";
     const notMapped=r.error_code==="BARCODE_NOT_MAPPED";
     const cls=ok?"ok":(notMapped?"bad":"warn");
-    const label=ok?"관찰됨":(notMapped?"미매핑":(r.error_code||r.status||"확인"));
+    const unmappedSale=r.error_code==="UNMAPPED_SALE_RECORDED";
+    const label=unmappedSale?"매출 기록 · 품목 미지정":(r.status==="PROCESSED"?"매출 기록":(ok?"관찰됨":(notMapped?"미매핑":(r.error_code||r.status||"확인"))));
     const qty=(r.quantity!=null&&r.quantity!=="")?(" · "+Number(r.quantity)+"kg"):"";
     const amt=(r.sale_amount!=null&&r.sale_amount!=="")?(" · "+Number(r.sale_amount).toLocaleString("ko-KR")+"원"):"";
     const detail=ok
-      ?("<b>"+esc(r.matched_product||"-")+"</b>"+qty+amt)
+      ?("<b>"+esc(r.matched_product||(unmappedSale?"품목 미지정":"-"))+"</b>"+qty+amt+(unmappedSale?' · <a class="link" href="brief.html">품목 지정</a>':""))
       :(r.matched_product?esc(r.matched_product):("연결된 재고 상품이 없습니다"+(notMapped?" · 판매 스캔에서 바코드를 재고에 연결하세요":(r.error_code?(" ("+esc(r.error_code)+")"):""))));
     return '<div class="logrow"><div class="top"><span class="badge '+cls+'">'+label+'</span>'
       +(r.device?('<span>'+esc(r.device)+'</span>'):'')

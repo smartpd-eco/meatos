@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
-<title>판매 스캔 (자동 출고) · 정육비서</title>
+<title>판매 스캔 · 정육비서</title>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
@@ -27,32 +27,35 @@
   th,td { border-bottom:1px solid #eef2f7; padding:9px 6px; text-align:left; white-space:nowrap; }
   th { background:#f8fafc; color:#374151; } td.num,th.num { text-align:right; }
   td.name { white-space:normal; font-weight:600; }
-  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:#166534; color:#fff; padding:12px 20px; border-radius:999px; font-weight:800; box-shadow:0 4px 14px rgba(0,0,0,.25); z-index:100000; display:none; }
+  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:#166534; color:#fff; padding:12px 20px; border-radius:999px; font-weight:800; box-shadow:0 4px 14px rgba(0,0,0,.25); z-index:100000; display:none; max-width:92vw; text-align:center; }
+  .toast.warn { background:#92400e; }
   .muted { color:#6b7280; padding:10px; text-align:center; }
+  .unmapped-tag { display:inline-block; margin-left:6px; padding:1px 8px; border-radius:999px; background:#fef3c7; color:#92400e; font-size:11px; font-weight:800; }
+  .map-link { margin-left:6px; border:0; background:none; color:#2563eb; font-weight:800; font-size:12px; cursor:pointer; padding:0; }
 </style>
 </head>
 <body>
-  <h1>판매 스캔 (자동 출고)</h1>
-  <div class="sub" id="product-status">판매 가능한 재고 품목을 불러오는 중입니다.</div>
+  <h1>판매 스캔</h1>
+  <div class="sub" id="product-status">저울 라벨을 찍으면 금액이 바로 매출로 기록됩니다.</div>
 
   <div class="scan">
     <input id="scan" type="text" inputmode="numeric" aria-label="상품 바코드 스캔" placeholder="여기를 누르고 바코드를 스캔하세요" autocomplete="off" />
-    <div class="hint">스캐너가 자동 입력합니다. 처음 보는 바코드는 품목을 한 번만 지정하면 이후 자동.</div>
+    <div class="hint">품목 등록이 없어도 저울 라벨 금액은 바로 매출로 잡힙니다. 품목은 나중에 한 번만 지정하면 됩니다.</div>
   </div>
 
   <div class="kpis">
-    <div class="kpi"><b id="k-cnt">0</b><span>오늘 판매 건수</span></div>
-    <div class="kpi"><b id="k-amt">0</b><span>오늘 매출(원)</span></div>
+    <div class="kpi"><b id="k-cnt">0</b><span>이 화면에서 기록한 판매</span></div>
+    <div class="kpi"><b id="k-amt">0</b><span>합계(원)</span></div>
   </div>
 
   <div class="card" id="learn" style="display:none">
-    <h2>🆕 새 바코드 등록</h2>
-    <div style="color:#6b7280;font-size:13px">바코드 <b id="l-code"></b> — 어떤 품목인가요? 한 번만 지정하면 다음부턴 자동입니다.</div>
-    <label>품목 선택<input class="f" id="l-name" list="prodlist" placeholder="재고 품목명" /></label>
+    <h2 id="l-title">🏷️ 품목 지정</h2>
+    <div style="color:#6b7280;font-size:13px" id="l-desc">바코드 <b id="l-code"></b> — 어떤 품목인가요? 한 번만 지정하면 지난 판매까지 자동으로 바뀝니다.</div>
+    <label>품목<input class="f" id="l-name" list="prodlist" placeholder="예: 냉장 삼겹살" /></label>
     <datalist id="prodlist"></datalist>
-    <label id="l-price-label">100g당 단가(원)<input class="f" id="l-price" type="number" step="1" placeholder="예: 12500" /></label>
-    <button class="primary" id="l-save">등록하고 판매 처리</button>
-    <button class="primary gray" id="l-cancel" style="margin-top:8px">취소</button>
+    <label id="l-price-label">100g당 단가(원)<input class="f" id="l-price" type="number" step="1" placeholder="예: 2500" /></label>
+    <button class="primary" id="l-save">지정하기</button>
+    <button class="primary gray" id="l-cancel" style="margin-top:8px">닫기</button>
   </div>
 
   <div class="card" id="confirm" style="display:none">
@@ -60,11 +63,11 @@
     <div style="font-weight:800" id="c-name"></div>
     <label>중량(kg)<input class="f" id="c-qty" type="number" step="0.001" /></label>
     <label>금액(원)<input class="f" id="c-amt" type="number" step="1" /></label>
-    <button class="primary" id="c-save">출고 + 매출 기록 (Enter)</button>
+    <button class="primary" id="c-save">매출 기록 (Enter)</button>
   </div>
 
   <div class="card">
-    <h2>오늘 판매 내역 <span style="font-weight:400;color:#6b7280;font-size:13px">(스캔 즉시 재고 차감)</span></h2>
+    <h2>방금 기록한 판매 <span style="font-weight:400;color:#6b7280;font-size:13px">(취소·반품은 매출현황에서 판매취소)</span></h2>
     <div style="overflow-x:auto"><table>
       <thead><tr><th>시간</th><th class="name">품목</th><th class="num">중량(kg)</th><th class="num">금액</th></tr></thead>
       <tbody id="tb"><tr><td colspan="4" class="muted">스캔을 시작하세요.</td></tr></tbody>
@@ -76,17 +79,16 @@
 <script src="header.js"></script>
 <script src="src/data/product-name-substitution.js?v=20260804-species-storage-1"></script>
 <script>
+// Rev 1.2 — 매출 우선. 판매 1건은 서버 함수(record_web_scan_sale) 한 번으로 매출+재고를 함께 저장한다.
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
-const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const TENANT = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
 const COMPANY = window.MEATOS_CONTEXT?.companyId || TENANT;
 const STORE = window.MEATOS_CONTEXT?.storeId || null;
 const H = window.MEATOS_API_HEADERS;
 const HW = { ...H, "Content-Type": "application/json", Prefer: "return=minimal" };
 const won = (v) => Number(v||0).toLocaleString("ko-KR");
-const kg = (v) => (Math.round((Number(v)||0)*1000)/1000).toLocaleString("ko-KR");
+const kg = (v) => v==null ? "-" : (Math.round((Number(v)||0)*1000)/1000).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
-function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function nowHm(){ const d=new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
 
 (async () => { try {
@@ -98,13 +100,10 @@ const scanEl = document.getElementById("scan");
 function focusScan(){ try{ scanEl.focus(); }catch(e){} }
 focusScan(); document.addEventListener("click", (e)=>{ if(!e.target.closest("input,select,button")) focusScan(); });
 
-let MAPS = {};   // barcode_key -> mapping row
-let PRODUCTS = []; // 재고 품목명 목록(통합 표시명)
-let today = { cnt:0, amt:0 };
+let MAPS = {};      // barcode_key -> mapping row
+let PRODUCTS = [];  // 품목 대표 이름 목록(재고현황과 같은 AI 통합 기준)
+let session = { cnt:0, amt:0 };
 
-// 재고현황(stock.html)과 동일한 "AI 통합" 품목명 정규화 라이브러리.
-// 거래처마다 다르게 적힌 품목명(예: 냉장 삼겹(장터), 냉장 삼겹(장터) 국내산, 냉장 삼겹살)을
-// 하나의 대표 이름으로 묶어서 보여준다. 로드 실패 시 원본 이름 그대로 쓰도록 안전하게 처리.
 const PN = window.MEATOS_PRODUCT_NAMES || null;
 function resolveName(raw){
   if(PN){
@@ -116,63 +115,45 @@ function resolveName(raw){
   return { key:String(raw||""), displayName:String(raw||"") };
 }
 
-function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none", 1800); }
-
+let toastTimer=null;
+function toast(msg, warn){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.className="toast"+(warn?" warn":""); t.style.display="block";
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.style.display="none", warn?3200:2200);
+}
 
 async function loadMaps(){
   try{ const storeFilter=STORE ? "&or=(store_id.eq."+encodeURIComponent(STORE)+",store_id.is.null)" : "&store_id=is.null";
     const r=await fetch(REST+"/product_barcode?tenant_id=eq."+TENANT+storeFilter+"&select=barcode_key,raw_product_name,unit,default_price,weigh_type,company_id,store_id&limit=5000",{headers:H});
     if(r.ok){ (await r.json()).forEach(m=>MAPS[m.barcode_key]=m); } }catch(e){}
 }
+// 품목 이름 후보: 재고 유무와 관계없이 지금까지 입고·판매된 품목의 대표 이름 (기초재고 없이 시작해도 OK)
 async function loadProducts(){
-  const status=document.getElementById("product-status");
   try{
     const storeFilter=STORE?"&store_id=eq."+encodeURIComponent(STORE):"";
-    const invRequest = fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT+storeFilter+"&is_active=eq.true&select=raw_product_name,unit,quantity,movement_type&limit=5000",{headers:H});
+    const invRequest = fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT+storeFilter+"&is_active=eq.true&select=raw_product_name&limit=5000",{headers:H});
     if(PN){ try{ await PN.loadRemoteLearning({restUrl:REST, headers:H, tenantId:TENANT}); }catch(e){} }
     const r = await invRequest;
-    if(!r.ok)throw new Error("HTTP "+r.status);
-    const balances=new Map(); // 통합키 -> {qty, displayName}
-    (await r.json()).forEach(row=>{
-      const resolved=resolveName(row.raw_product_name);
-      const key=resolved.key+"|"+(row.unit||"kg");
-      const sign=row.movement_type==="OUT"?-1:1;
-      const entry=balances.get(key)||{ qty:0, name:resolved.displayName };
-      entry.qty+=sign*(Number(row.quantity)||0);
-      balances.set(key,entry);
-    });
-    PRODUCTS=[...balances.values()]
-      .filter(e=>e.name&&e.qty>0)
-      .map(e=>e.name)
-      .filter((name,index,list)=>list.indexOf(name)===index)
-      .sort((a,b)=>a.localeCompare(b,"ko"));
+    if(!r.ok) return;
+    const names=new Set();
+    (await r.json()).forEach(row=>{ const n=resolveName(row.raw_product_name).displayName; if(n) names.add(n); });
+    Object.values(MAPS).forEach(m=>{ if(m.raw_product_name) names.add(m.raw_product_name); });
+    PRODUCTS=[...names].sort((a,b)=>a.localeCompare(b,"ko"));
     document.getElementById("prodlist").innerHTML = PRODUCTS.map(p=>"<option value=\""+esc(p)+"\">").join("");
-    status.textContent=PRODUCTS.length
-      ?("현재 매장에서 판매 가능한 재고 "+PRODUCTS.length+"종을 불러왔습니다.")
-      :"현재 매장에 판매 가능한 재고가 없습니다. 먼저 입고와 매장 귀속을 확인하세요.";
-  }catch(e){
-    PRODUCTS=[];
-    status.textContent="재고 품목을 불러오지 못했습니다: "+e.message;
-  }
+  }catch(e){ PRODUCTS=[]; }
 }
-loadMaps(); loadProducts();
+loadMaps().then(loadProducts).then(openFromQuery);
 
-// KR 매장/저울 바코드: 13자리, '2' 시작이면 품목코드+내장값 파싱
+// KR 매장/저울 바코드: 13자리, '2' 시작이면 품목코드(2~7) + 금액(8~12)
 function parseScanCode(code){
   const raw = String(code).trim();
   const d = raw.replace(/\D/g,"");
-  if(d.length===13 && /^2/.test(d)){ return { key: d.slice(1,7), embedded: Number(d.slice(7,12)), instore:true, raw }; }
+  if(d.length===13 && /^2/.test(d)){ return { key: d.slice(1,7), embedded: Number(d.slice(7,12)), instore:true, raw:d }; }
   return { key: raw, embedded: null, instore:false, raw };
 }
-function compute(map, embedded){
-  const price = Number(map.default_price)||0;
-  if(map.weigh_type==="PRICE_EMBED" && embedded!=null){ const amount=embedded; return { qty: price>0? Math.round(amount/price*1000)/1000 : 0, amount }; }
-  if(map.weigh_type==="WEIGHT_EMBED" && embedded!=null){ const qty=embedded/1000; return { qty, amount: Math.round(qty*price) }; }
-  if(map.weigh_type==="FIXED"){ return { qty:1, amount: price }; }
-  return null; // MANUAL
-}
+function autoWeighType(p){ return p.instore ? "PRICE_EMBED" : "FIXED"; }
 
-let PENDING = null; // {code, key, map, embedded}
+let PENDING = null;
 
 scanEl.addEventListener("keydown", (e)=>{
   if(e.key!=="Enter") return;
@@ -185,44 +166,81 @@ scanEl.addEventListener("keydown", (e)=>{
 function handleScan(code){
   const p = parseScanCode(code);
   const map = MAPS[p.key];
-  if(!map){ openLearn(p); return; }
-  const c = compute(map, p.embedded);
-  if(c){ record(map, c.qty, c.amount, p.raw); }
-  else { openConfirm(map, p); }  // MANUAL
+  if(map && map.weigh_type==="MANUAL"){ openConfirm(map, p); return; }
+  if(map || p.instore){ recordSale(p.raw); return; }     // 지정된 품목 또는 저울 라벨 → 바로 매출 기록
+  openLearn(p, false);                                    // 금액 정보가 없는 일반 바코드만 먼저 지정
 }
 
-// 바코드 모양으로 계산 방식을 자동 판단 (사장님께는 묻지 않음)
-// - 저울 라벨(13자리, '2'로 시작): 거의 전부 "바코드에 금액 내장" 방식 → PRICE_EMBED
-// - 일반 상품 바코드(포장상품 등): 개당 고정가 → FIXED
-function autoWeighType(p){ return p.instore ? "PRICE_EMBED" : "FIXED"; }
+function friendlyError(code){
+  const text=String(code||"");
+  if(/APPROVED_COMPANY_REQUIRED|STORE_REQUIRED/.test(text)) return "사업장 연동 후 판매를 기록할 수 있습니다.";
+  if(/AUTH_REQUIRED|JWT/.test(text)) return "로그인이 필요합니다.";
+  if(/SALE_VALUE_REQUIRED/.test(text)) return "판매 금액을 확인할 수 없습니다. 품목 단가를 확인하세요.";
+  if(/INVALID_BARCODE/.test(text)) return "바코드 형식이 아닙니다.";
+  return text||"저장 실패";
+}
 
-function openLearn(p){
-  PENDING = p;
+// 서버 함수 1회 호출 = 매출 + 재고(품목 지정된 경우) 함께 저장
+async function recordSale(barcode, quantity, amount){
+  const body = { p_barcode:String(barcode), p_external_transaction_id:"WEB-"+Date.now()+"-"+String(barcode).slice(-12) };
+  if(quantity!=null) body.p_quantity=quantity;
+  if(amount!=null) body.p_sale_amount=amount;
+  try{
+    const r=await fetch(REST+"/rpc/record_web_scan_sale",{method:"POST",headers:{...H,"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const result=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(result.message||result.code||("HTTP "+r.status));
+    if(!result.ok){
+      if(result.error==="BARCODE_NOT_MAPPED"){ openLearn(parseScanCode(barcode), false); return; }
+      throw new Error(result.error||"저장 실패");
+    }
+    if(result.duplicate){ toast("이미 기록된 판매입니다."); return; }
+    session.cnt++; session.amt+=Number(result.amount)||0;
+    document.getElementById("k-cnt").textContent=session.cnt;
+    document.getElementById("k-amt").textContent=won(session.amt);
+    addRow(result.product, result.quantity, result.amount, result.unmapped ? result.productCode : null);
+    if(result.unmapped) toast("✓ "+won(result.amount)+"원 매출 기록 · 품목은 나중에 지정해도 됩니다");
+    else if(result.stockWarning) toast("✓ "+result.product+" "+won(result.amount)+"원 · 재고 수량 확인 필요", true);
+    else if(!parseScanCode(barcode).instore) toast("✓ "+result.product+" · "+won(result.amount)+"원");
+    else toast("✓ "+result.product+(result.quantity!=null?" "+kg(result.quantity)+"kg":"")+" · "+won(result.amount)+"원");
+  }catch(e){
+    toast("⚠ "+friendlyError(e.message), true);
+  }
+  focusScan();
+}
+
+function openLearn(p, mapOnly){
+  PENDING = { ...p, mapOnly };
   document.getElementById("confirm").style.display="none";
   document.getElementById("learn").style.display="block";
-  document.getElementById("l-code").textContent = p.raw;
-  document.getElementById("l-name").value=""; document.getElementById("l-price").value="";
+  document.getElementById("l-code").textContent = p.instore ? ("품목코드 "+p.key) : p.raw;
+  document.getElementById("l-save").textContent = mapOnly ? "지정하기 (지난 판매에도 반영)" : "지정하고 판매 기록";
+  const existing = MAPS[p.key];
+  document.getElementById("l-name").value = existing ? existing.raw_product_name : "";
   const priceLabel = document.getElementById("l-price-label");
   const priceInput = document.getElementById("l-price");
-  if(p.instore){ priceLabel.firstChild.textContent="100g당 단가(원)"; priceInput.placeholder="예: 12500"; }
-  else { priceLabel.firstChild.textContent="개당 가격(원)"; priceInput.placeholder="예: 3900"; }
+  if(p.instore){
+    priceLabel.firstChild.textContent="100g당 단가(원)"; priceInput.placeholder="예: 2500";
+    priceInput.value = existing && existing.default_price ? Math.round(existing.default_price/10) : "";
+  } else {
+    priceLabel.firstChild.textContent="개당 가격(원)"; priceInput.placeholder="예: 3900";
+    priceInput.value = existing && existing.default_price ? existing.default_price : "";
+  }
+  document.getElementById("learn").scrollIntoView({behavior:"smooth", block:"center"});
   document.getElementById("l-name").focus();
 }
 document.getElementById("l-cancel").addEventListener("click", ()=>{ document.getElementById("learn").style.display="none"; focusScan(); });
 document.getElementById("l-save").addEventListener("click", async ()=>{
-  const name=document.getElementById("l-name").value.trim();
-  if(!name){ alert("품목을 선택/입력하세요."); return; }
-  // 재고(입고)에 등록된 품목 목록에서만 고르게 강제 — 오타·임의 이름 등록 방지
-  if(PRODUCTS.length>0 && !PRODUCTS.includes(name)){
-    alert("재고에 등록된 품목명만 선택할 수 있습니다.\n목록에서 정확히 골라주세요: "+name);
-    document.getElementById("l-name").focus();
-    return;
-  }
+  let name=document.getElementById("l-name").value.trim();
+  if(!name){ alert("품목 이름을 입력하세요."); return; }
+  // 거래처마다 다른 이름은 재고현황과 같은 대표 이름으로 통일
+  const canonical=resolveName(name).displayName||name;
+  if(canonical!==name && confirm("'"+canonical+"' 이름으로 통일해서 지정할까요?")) name=canonical;
+  if(PRODUCTS.length>0 && !PRODUCTS.includes(name) && !confirm("처음 보는 품목 이름입니다. '"+name+"'으로 지정할까요?")) return;
   const price0=document.getElementById("l-price").value;
-  if(price0===""){ alert("가격을 입력하세요."); return; }
+  if(price0===""){ alert(PENDING.instore ? "100g당 단가를 입력하세요. (중량 계산에 사용)" : "개당 가격을 입력하세요."); return; }
   const weigh_type=autoWeighType(PENDING);
-  const p100=Number(price0)||null;   // 저울상품은 100g당 단가, 개당상품은 개당가격
-  const price = p100==null ? null : (weigh_type==="FIXED" ? p100 : p100*10);  // 무게상품은 원/kg 로 환산
+  const typed=Number(price0)||null;
+  const price = typed==null ? null : (weigh_type==="FIXED" ? typed : typed*10);  // 저울 상품은 원/kg 로 저장
   const map={ tenant_id:TENANT, company_id:COMPANY, store_id:STORE, barcode_key:String(PENDING.key), raw_product_name:name, unit:"kg", default_price:price, weigh_type };
   try{
     const r=await fetch(REST+"/product_barcode?on_conflict=tenant_id,barcode_key",{
@@ -233,10 +251,12 @@ document.getElementById("l-save").addEventListener("click", async ()=>{
     if(!r.ok) throw new Error(await r.text());
     const saved=await r.json();
     MAPS[PENDING.key]=saved[0]||map;
-  }catch(e){ alert("등록 실패: "+e.message); return; }
+    if(!PRODUCTS.includes(name)){ PRODUCTS.push(name); document.getElementById("prodlist").insertAdjacentHTML("beforeend","<option value=\""+esc(name)+"\">"); }
+  }catch(e){ alert("지정 실패: "+e.message); return; }
   document.getElementById("learn").style.display="none";
-  const c=compute(map, PENDING.embedded);
-  if(c) record(map, c.qty, c.amount, PENDING.raw); else openConfirm(map, PENDING);
+  document.querySelectorAll("[data-pending-code='"+PENDING.key+"']").forEach(td=>{ td.innerHTML=esc(name); });
+  if(PENDING.mapOnly){ toast("✓ '"+name+"' 지정 완료 · 지난 미분류 판매에도 반영됐습니다"); focusScan(); return; }
+  recordSale(PENDING.raw);
 });
 
 function openConfirm(map, p){
@@ -255,52 +275,29 @@ document.getElementById("c-save").addEventListener("click", ()=>{
   const amt=Number(document.getElementById("c-amt").value)||0;
   if(qty<=0){ alert("중량을 입력하세요."); return; }
   document.getElementById("confirm").style.display="none";
-  record(PENDING.map, qty, amt, PENDING.p.raw);
+  recordSale(PENDING.p.raw, qty, amt);
 });
 document.getElementById("c-qty").addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); document.getElementById("c-save").click(); } });
 
-async function record(map, qty, amount, barcode){
-  const price = Number(map.default_price)|| (qty>0?Math.round(amount/qty):0);
-  const externalTransactionId="WEB-"+Date.now()+"-"+String(barcode||"").slice(-12);
-  const mv = { tenant_id:TENANT, company_id:COMPANY, store_id:STORE, movement_type:"OUT", raw_product_name:map.raw_product_name, unit:map.unit||"kg",
-    quantity:qty, unit_price:price, amount:amount, movement_date:todayStr(), memo:"판매 스캔" };
-  const sale = { tenant_id:TENANT, company_id:COMPANY, store_id:STORE, sale_date:todayStr(), item_name:map.raw_product_name,
-    quantity:qty, unit_price:price, amount:amount, channel:"STORE", memo:"스캔 판매",
-    barcode:String(barcode||""), external_transaction_id:externalTransactionId, sold_at:new Date().toISOString(), source:"web-scan", is_cancelled:false };
-  try{
-    const r1=await fetch(REST+"/inventory_movement",{method:"POST",headers:{...HW,Prefer:"return=representation"},body:JSON.stringify(mv)});
-    if(!r1.ok) throw new Error("재고 "+r1.status);
-    const movementRows=await r1.json();
-    sale.inventory_movement_id=movementRows[0]?.id||null;
-    let r2=await fetch(REST+"/sales_record",{method:"POST",headers:HW,body:JSON.stringify(sale)});
-    const r2bodyFirst = r2.ok ? "" : await r2.clone().text().catch(()=>"");
-    if(!r2.ok && r2.status===400){
-      const legacySale={ tenant_id:TENANT, company_id:COMPANY, store_id:STORE, sale_date:sale.sale_date, item_name:sale.item_name,
-        quantity:sale.quantity, unit_price:sale.unit_price, amount:sale.amount, channel:sale.channel, memo:sale.memo };
-      r2=await fetch(REST+"/sales_record",{method:"POST",headers:HW,body:JSON.stringify(legacySale)});
-    }
-    if(!r2.ok){
-      // 상세 원인은 화면 대신 콘솔에만 남긴다 (운영 화면에는 짧은 안내만 표시).
-      const r2bodySecond = await r2.text().catch(()=>"");
-      console.error("[판매 스캔] 매출 저장 실패", r2.status, { first:r2bodyFirst, second:r2bodySecond });
-      throw new Error("매출 저장 "+r2.status);
-    }
-    today.cnt++; today.amt+=amount;
-    document.getElementById("k-cnt").textContent=today.cnt;
-    document.getElementById("k-amt").textContent=won(today.amt);
-    addRow(map.raw_product_name, qty, amount);
-    toast("✓ "+map.raw_product_name+" "+kg(qty)+"kg 출고");
-  }catch(e){
-    toast("⚠ 실패: "+e.message);
-  }
-  focusScan();
-}
-function addRow(name, qty, amt){
+function addRow(name, qty, amt, pendingCode){
   const tb=document.getElementById("tb");
   if(tb.querySelector(".muted")) tb.innerHTML="";
   const tr=document.createElement("tr");
-  tr.innerHTML="<td>"+nowHm()+"</td><td class='name'>"+esc(name)+"</td><td class='num'>"+kg(qty)+"</td><td class='num'>"+won(amt)+"</td>";
+  const nameCell = pendingCode
+    ? "<td class='name' data-pending-code='"+esc(pendingCode)+"'>"+esc(name)+"<span class='unmapped-tag'>품목 미지정</span><button class='map-link' type='button' data-code='"+esc(pendingCode)+"'>지정</button></td>"
+    : "<td class='name'>"+esc(name)+"</td>";
+  tr.innerHTML="<td>"+nowHm()+"</td>"+nameCell+"<td class='num'>"+kg(qty)+"</td><td class='num'>"+won(amt)+"</td>";
   tb.insertBefore(tr, tb.firstChild);
+}
+document.getElementById("tb").addEventListener("click",(e)=>{
+  const b=e.target.closest(".map-link"); if(!b) return;
+  openLearn({ key:b.dataset.code, embedded:null, instore:true, raw:b.dataset.code }, true);
+});
+
+// 오늘의 돈 화면의 "품목 지정" 버튼: sell.html?code=123456
+function openFromQuery(){
+  const code=(new URLSearchParams(location.search).get("code")||"").replace(/[^0-9A-Za-z._-]/g,"");
+  if(code) openLearn({ key:code, embedded:null, instore:/^[0-9]{6}$/.test(code), raw:code }, true);
 }
 </script>
 </body>

@@ -99,6 +99,7 @@
   </div>
 
 <script src="header.js"></script>
+<script src="src/data/product-name-substitution.js?v=20260804-species-storage-1"></script>
 <script>
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
@@ -137,16 +138,22 @@ async function loadSaleProducts(){
     const storeFilter=window.MEATOS_CONTEXT?.storeId?"&store_id=eq."+encodeURIComponent(window.MEATOS_CONTEXT.storeId):"";
     const response=await fetch(REST+"/inventory_movement?tenant_id=eq."+TENANT+storeFilter+"&is_active=eq.true&select=raw_product_name,quantity,movement_type&limit=5000",{headers:H});
     if(!response.ok)return;
-    const balances=new Map();
-    (await response.json()).forEach(row=>balances.set(row.raw_product_name,(balances.get(row.raw_product_name)||0)+(row.movement_type==="OUT"?-1:1)*(Number(row.quantity)||0)));
-    document.getElementById("sale-products").innerHTML=[...balances.entries()].filter(([,qty])=>qty>0).map(([name])=>"<option value=\""+esc(name)+"\"></option>").join("");
+    // Rev 1.2: 기초재고 없이 시작해도 되도록 재고 유무와 관계없이 품목 대표 이름을 후보로 보여준다.
+    const PN=window.MEATOS_PRODUCT_NAMES||null;
+    const names=new Set();
+    (await response.json()).forEach(row=>{
+      let name=row.raw_product_name;
+      if(PN){ try{ const r=PN.resolve(name,{}); if(r&&r.displayName) name=r.displayName; }catch(e){} }
+      if(name) names.add(name);
+    });
+    document.getElementById("sale-products").innerHTML=[...names].sort((a,b)=>a.localeCompare(b,"ko")).map((name)=>"<option value=\""+esc(name)+"\"></option>").join("");
   }catch(error){}
 }
 async function load(){
   try{
     const sr=await fetch(REST+"/store?company_id=eq."+TENANT+"&select=id,name",{headers:H});
     if(sr.ok) (await sr.json()).forEach((store)=>STORE_NAMES[store.id]=store.name);
-    let r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,sold_at,store_id,item_name,barcode,quantity,unit_price,amount,channel,external_transaction_id,is_cancelled,created_at&order=sale_date.desc,created_at.desc&limit=1000",{headers:H});
+    let r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,sold_at,store_id,item_name,barcode,quantity,unit_price,amount,channel,external_transaction_id,is_cancelled,needs_mapping,product_code,created_at&order=sale_date.desc,created_at.desc&limit=1000",{headers:H});
     if(!r.ok){ // POS 확장 컬럼 미적용 상태에서도 기존 매출은 표시
       r = await fetch(REST+"/sales_record?tenant_id=eq."+TENANT+"&select=id,sale_date,item_name,quantity,unit_price,amount,created_at&order=sale_date.desc,created_at.desc&limit=1000",{headers:H});
     }
@@ -220,7 +227,7 @@ function renderList(rows){
   const tb=document.getElementById("tb");
   if(!rows.length){ tb.innerHTML="<tr><td colspan='9' class='muted'>매출 내역이 없습니다.</td></tr>"; return; }
   tb.innerHTML = rows.map(x=>"<tr><td>"+esc(x.sold_at?new Date(x.sold_at).toLocaleString("ko-KR"):x.sale_date)+"</td>"+
-    "<td>"+esc(STORE_NAMES[x.store_id]||chanBadge(x.channel).replace(/<[^>]+>/g,""))+"</td><td class='name'>"+esc(x.item_name)+"</td>"+
+    "<td>"+esc(STORE_NAMES[x.store_id]||chanBadge(x.channel).replace(/<[^>]+>/g,""))+"</td><td class='name'>"+esc(x.item_name)+(x.needs_mapping&&!x.is_cancelled&&x.product_code?" <a href='sell.html?code="+encodeURIComponent(x.product_code)+"' style='font-size:12px;font-weight:800;color:#2563eb;text-decoration:none'>품목 지정</a>":"")+"</td>"+
     "<td>"+esc(x.barcode||"-")+"</td><td class='num'>"+(x.quantity!=null?won(x.quantity):"-")+"</td>"+
     "<td class='num'>"+(x.unit_price!=null?won(x.unit_price):"-")+"</td><td class='num'>"+won(x.amount)+"</td>"+
     "<td>"+esc(x.external_transaction_id||"-")+"</td><td>"+(x.is_cancelled
@@ -277,7 +284,7 @@ document.getElementById("saveBtn").addEventListener("click", async ()=>{
     const r=await fetch(REST+"/rpc/record_manual_sale",{method:"POST",headers:HW,body:JSON.stringify(row)});
     const result=await r.json().catch(()=>({}));
     if(!r.ok||result.ok===false) throw new Error(result.message||result.error||r.status);
-    msg.style.color="#166534"; msg.textContent="✓ 매출 저장 및 재고 차감 완료";
+    msg.style.color="#166534"; msg.textContent=result.stockWarning?"✓ 매출 저장 완료 (재고 수량은 나중에 확인해 주세요)":"✓ 매출 저장 및 재고 차감 완료";
     document.getElementById("f-item").value=""; document.getElementById("f-qty").value=""; document.getElementById("f-price").value=""; document.getElementById("f-amt").value=""; document.getElementById("f-memo").value=""; amtTouched=false;
     load();
     setTimeout(()=>{ closeInput(); msg.textContent=""; }, 700);

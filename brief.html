@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>오늘의 돈 · 정육비서</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  .brief { max-width:960px; margin:0 auto; }
+  .brief h1 { margin:0 0 6px; }
+  .brief .sub { margin:0 0 18px; color:#50555d; font-size:15px; }
+  .money-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:16px; }
+  .money { background:#fff; border:1px solid #e4e7eb; border-radius:14px; padding:18px 16px; box-shadow:0 4px 18px rgba(16,24,40,.06); }
+  .money span { display:block; color:#50555d; font-size:14px; font-weight:700; }
+  .money b { display:block; font-size:26px; line-height:1.25; margin:6px 0 4px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .money small { display:block; color:#6b7280; font-size:13px; line-height:1.5; }
+  .money.hl { border-color:#f2b8be; background:#fff8f8; }
+  .up { color:#0f7a3b; font-weight:800; } .down { color:#d71f2b; font-weight:800; }
+  .panel { background:#fff; border:1px solid #e4e7eb; border-radius:14px; padding:18px; margin-bottom:14px; box-shadow:0 4px 18px rgba(16,24,40,.06); }
+  .panel h2 { font-size:18px; margin:0 0 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .panel h2 a { font-size:14px; font-weight:700; color:#2463d4; text-decoration:none; }
+  .rows { display:flex; flex-direction:column; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 2px; border-bottom:1px solid #eceef1; font-size:16px; }
+  .row:last-child { border-bottom:0; }
+  .row .l { font-weight:700; } .row .r { font-weight:800; font-variant-numeric:tabular-nums; }
+  .row .m { color:#6b7280; font-size:13px; font-weight:400; display:block; }
+  .empty { color:#6b7280; font-size:15px; line-height:1.6; }
+  .mbtn { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:6px 14px; border-radius:10px; border:1px solid #c51624; background:#c51624; color:#fff; font-weight:800; font-size:14px; text-decoration:none; white-space:nowrap; }
+  .mbtn.ghost { background:#fff; color:#c51624; }
+  .notice { background:#fff7ed; border:1px solid #fdba74; color:#9a3412; border-radius:10px; padding:12px 14px; font-size:14px; margin-bottom:14px; }
+  .alert-form { display:grid; grid-template-columns:2fr 1fr auto; gap:10px; align-items:end; }
+  .alert-form label { font-size:13px; font-weight:700; color:#50555d; }
+  .alert-form input, .alert-form select { width:100%; margin-top:6px; padding:10px 12px; font-size:16px; box-sizing:border-box; }
+  .msg { margin-top:10px; font-size:14px; font-weight:700; min-height:20px; }
+  @media (max-width:900px){ .money-grid { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:520px){ .money b { font-size:22px; } .alert-form { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<script src="header.js"></script>
+<main class="brief">
+  <h1>📊 오늘의 돈</h1>
+  <p class="sub" id="b-sub">매출, 카드 입금 예정, 이번 달 남은 돈을 한 화면에서 봅니다.</p>
+  <div class="notice" id="demo-note" style="display:none">지금은 체험 모드라 예시 숫자입니다. <a href="business-verify.html">사업장 연동</a> 후 실제 매출로 바뀝니다.</div>
+
+  <section class="money-grid" aria-label="핵심 숫자">
+    <div class="money hl"><span>오늘 매출</span><b id="m-today">-</b><small id="m-today-sub">&nbsp;</small></div>
+    <div class="money"><span>어제 매출</span><b id="m-yday">-</b><small id="m-yday-sub">&nbsp;</small></div>
+    <div class="money"><span>카드 입금 예정 (7일)</span><b id="m-card">-</b><small id="m-card-sub">&nbsp;</small></div>
+    <div class="money"><span>이번 달 남은 돈 (추정)</span><b id="m-left">-</b><small id="m-left-sub">&nbsp;</small></div>
+  </section>
+
+  <section class="panel">
+    <h2>💳 카드 입금 예정 <a href="settlement.html">자세히 ›</a></h2>
+    <div id="deposits" class="rows"><div class="empty">불러오는 중…</div></div>
+  </section>
+
+  <section class="panel" id="unmapped-panel" style="display:none">
+    <h2>🏷️ 품목 미지정 매출</h2>
+    <p class="empty" style="margin:0 0 6px">금액은 이미 매출에 들어가 있습니다. 품목을 한 번만 지정하면 지난 판매까지 품목별로 정리됩니다.</p>
+    <div id="unmapped" class="rows"></div>
+  </section>
+
+  <section class="panel" id="expiry-panel" style="display:none">
+    <h2>⏰ 유통기한 임박 <a href="stock.html">재고 보기 ›</a></h2>
+    <div class="empty" id="expiry-text"></div>
+  </section>
+
+  <section class="panel" id="alert-panel" style="display:none">
+    <h2>📱 매일 아침 문자로 받기</h2>
+    <p class="empty" style="margin:0 0 12px">앱을 열지 않아도 매일 아침 어제 매출·카드 입금 예정·이번 달 매출을 문자로 보내드립니다.</p>
+    <div class="alert-form">
+      <label>휴대전화번호<input id="a-phone" type="tel" inputmode="tel" placeholder="01012345678" autocomplete="tel" /></label>
+      <label>받는 시간<select id="a-hour"></select></label>
+      <button class="mbtn" id="a-save" type="button">저장</button>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px;font-weight:700"><input type="checkbox" id="a-enabled" checked style="width:20px;height:20px" /> 알림 받기</label>
+    <div class="msg" id="a-msg"></div>
+  </section>
+</main>
+<script>
+// 문자 발송사(솔라피·알리고 등) 연결과 daily-brief 함수 배포가 끝나면 true 로 바꾼다.
+const BRIEF_ALERTS_ENABLED = false;
+
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const H = window.MEATOS_API_HEADERS || {};
+const HJ = { ...H, "Content-Type": "application/json" };
+const CTX = window.MEATOS_CONTEXT || {};
+const won = (v) => Math.round(Number(v)||0).toLocaleString("ko-KR") + "원";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+const WD = ["일","월","화","수","목","금","토"];
+function md(iso){ const d=new Date(iso+"T00:00:00"); return (d.getMonth()+1)+"/"+d.getDate()+"("+WD[d.getDay()]+")"; }
+function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function plus(days){ const d=new Date(); d.setDate(d.getDate()+days); return ymd(d); }
+
+function sampleBrief(){
+  return {
+    day: plus(0),
+    today:{ amount:412300, count:17 }, yesterday:{ amount:1286400, count:46 }, lastWeekSameDay:{ amount:1190000 },
+    month:{ sales:18452000, purchases:12930000 },
+    unmapped:{ count:3, amount:58200, codes:[{ code:"012345", count:2, amount:41700 },{ code:"067890", count:1, amount:16500 }] },
+    cardDeposits:{ hasData:true, next7Days:2894500, today:812300, days:[
+      { date:plus(0), amount:812300, count:3 },{ date:plus(1), amount:1043200, count:4 },{ date:plus(3), amount:1039000, count:4 } ] },
+    expirySoon:2
+  };
+}
+
+function render(b){
+  document.getElementById("b-sub").textContent = (CTX.companyName && CTX.isBusiness ? CTX.companyName+" · " : "") + md(b.day) + " 기준";
+  document.getElementById("m-today").textContent = won(b.today.amount);
+  document.getElementById("m-today-sub").textContent = b.today.count + "건 (지금까지)";
+  document.getElementById("m-yday").textContent = won(b.yesterday.amount);
+  const lw = Number(b.lastWeekSameDay && b.lastWeekSameDay.amount) || 0;
+  const yd = Number(b.yesterday.amount) || 0;
+  const ysub = document.getElementById("m-yday-sub");
+  if(lw > 0){
+    const rate = Math.round((yd - lw) / lw * 100);
+    ysub.innerHTML = b.yesterday.count + "건 · 지난주 같은 요일보다 <span class='"+(rate>=0?"up":"down")+"'>"+(rate>=0?"▲":"▼")+Math.abs(rate)+"%</span>";
+  } else ysub.textContent = b.yesterday.count + "건";
+
+  const card = b.cardDeposits || {};
+  document.getElementById("m-card").textContent = card.hasData ? won(card.next7Days) : "-";
+  document.getElementById("m-card-sub").textContent = card.hasData ? ("오늘 " + won(card.today)) : "카드 조회 연결 필요";
+
+  const left = (Number(b.month.sales)||0) - (Number(b.month.purchases)||0);
+  document.getElementById("m-left").textContent = won(left);
+  document.getElementById("m-left-sub").textContent = "매출 " + won(b.month.sales) + " − 매입 " + won(b.month.purchases);
+
+  const dep = document.getElementById("deposits");
+  if(!card.hasData){
+    dep.innerHTML = "<div class='empty'>카드 입금예정 화면에서 여신금융협회 카드매출 조회를 한 번 연결하면, 카드사별 입금일과 금액이 여기에 자동으로 나옵니다.<br><a class='mbtn ghost' style='margin-top:10px' href='settlement.html'>카드 조회 연결하기</a></div>";
+  } else if(!(card.days||[]).length){
+    dep.innerHTML = "<div class='empty'>앞으로 7일 동안 입금 예정된 카드 대금이 없습니다.</div>";
+  } else {
+    dep.innerHTML = card.days.map(d => "<div class='row'><span class='l'>"+md(d.date)+(d.date===b.day?" · 오늘":"")+"<span class='m'>"+(d.count||0)+"건</span></span><span class='r'>"+won(d.amount)+"</span></div>").join("");
+  }
+
+  const un = b.unmapped || {};
+  const unPanel = document.getElementById("unmapped-panel");
+  if((un.count||0) > 0){
+    unPanel.style.display = "";
+    document.getElementById("unmapped").innerHTML = (un.codes||[]).map(c =>
+      "<div class='row'><span class='l'>품목코드 "+esc(c.code)+"<span class='m'>"+c.count+"건 · "+won(c.amount)+"</span></span>"+
+      "<a class='mbtn ghost' href='sell.html?code="+encodeURIComponent(c.code)+"'>품목 지정</a></div>").join("");
+  } else unPanel.style.display = "none";
+
+  const ex = document.getElementById("expiry-panel");
+  if((b.expirySoon||0) > 0){ ex.style.display=""; document.getElementById("expiry-text").textContent = "3일 안에 유통기한이 끝나는 입고분이 " + b.expirySoon + "건 있습니다."; }
+  else ex.style.display = "none";
+}
+
+async function load(){
+  if(!window.MEATOS_CAN_PERSIST){
+    document.getElementById("demo-note").style.display = "";
+    render(sampleBrief());
+    return;
+  }
+  try{
+    const r = await fetch(REST + "/rpc/get_money_brief", { method:"POST", headers:HJ, body:"{}" });
+    const body = await r.json().catch(()=>null);
+    if(!r.ok || !body) throw new Error((body && (body.message||body.code)) || ("HTTP "+r.status));
+    render(body);
+  }catch(e){
+    document.getElementById("deposits").innerHTML = "<div class='empty'>불러오지 못했습니다: "+esc(e.message)+"</div>";
+  }
+}
+
+async function initAlerts(){
+  if(!BRIEF_ALERTS_ENABLED || !window.MEATOS_CAN_PERSIST) return;
+  document.getElementById("alert-panel").style.display = "";
+  const sel = document.getElementById("a-hour");
+  for(let h=5; h<=22; h++) sel.insertAdjacentHTML("beforeend", "<option value='"+h+"'"+(h===8?" selected":"")+">"+(h<12?"오전 ":"오후 ")+(h>12?h-12:h)+"시</option>");
+  try{
+    const r = await fetch(REST + "/rpc/get_my_brief_subscription", { method:"POST", headers:HJ, body:"{}" });
+    const s = await r.json();
+    if(r.ok && s.subscribed){
+      document.getElementById("a-phone").value = s.phone;
+      sel.value = String(s.sendHour);
+      document.getElementById("a-enabled").checked = !!s.enabled;
+    }
+  }catch(e){}
+  document.getElementById("a-save").addEventListener("click", async ()=>{
+    const msg = document.getElementById("a-msg");
+    msg.style.color = "#6b7280"; msg.textContent = "저장 중…";
+    try{
+      const r = await fetch(REST + "/rpc/set_my_brief_subscription", { method:"POST", headers:HJ, body:JSON.stringify({
+        p_phone: document.getElementById("a-phone").value, p_send_hour: Number(sel.value), p_enabled: document.getElementById("a-enabled").checked }) });
+      const s = await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(/INVALID_PHONE/.test(s.message||"") ? "휴대전화번호를 확인해 주세요." : (s.message||("HTTP "+r.status)));
+      msg.style.color = "#166534"; msg.textContent = s.enabled ? "✓ 저장했습니다. 매일 " + sel.options[sel.selectedIndex].text + "에 보내드립니다." : "✓ 알림을 껐습니다.";
+    }catch(e){ msg.style.color = "#b91c1c"; msg.textContent = "저장 실패: " + e.message; }
+  });
+}
+
+load();
+initAlerts();
+</script>
+</body>
+</html>

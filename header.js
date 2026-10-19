@@ -286,16 +286,16 @@
     location.assign("/");
   }
 
+  // Rev 1.2 "돈 먼저": 매출·입금 메뉴를 위로. 재고 심화 기능(안전재고·자동발주)은 Rev 1.1로 보관하고 메뉴에서 숨긴다.
   // 쿠팡이츠 매출연동(delivery-connect.html)은 집계사 연동 전이라 메뉴에서 숨긴다(스토어 심사: 미완성 기능 노출 금지).
   var MENU = [
+    ["📊 오늘의 돈", "brief.html"],
     ["🧾 판매 스캔", "sell.html"],
-    ["🔗 자동 판매연동", "connect.html"],
-    ["📥 매입현황", "purchases.html"],
     ["💰 매출현황", "sales.html"],
     ["💳 카드 입금예정", "settlement.html"],
+    ["📥 매입현황", "purchases.html"],
+    ["🔗 POS 자동 연동", "connect.html"],
     ["📦 재고현황", "stock.html"],
-    ["🛡️ 안전재고관리", "safety-stock.html"],
-    ["🧮 자동발주관리", "auto-order.html"],
     ["🔔 알림현황", "alerts.html"],
     ["🏢 사업장 연동", "business-verify.html"],
     ["🔐 계정 연결 관리", "account-link.html"],
@@ -309,7 +309,7 @@
   ];
 
   // 기존 역할별 메뉴 노출 규칙을 유지한다. 실제 데이터 통제는 RLS가 담당한다.
-  var HREF_PERM = { "sell.html":"sell.scan","delivery-sales.html":"delivery.fulfill","delivery-connect.html":"sales.view","connect.html":"connect.manage","purchases.html":"purchase.view","sales.html":"sales.view","settlement.html":"sales.view","stock.html":"stock.view","safety-stock.html":"stock.view","auto-order.html":"purchase.view","alerts.html":"alerts.view","account-link.html":"settings.view","settings.html":"settings.view","business-verify.html":"verify.submit" };
+  var HREF_PERM = { "brief.html":"sales.view","sell.html":"sell.scan","delivery-sales.html":"delivery.fulfill","delivery-connect.html":"sales.view","connect.html":"connect.manage","purchases.html":"purchase.view","sales.html":"sales.view","settlement.html":"sales.view","stock.html":"stock.view","safety-stock.html":"stock.view","auto-order.html":"purchase.view","alerts.html":"alerts.view","account-link.html":"settings.view","settings.html":"settings.view","business-verify.html":"verify.submit" };
   var ROLE_PERMS = {
     COMPANY_OWNER:"*", OWNER:"*", COMPANY_ADMIN:"*",
     STORE_MANAGER:["sell.scan","delivery.fulfill","purchase.view","sales.view","stock.view","alerts.view","settings.view","verify.submit"],
