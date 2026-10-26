@@ -47,11 +47,13 @@
   <div class="notice" id="demo-note" style="display:none">지금은 체험 모드라 예시 숫자입니다. <a href="business-verify.html">사업장 연동</a> 후 실제 매출로 바뀝니다.</div>
 
   <section class="money-grid" aria-label="핵심 숫자">
-    <div class="money hl"><span>오늘 매출</span><b id="m-today">-</b><small id="m-today-sub">&nbsp;</small></div>
+    <div class="money hl"><span>오늘 매출</span><b id="m-today">-</b><small id="m-today-sub">&nbsp;</small><small id="m-today-chan"></small></div>
     <div class="money"><span>어제 매출</span><b id="m-yday">-</b><small id="m-yday-sub">&nbsp;</small></div>
     <div class="money"><span>카드 입금 예정 (7일)</span><b id="m-card">-</b><small id="m-card-sub">&nbsp;</small></div>
     <div class="money"><span>이번 달 남은 돈 (추정)</span><b id="m-left">-</b><small id="m-left-sub">&nbsp;</small></div>
   </section>
+
+  <div class="notice" id="dup-note" style="display:none"></div>
 
   <section class="panel">
     <h2>💳 카드 입금 예정 <a href="settlement.html">자세히 ›</a></h2>
@@ -59,9 +61,10 @@
   </section>
 
   <section class="panel" id="unmapped-panel" style="display:none">
-    <h2>🏷️ 품목 미지정 매출</h2>
+    <h2>🏷️ 품목 미지정 매출 <a href="plu-import.html">한 번에 등록 ›</a></h2>
     <p class="empty" style="margin:0 0 6px">금액은 이미 매출에 들어가 있습니다. 품목을 한 번만 지정하면 지난 판매까지 품목별로 정리됩니다.</p>
     <div id="unmapped" class="rows"></div>
+    <a class="mbtn" style="margin-top:12px" href="plu-import.html">📷 라벨 사진 · 품목표로 한 번에 등록</a>
   </section>
 
   <section class="panel" id="expiry-panel" style="display:none">
@@ -152,12 +155,35 @@ function render(b){
   else ex.style.display = "none";
 }
 
+const CHANNEL_NAMES = { STORE:"매장", COUPANG:"쿠팡이츠", BAEMIN:"배민", YOGIYO:"요기요", MEATBONGA:"정육본가", ETC:"기타" };
+function renderChannels(c){
+  const today = (c && c.today) || [];
+  const el = document.getElementById("m-today-chan");
+  el.textContent = today.length > 1 || (today.length === 1 && today[0].channel !== "STORE")
+    ? today.map(x => (CHANNEL_NAMES[x.channel] || x.channel) + " " + won(x.amount)).join(" · ") : "";
+  const dups = (c && c.possibleDuplicates) || [];
+  const note = document.getElementById("dup-note");
+  if(dups.length){
+    note.style.display = "";
+    note.innerHTML = "⚠ 배달로 찍은 라벨 <b>" + dups.length + "건</b>이 POS에서도 같은 시간대에 찍혔습니다 (" +
+      dups.slice(0,3).map(d => (CHANNEL_NAMES[d.channel]||d.channel) + " " + won(d.amount)).join(", ") + "). 같은 상품이면 <a href='sales.html'>매출현황</a>에서 한 건을 판매취소해 주세요.";
+  } else note.style.display = "none";
+}
+async function loadChannels(){
+  try{
+    const r = await fetch(REST + "/rpc/get_channel_sales", { method:"POST", headers:HJ, body:"{}" });
+    if(r.ok) renderChannels(await r.json());
+  }catch(e){}
+}
+
 async function load(){
   if(!window.MEATOS_CAN_PERSIST){
     document.getElementById("demo-note").style.display = "";
     render(sampleBrief());
+    renderChannels({ today:[{ channel:"STORE", amount:356100 },{ channel:"COUPANG", amount:56200 }], possibleDuplicates:[] });
     return;
   }
+  loadChannels();
   try{
     const r = await fetch(REST + "/rpc/get_money_brief", { method:"POST", headers:HJ, body:"{}" });
     const body = await r.json().catch(()=>null);

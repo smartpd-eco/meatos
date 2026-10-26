@@ -34,6 +34,7 @@ const pages = [
   "terms.html", "privacy.html", "account-delete.html",
   // Rev 1.2 오늘의 돈
   "brief.html",
+  "plu-import.html",
 ];
 // 공통 자원 (app.js 제외)
 const assets = [

@@ -20,6 +20,16 @@
 - Edge Function: `supabase/functions/daily-brief` (매일 아침 문자 — 기본은 발송 안 하는 안전 모드)
 - 화면: `brief.html`(신규), `sell.html`, `connect.html`, `sales.html`, `header.js`(메뉴 순서), `settings.html`, `privacy.html`
 
+Rev 1.2 추가 (2026-10-20) — 저울 품목 자동 매칭 · 배달 매출
+- 화면: `plu-import.html`(신규, 🏷️ 품목 한 번에 등록) — 라벨 사진(AI) · 저울 품목표 붙여넣기/CSV로
+  저울 버튼(품번) ↔ 품목명·단가를 한 번에 등록. 바코드 규칙(앞자리 + 품번)을 들어온 라벨로 자동 감지.
+  저장 즉시 지난 "품목 미지정" 매출이 품목별로 바뀌고 재고도 소급 차감(기존 트리거).
+- Edge Function: `supabase/functions/analyze-label` — 라벨 사진 → 바코드·품명·단가·중량·금액, 체크숫자·금액 검증
+- DB: `supabase/migrations/202610200001_rev12_delivery_channel.sql`
+  - `record_channel_scan_sale` — 판매 스캔에서 쿠팡이츠·배민·정육본가 등 채널 지정, POS 이중 기록 확인
+  - `get_channel_sales` — 오늘의 돈 채널별 매출 + 이중 기록 의심 목록
+- `sell.html` 채널 선택, `brief.html` 채널별 매출·이중 기록 안내, `sales.html` 배민·요기요 채널
+
 ## Rev 1.1 — 재고 중심 (2026-10-09 시점, 보관)
 
 **보관 방법:** git 태그 `rev-1.1` (커밋 `055c574`, 잡파일 정리까지 포함된 시점).

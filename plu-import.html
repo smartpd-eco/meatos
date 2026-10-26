@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<title>품목 한 번에 등록 · 정육비서</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
+  main { max-width:980px; margin:0 auto; }
+  h1 { font-size:21px; margin:2px 0 4px; }
+  .sub { color:#50555d; font-size:14px; line-height:1.6; margin:0 0 14px; }
+  .card { background:#fff; border:1px solid #e4e7eb; border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 4px 18px rgba(16,24,40,.06); }
+  .card h2 { font-size:17px; margin:0 0 8px; }
+  .muted { color:#6b7280; font-size:13px; line-height:1.6; }
+  .status { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .chip { display:inline-block; padding:4px 10px; border-radius:999px; background:#fef3c7; color:#92400e; font-size:12px; font-weight:800; }
+  .chip.ok { background:#dcfce7; color:#166534; }
+  .ways { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .way { border:2px solid #e5e7eb; border-radius:12px; padding:14px; cursor:pointer; background:#fff; text-align:left; font:inherit; color:inherit; }
+  .way b { display:block; font-size:16px; margin-bottom:4px; } .way span { font-size:13px; color:#6b7280; line-height:1.5; display:block; }
+  .way.on { border-color:#c51624; background:#fff8f8; }
+  .way .tag { display:inline-block; margin-top:6px; font-size:11px; font-weight:800; color:#c51624; }
+  textarea { width:100%; min-height:150px; padding:10px; border:1px solid #d1d5db; border-radius:10px; font-size:14px; font-family:ui-monospace,monospace; }
+  label.f { display:block; font-size:13px; font-weight:700; color:#50555d; }
+  select, input.in { padding:9px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:15px; margin-top:4px; }
+  .opts { display:flex; flex-wrap:wrap; gap:12px; margin:10px 0; align-items:flex-end; }
+  .mbtn { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:8px 16px; border-radius:10px; border:1px solid #c51624; background:#c51624; color:#fff; font-weight:800; font-size:15px; cursor:pointer; text-decoration:none; }
+  .mbtn.ghost { background:#fff; color:#c51624; }
+  .mbtn:disabled { opacity:.45; cursor:not-allowed; }
+  .rule { background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.7; margin-top:10px; }
+  .rule input { width:64px; padding:6px; font-size:14px; border:1px solid #d1d5db; border-radius:6px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { border-bottom:1px solid #eef2f7; padding:8px 6px; text-align:left; vertical-align:middle; }
+  th { background:#f8fafc; color:#374151; font-size:13px; white-space:nowrap; }
+  td input.name { width:100%; min-width:140px; padding:8px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; }
+  td input.price { width:92px; padding:8px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; text-align:right; }
+  td .orig { display:block; color:#6b7280; font-size:12px; margin-top:3px; }
+  .st { font-size:12px; font-weight:800; white-space:nowrap; }
+  .st.hit { color:#166534; } .st.warn { color:#b45309; } .st.old { color:#6b7280; }
+  .savebar { position:sticky; bottom:0; background:#fff; border-top:1px solid #e5e7eb; padding:12px; margin:12px -16px -16px; border-radius:0 0 14px 14px; display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .msg { font-size:14px; font-weight:700; }
+  .notice { background:#fff7ed; border:1px solid #fdba74; color:#9a3412; border-radius:10px; padding:12px 14px; font-size:14px; margin-bottom:12px; line-height:1.6; }
+  .hide { display:none !important; }
+  @media (max-width:720px){ .ways { grid-template-columns:1fr; } th.hm, td.hm { display:none; } }
+</style>
+</head>
+<body>
+<script src="header.js"></script>
+<script src="src/data/product-name-substitution.js?v=20260804-species-storage-1"></script>
+<main>
+  <h1>🏷️ 품목 한 번에 등록</h1>
+  <p class="sub">저울 버튼(품번)이 어떤 품목인지 <b>한 번만</b> 알려주세요. 그 버튼으로 판 매출이 품목별로 정리되고, 재고도 자동으로 빠집니다. <b>지난 "품목 미지정" 매출도 저장하는 순간 함께 정리</b>됩니다.</p>
+  <div class="notice hide" id="demo-note">지금은 체험 모드라 예시 화면입니다. <a href="business-verify.html">사업장 연동</a> 후 저장할 수 있습니다.</div>
+
+  <section class="card">
+    <h2>지금 상태</h2>
+    <div class="muted" id="state-text">불러오는 중…</div>
+    <div class="status" id="state-codes"></div>
+  </section>
+
+  <section class="card">
+    <h2>방법 고르기</h2>
+    <div class="ways">
+      <button class="way on" type="button" data-way="photo"><b>📷 라벨 사진</b><span>저울에서 자주 파는 품목 라벨을 뽑아 여러 장을 한 번에 찍으세요. AI가 품명·단가를 읽습니다.</span><span class="tag">가장 쉬움</span></button>
+      <button class="way" type="button" data-way="paste"><b>📋 품목표 붙여넣기</b><span>저울 프로그램이나 POS에서 품목 목록을 엑셀로 내보낸 뒤, 품번·품명·단가 칸을 복사해 붙여넣으세요.</span><span class="tag">한 번에 전부</span></button>
+      <button class="way" type="button" data-way="one"><b>🧾 하나씩</b><span>판매 스캔 화면에서 라벨을 찍고 그 자리에서 품목을 지정합니다.</span></button>
+    </div>
+  </section>
+
+  <section class="card" id="way-photo">
+    <h2>📷 라벨 사진으로 등록</h2>
+    <p class="muted" style="margin:0 0 10px">라벨의 <b>바코드 숫자·품명·단가·금액</b>이 보이게 찍어 주세요. 한 장에 라벨 여러 개를 나란히 놓고 찍어도 됩니다. 사진은 품목을 읽는 데만 쓰고 저장하지 않습니다.</p>
+    <input type="file" id="photo-input" accept="image/*" multiple class="hide" />
+    <button class="mbtn" type="button" id="photo-btn">사진 찍기 / 고르기</button>
+    <span class="msg" id="photo-msg" style="margin-left:10px"></span>
+  </section>
+
+  <section class="card hide" id="way-paste">
+    <h2>📋 저울 품목표 붙여넣기</h2>
+    <p class="muted" style="margin:0 0 8px">엑셀에서 <b>품번 · 품명 · 단가</b> 칸을 그대로 복사(Ctrl+C)해서 아래에 붙여넣기(Ctrl+V) 하세요. 제목 줄이 있어도 됩니다. CSV 파일을 골라도 됩니다.</p>
+    <textarea id="paste" placeholder="품번	품명	단가&#10;1	한돈 삼겹살	2780&#10;2	한돈 목살	2600&#10;15	한우 1++ 등심	16800"></textarea>
+    <div class="opts">
+      <label class="f">단가 기준<br><select id="basis"><option value="100g">100g당</option><option value="1kg">1kg당</option><option value="600g">1근(600g)당</option></select></label>
+      <label class="f">CSV 파일<br><input type="file" id="csv-input" accept=".csv,.txt,text/csv,text/plain" /></label>
+      <button class="mbtn ghost" type="button" id="paste-btn">목록 읽기</button>
+    </div>
+    <div class="rule" id="rule-box">
+      바코드 품목코드(6자리) = 앞자리 <input id="rule-prefix" inputmode="numeric" maxlength="2" /> + 품번 <b id="rule-digits">6</b>자리
+      <div id="rule-note" class="muted"></div>
+      <div style="margin-top:6px">확인용: 라벨 하나를 찍거나 바코드 숫자를 입력하세요 <input class="in" id="rule-test" inputmode="numeric" style="width:190px" placeholder="2100123012580" /> <span id="rule-test-out" class="st"></span></div>
+    </div>
+  </section>
+
+  <section class="card hide" id="way-one">
+    <h2>🧾 하나씩 지정</h2>
+    <p class="muted" style="margin:0 0 10px">판매 스캔에서 라벨을 찍으면 금액은 바로 매출로 잡히고, 목록의 <b>지정</b> 버튼으로 품목을 정할 수 있습니다. 오늘의 돈 화면의 "품목 미지정 매출"에서도 지정할 수 있습니다.</p>
+    <a class="mbtn ghost" href="sell.html">판매 스캔 열기</a>
+    <a class="mbtn ghost" href="brief.html" style="margin-left:6px">오늘의 돈 열기</a>
+  </section>
+
+  <section class="card hide" id="preview">
+    <h2>확인하고 저장 <span class="muted" id="pv-count" style="font-weight:400"></span></h2>
+    <div class="opts" style="margin-top:0">
+      <label class="f">라벨 바코드 안의 숫자<br><select id="weigh-type"><option value="PRICE_EMBED">판매 금액 (대부분의 저울)</option><option value="WEIGHT_EMBED">중량(g)</option></select></label>
+      <button class="mbtn ghost" type="button" id="only-hits">미지정 매출 있는 것만 선택</button>
+    </div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th><input type="checkbox" id="chk-all" checked aria-label="전체 선택" /></th><th>품목코드</th><th>품목 이름</th><th class="num" id="th-price">100g 단가(원)</th><th>상태</th><th class="hm">출처</th></tr></thead>
+      <tbody id="pv-body"></tbody>
+    </table></div>
+    <datalist id="prodlist"></datalist>
+    <div class="savebar">
+      <span class="msg" id="save-msg"></span>
+      <button class="mbtn" type="button" id="save-btn">저장</button>
+    </div>
+  </section>
+</main>
+<script>
+const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
+const LABEL_FN = "https://pkrsiqjzllyiafwpskll.supabase.co/functions/v1/analyze-label";
+const H = window.MEATOS_API_HEADERS || {};
+const TENANT = window.MEATOS_TENANT;
+const CTX = window.MEATOS_CONTEXT || {};
+const COMPANY = CTX.companyId || TENANT;
+const STORE = CTX.storeId || null;
+const CAN_SAVE = Boolean(window.MEATOS_CAN_PERSIST);
+const PN = window.MEATOS_PRODUCT_NAMES || null;
+const won = (v) => Math.round(Number(v)||0).toLocaleString("ko-KR");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+const $ = (id) => document.getElementById(id);
+
+let UNMAPPED = {};   // 품목코드 -> { count, amount }
+let MAPS = {};       // 품목코드 -> 기존 등록
+let PRODUCTS = [];   // 재고·판매에 쓰는 대표 이름
+let ROWS = [];       // 미리보기 { key, name, origName, pricePerKg, source, review, note, checked }
+let PASTED = [];     // 붙여넣은 원본 { plu, name, price }
+let TEST_KEYS = [];  // 확인용으로 찍은 라벨 품목코드
+
+function resolveName(raw){
+  if(PN){ try{ const r = PN.resolve(raw, {}); if(r && r.displayName) return r.displayName; }catch(e){} }
+  return String(raw||"");
+}
+// 저울 품목명 → 재고에서 쓰는 대표 이름이 있으면 그것으로
+function suggestName(raw){
+  const name = String(raw||"").trim();
+  if(!name) return "";
+  const canonical = resolveName(name);
+  return PRODUCTS.includes(canonical) ? canonical : name;
+}
+function parseLabel(code){
+  const d = String(code||"").replace(/\D/g,"");
+  return /^2[0-9]{12}$/.test(d) ? { key:d.slice(1,7), embedded:Number(d.slice(7,12)) } : null;
+}
+
+// ── 현재 상태 ──────────────────────────────────────────────────────
+async function getJson(path){
+  const r = await fetch(REST + path, { headers:H });
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+async function loadState(){
+  UNMAPPED = {}; MAPS = {};
+  if(!CAN_SAVE){
+    $("demo-note").classList.remove("hide");
+    UNMAPPED = { "100001":{count:5,amount:132400}, "100002":{count:3,amount:61800}, "100015":{count:1,amount:48200} };
+    PRODUCTS = ["냉장 삼겹살","냉장 목살","소고기 등심"];
+  } else {
+    try{
+      const storeFilter = STORE ? "&store_id=eq." + encodeURIComponent(STORE) : "";
+      const [sales, maps] = await Promise.all([
+        getJson("/sales_record?tenant_id=eq." + TENANT + storeFilter + "&needs_mapping=eq.true&is_cancelled=eq.false&select=product_code,amount&limit=5000"),
+        getJson("/product_barcode?tenant_id=eq." + TENANT + "&select=barcode_key,raw_product_name,default_price,weigh_type&limit=5000")
+      ]);
+      sales.forEach(s => { if(!s.product_code) return; const u = UNMAPPED[s.product_code] || (UNMAPPED[s.product_code] = {count:0, amount:0}); u.count++; u.amount += Number(s.amount)||0; });
+      maps.forEach(m => MAPS[m.barcode_key] = m);
+      if(PN){ try{ await PN.loadRemoteLearning({ restUrl:REST, headers:H, tenantId:TENANT }); }catch(e){} }
+      const inv = await getJson("/inventory_movement?tenant_id=eq." + TENANT + storeFilter + "&is_active=eq.true&select=raw_product_name&limit=5000").catch(() => []);
+      const names = new Set();
+      inv.forEach(r => { const n = resolveName(r.raw_product_name); if(n) names.add(n); });
+      maps.forEach(m => { if(m.raw_product_name) names.add(m.raw_product_name); });
+      PRODUCTS = [...names].sort((a,b) => a.localeCompare(b, "ko"));
+    }catch(e){
+      $("state-text").textContent = "불러오지 못했습니다: " + e.message;
+      return;
+    }
+  }
+  $("prodlist").innerHTML = PRODUCTS.map(p => "<option value=\"" + esc(p) + "\">").join("");
+  renderState();
+}
+function renderState(){
+  const codes = Object.entries(UNMAPPED).sort((a,b) => b[1].amount - a[1].amount);
+  const total = codes.reduce((s, [,u]) => s + u.amount, 0);
+  const cnt = codes.reduce((s, [,u]) => s + u.count, 0);
+  $("state-text").innerHTML = codes.length
+    ? "품목이 정해지지 않은 저울 버튼 <b>" + codes.length + "개</b> · 매출 <b>" + cnt + "건 " + won(total) + "원</b>이 기다리고 있습니다. 금액은 이미 매출에 들어가 있어요."
+    : "품목 미지정 매출이 없습니다. 새 저울 품목을 미리 등록해 두면 처음 팔 때부터 품목별로 정리됩니다.";
+  $("state-codes").innerHTML = codes.slice(0, 30).map(([k,u]) => "<span class='chip'>" + esc(k) + " · " + u.count + "건</span>").join("")
+    + (Object.keys(MAPS).length ? "<span class='chip ok'>등록된 품목 " + Object.keys(MAPS).length + "개</span>" : "");
+  if(ROWS.length) renderPreview();
+}
+
+// ── 방법 선택 ──────────────────────────────────────────────────────
+document.querySelectorAll(".way").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".way").forEach(x => x.classList.toggle("on", x === b));
+  ["photo","paste","one"].forEach(w => $("way-" + w).classList.toggle("hide", w !== b.dataset.way));
+}));
+
+// ── 붙여넣기 / CSV ─────────────────────────────────────────────────
+function splitLine(line){
+  if(line.includes("\t")) return line.split("\t");
+  const out = []; let cur = "", q = false;
+  for(const ch of line){
+    if(ch === "\"") q = !q;
+    else if(ch === "," && !q){ out.push(cur); cur = ""; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+const isNum = (v) => /^[\s₩]*[0-9][0-9,]*(\.[0-9]+)?\s*원?\s*$/.test(String(v||""));
+const toNum = (v) => Number(String(v||"").replace(/[^0-9.]/g,"")) || null;
+
+function parseTable(text){
+  const lines = String(text||"").split(/\r?\n/).map(l => l.replace(/﻿/g,"")).filter(l => l.trim());
+  if(!lines.length) return [];
+  let rows = lines.map(l => splitLine(l).map(c => c.trim()));
+  let col = { code:-1, name:-1, price:-1 };
+  const head = rows[0];
+  const find = (re) => head.findIndex(h => re.test(h));
+  if(head.some(h => h && !isNum(h))){
+    col.code = find(/(plu|품번|품목\s*번호|상품\s*코드|품목\s*코드|코드|번호|item|no\.?$)/i);
+    col.name = find(/(품명|품목명|상품명|품목|이름|name)/i);
+    col.price = find(/(단가|판매가|가격|price)/i);
+    if(col.code >= 0 || col.name >= 0) rows = rows.slice(1);
+  }
+  const width = Math.max(...rows.map(r => r.length));
+  const numericShare = (i) => rows.filter(r => isNum(r[i])).length / Math.max(1, rows.length);
+  const avg = (i) => rows.reduce((s, r) => s + (toNum(r[i])||0), 0) / Math.max(1, rows.length);
+  if(col.code < 0){ for(let i = 0; i < width; i++){ if(i !== col.name && i !== col.price && numericShare(i) > 0.8 && rows.every(r => !r[i] || /^[0-9]{1,6}$/.test(r[i]))){ col.code = i; break; } } }
+  if(col.name < 0){ let best = -1, bestShare = 0; for(let i = 0; i < width; i++){ if(i === col.code || i === col.price) continue; const s = 1 - numericShare(i); if(s > bestShare){ best = i; bestShare = s; } } col.name = best; }
+  if(col.price < 0){ let best = -1, bestAvg = 0; for(let i = 0; i < width; i++){ if(i === col.code || i === col.name) continue; if(numericShare(i) > 0.6 && avg(i) > bestAvg){ best = i; bestAvg = avg(i); } } col.price = best; }
+  if(col.code < 0 || col.name < 0) return [];
+  return rows.map(r => ({ plu:String(r[col.code]||"").replace(/\D/g,""), name:String(r[col.name]||"").trim(), price: col.price >= 0 ? toNum(r[col.price]) : null }))
+             .filter(r => r.plu && r.name && r.plu.length <= 6);
+}
+
+// 바코드 품목코드 = 앞자리 + 품번(0 채움). 실제 들어온 라벨 코드와 가장 많이 맞는 규칙을 고른다.
+function keyFor(plu, prefix){ const digits = 6 - prefix.length; return plu.length > digits ? null : prefix + plu.padStart(digits, "0"); }
+function observedKeys(){
+  return new Set([...Object.keys(UNMAPPED), ...Object.keys(MAPS), ...TEST_KEYS].filter(k => /^[0-9]{6}$/.test(k)));
+}
+function detectRule(list){
+  const seen = observedKeys();
+  const candidates = new Set([""]);
+  seen.forEach(k => { candidates.add(k.slice(0,1)); candidates.add(k.slice(0,2)); });
+  let best = { prefix:"", hits:0 };
+  candidates.forEach(prefix => {
+    const hits = list.filter(r => { const k = keyFor(r.plu, prefix); return k && seen.has(k); }).length;
+    if(hits > best.hits || (hits === best.hits && hits > 0 && prefix.length < best.prefix.length)) best = { prefix, hits };
+  });
+  return { ...best, seen:seen.size };
+}
+function applyRuleNote(rule){
+  const note = $("rule-note");
+  if(rule.hits > 0) note.innerHTML = "✓ 지금까지 들어온 라벨 코드와 <b>" + rule.hits + "개</b>가 맞아서 이 규칙으로 정했습니다.";
+  else if(rule.seen === 0) note.innerHTML = "⚠ 아직 들어온 라벨이 없어 규칙을 확인할 수 없습니다. 아래 확인 칸에 라벨 하나를 찍어 주세요.";
+  else note.innerHTML = "⚠ 들어온 라벨 코드와 맞는 품번이 없습니다. 라벨 하나를 찍어 확인하거나 앞자리를 직접 넣어 주세요.";
+}
+function syncDigits(){ $("rule-digits").textContent = 6 - $("rule-prefix").value.replace(/\D/g,"").length; }
+
+function basisToKg(price){
+  if(!price) return null;
+  const b = $("basis").value;
+  return b === "100g" ? price * 10 : b === "600g" ? Math.round(price / 0.6) : price;
+}
+function buildFromPaste(){
+  const prefix = $("rule-prefix").value.replace(/\D/g,"").slice(0,2);
+  const fresh = PASTED.map(r => {
+    const key = keyFor(r.plu, prefix);
+    return key ? { key, name:suggestName(r.name), origName:r.name, pricePerKg:basisToKg(r.price), source:"품목표 " + r.plu, review:false, note:"" } : null;
+  }).filter(Boolean);
+  mergeRows(fresh, "paste");
+}
+$("paste-btn").addEventListener("click", () => {
+  PASTED = parseTable($("paste").value);
+  if(!PASTED.length){ alert("품번과 품명 칸을 찾지 못했습니다. 엑셀에서 품번·품명·단가 칸을 함께 복사해 주세요."); return; }
+  const rule = detectRule(PASTED);
+  $("rule-prefix").value = rule.prefix; syncDigits(); applyRuleNote(rule);
+  buildFromPaste();
+});
+$("rule-prefix").addEventListener("input", () => { syncDigits(); if(PASTED.length) buildFromPaste(); });
+$("basis").addEventListener("change", () => { if(PASTED.length) buildFromPaste(); });
+$("rule-test").addEventListener("keydown", (e) => {
+  if(e.key !== "Enter") return;
+  e.preventDefault();
+  const p = parseLabel(e.target.value); const out = $("rule-test-out");
+  if(!p){ out.className = "st warn"; out.textContent = "저울 라벨 바코드(2로 시작 13자리)가 아닙니다."; return; }
+  TEST_KEYS.push(p.key);
+  if(PASTED.length){
+    const rule = detectRule(PASTED);
+    if(rule.hits > 0){ $("rule-prefix").value = rule.prefix; syncDigits(); applyRuleNote(rule); buildFromPaste(); }
+    const prefix = $("rule-prefix").value.replace(/\D/g,"");
+    const hit = PASTED.find(r => keyFor(r.plu, prefix) === p.key);
+    out.className = "st " + (hit ? "hit" : "warn");
+    out.textContent = hit ? "✓ 품번 " + hit.plu + " · " + hit.name + " (금액 " + won(p.embedded) + "원)" : "품목코드 " + p.key + " — 목록에서 맞는 품번을 찾지 못했습니다.";
+  } else { out.className = "st"; out.textContent = "품목코드 " + p.key + " · 금액 " + won(p.embedded) + "원"; }
+  e.target.value = "";
+});
+$("csv-input").addEventListener("change", async (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  const buf = await file.arrayBuffer();
+  let text;
+  try{ text = new TextDecoder("utf-8", { fatal:true }).decode(buf); }
+  catch(err){ text = new TextDecoder("euc-kr").decode(buf); }   // 한글 엑셀 CSV(CP949)
+  $("paste").value = text;
+  $("paste-btn").click();
+});
+
+// ── 라벨 사진 ──────────────────────────────────────────────────────
+function resizeImage(file){
+  return new Promise((resolve, reject) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const max = 1800, scale = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); resolve(c.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("사진을 열 수 없습니다")); };
+    img.src = url;
+  });
+}
+function photoError(code){
+  const t = String(code||"");
+  if(/VISION_PROVIDER_NOT_CONFIGURED/.test(t)) return "사진 읽기 기능이 아직 켜지지 않았습니다(서버 설정 필요).";
+  if(/TENANT|AUTH|SESSION/.test(t)) return "로그인과 사업장 연동이 필요합니다.";
+  if(/IMAGE_TOO_LARGE/.test(t)) return "사진이 너무 큽니다.";
+  if(/HTTP 404|Failed to fetch/.test(t)) return "사진 읽기 기능이 아직 배포되지 않았습니다.";
+  return t || "사진을 읽지 못했습니다";
+}
+$("photo-btn").addEventListener("click", () => {
+  if(!CAN_SAVE){ alert("사업장 연동 후 사용할 수 있습니다."); return; }
+  $("photo-input").click();
+});
+$("photo-input").addEventListener("change", async (e) => {
+  const files = [...e.target.files]; e.target.value = "";
+  if(!files.length) return;
+  const msg = $("photo-msg"); let found = 0, failed = 0;
+  for(let i = 0; i < files.length; i++){
+    msg.style.color = "#6b7280"; msg.textContent = "읽는 중… (" + (i+1) + "/" + files.length + ")";
+    try{
+      const dataUrl = await resizeImage(files[i]);
+      const r = await fetch(LABEL_FN, { method:"POST", headers:{ ...H, "Content-Type":"application/json" }, body:JSON.stringify({ tenantId:TENANT, imageDataUrl:dataUrl }) });
+      const body = await r.json().catch(() => ({}));
+      if(!r.ok || !body.ok) throw new Error(body.message || ("HTTP " + r.status));
+      const fresh = (body.labels || []).filter(l => l.itemKey).map(l => ({
+        key:l.itemKey, name:suggestName(l.productName), origName:l.productName || "", pricePerKg:l.pricePerKg,
+        source:"사진", review:Boolean(l.reviewRequired), embeds:l.embeds,
+        note: l.checks && l.checks.price6Format ? "금액 6자리 형식 저울 — 문의 필요" : (l.reviewRequired ? (l.checks && !l.checks.embeddedMatches ? "바코드 금액과 라벨 금액이 달라요" : "이름을 확인하세요") : "")
+      }));
+      failed += (body.labels || []).filter(l => !l.itemKey).length;
+      found += fresh.length;
+      mergeRows(fresh, "photo");
+    }catch(err){ failed++; msg.style.color = "#b91c1c"; msg.textContent = photoError(err.message); }
+  }
+  if(found){
+    const weightVotes = ROWS.filter(r => r.embeds === "WEIGHT").length, priceVotes = ROWS.filter(r => r.embeds === "PRICE").length;
+    if(weightVotes > priceVotes) $("weigh-type").value = "WEIGHT_EMBED";
+    msg.style.color = "#166534"; msg.textContent = "✓ 라벨 " + found + "개를 읽었습니다" + (failed ? " · 바코드를 못 읽은 라벨 " + failed + "개(다시 찍어 주세요)" : "");
+  } else if(failed && !/필요|않았|큽니다/.test(msg.textContent)){ msg.style.color = "#b91c1c"; msg.textContent = "바코드 숫자를 읽지 못했습니다. 숫자가 잘 보이게 가까이 찍어 주세요."; }
+});
+
+// ── 미리보기 ───────────────────────────────────────────────────────
+function mergeRows(fresh, kind){
+  if(kind === "paste") ROWS = ROWS.filter(r => !String(r.source).startsWith("품목표"));
+  fresh.forEach(f => {
+    const i = ROWS.findIndex(r => r.key === f.key);
+    const existing = MAPS[f.key];
+    f.checked = !(existing && existing.raw_product_name && existing.raw_product_name !== f.name) && Boolean(f.name);
+    if(i >= 0) ROWS[i] = { ...ROWS[i], ...f, checked:ROWS[i].checked };
+    else ROWS.push(f);
+  });
+  ROWS.sort((a,b) => ((UNMAPPED[b.key]||{}).amount||0) - ((UNMAPPED[a.key]||{}).amount||0) || a.key.localeCompare(b.key));
+  renderPreview();
+}
+function priceShown(perKg){
+  if(!perKg) return "";
+  const b = $("basis").value;
+  return b === "100g" ? Math.round(perKg / 10) : b === "600g" ? Math.round(perKg * 0.6) : Math.round(perKg);
+}
+function renderPreview(){
+  $("preview").classList.toggle("hide", !ROWS.length);
+  $("th-price").textContent = { "100g":"100g 단가(원)", "1kg":"1kg 단가(원)", "600g":"1근 단가(원)" }[$("basis").value];
+  $("pv-body").innerHTML = ROWS.map((r, i) => {
+    const u = UNMAPPED[r.key], ex = MAPS[r.key];
+    let st;
+    if(u) st = "<span class='st hit'>미지정 매출 " + u.count + "건 · " + won(u.amount) + "원 정리</span>";
+    else if(ex) st = "<span class='st old'>이미 등록: " + esc(ex.raw_product_name) + (ex.raw_product_name !== r.name ? " (바꾸기)" : "") + "</span>";
+    else st = "<span class='st'>새 품목</span>";
+    if(r.note) st += "<br><span class='st warn'>⚠ " + esc(r.note) + "</span>";
+    else if(!r.pricePerKg) st += "<br><span class='st warn'>단가가 없으면 재고 중량은 안 빠져요</span>";
+    return "<tr><td><input type='checkbox' class='chk' data-i='" + i + "'" + (r.checked ? " checked" : "") + " /></td>" +
+      "<td><b>" + esc(r.key) + "</b></td>" +
+      "<td><input class='name' list='prodlist' data-i='" + i + "' value=\"" + esc(r.name) + "\" />" + (r.origName && r.origName !== r.name ? "<span class='orig'>라벨 이름: " + esc(r.origName) + "</span>" : "") + "</td>" +
+      "<td><input class='price' type='number' inputmode='numeric' data-i='" + i + "' value='" + priceShown(r.pricePerKg) + "' /></td>" +
+      "<td>" + st + "</td><td class='hm muted'>" + esc(r.source) + "</td></tr>";
+  }).join("");
+  updateSaveBar();
+}
+$("pv-body").addEventListener("input", (e) => {
+  const i = Number(e.target.dataset.i); if(!ROWS[i]) return;
+  if(e.target.classList.contains("name")) ROWS[i].name = e.target.value.trim();
+  if(e.target.classList.contains("price")){ const v = Number(e.target.value)||0; ROWS[i].pricePerKg = v ? basisToKg(v) : null; }
+  if(e.target.classList.contains("chk")) ROWS[i].checked = e.target.checked;
+  updateSaveBar();
+});
+$("pv-body").addEventListener("change", (e) => { if(e.target.classList.contains("chk")){ ROWS[Number(e.target.dataset.i)].checked = e.target.checked; updateSaveBar(); } });
+$("chk-all").addEventListener("change", (e) => { ROWS.forEach(r => r.checked = e.target.checked && Boolean(r.name)); renderPreview(); });
+$("only-hits").addEventListener("click", () => { ROWS.forEach(r => r.checked = Boolean(UNMAPPED[r.key]) && Boolean(r.name)); renderPreview(); });
+$("basis").addEventListener("change", renderPreview);
+function selected(){ return ROWS.filter(r => r.checked && r.name); }
+function updateSaveBar(){
+  const sel = selected();
+  const hits = sel.reduce((s, r) => s + ((UNMAPPED[r.key]||{}).count||0), 0);
+  $("pv-count").textContent = "· " + ROWS.length + "개 중 " + sel.length + "개 선택";
+  $("save-btn").disabled = !sel.length || !CAN_SAVE;
+  $("save-btn").textContent = sel.length ? "선택한 " + sel.length + "개 저장" + (hits ? " (지난 매출 " + hits + "건 정리)" : "") : "저장";
+  if(!CAN_SAVE) $("save-msg").textContent = "체험 모드에서는 저장되지 않습니다.";
+}
+
+$("save-btn").addEventListener("click", async () => {
+  const sel = selected(); if(!sel.length) return;
+  const weighType = $("weigh-type").value;
+  if(weighType === "WEIGHT_EMBED" && sel.some(r => !r.pricePerKg)){ alert("바코드에 중량이 들어가는 저울은 단가가 있어야 금액을 계산할 수 있습니다. 단가를 모두 넣어 주세요."); return; }
+  const dupNames = sel.filter(r => PRODUCTS.length && !PRODUCTS.includes(r.name)).map(r => r.name);
+  if(dupNames.length && !confirm("재고에 없는 새 이름 " + dupNames.length + "개가 있습니다 (" + dupNames.slice(0,3).join(", ") + (dupNames.length > 3 ? " 등" : "") + ").\n그대로 저장할까요?")) return;
+  const btn = $("save-btn"), msg = $("save-msg");
+  btn.disabled = true; msg.style.color = "#6b7280"; msg.textContent = "저장 중…";
+  const payload = sel.map(r => ({ tenant_id:TENANT, company_id:COMPANY, store_id:STORE, barcode_key:r.key, raw_product_name:r.name, unit:"kg",
+    default_price: r.pricePerKg ? Math.round(r.pricePerKg) : null, weigh_type:weighType }));
+  const before = sel.reduce((s, r) => s + ((UNMAPPED[r.key]||{}).count||0), 0);
+  try{
+    for(let i = 0; i < payload.length; i += 100){
+      const r = await fetch(REST + "/product_barcode?on_conflict=tenant_id,barcode_key", {
+        method:"POST", headers:{ ...H, "Content-Type":"application/json", Prefer:"resolution=merge-duplicates,return=minimal" },
+        body:JSON.stringify(payload.slice(i, i + 100))
+      });
+      if(!r.ok){ const t = await r.text(); throw new Error(/DEMO_READ_ONLY/.test(t) ? "체험 모드에서는 저장되지 않습니다." : t.slice(0, 200)); }
+    }
+    msg.style.color = "#166534";
+    msg.textContent = "✓ " + payload.length + "개 저장" + (before ? " · 지난 미지정 매출 " + before + "건을 품목별로 정리하고 재고에 반영했습니다" : "");
+    ROWS = ROWS.filter(r => !r.checked);
+    await loadState();
+    renderPreview();
+    $("preview").classList.remove("hide");
+  }catch(e){ msg.style.color = "#b91c1c"; msg.textContent = "저장 실패: " + e.message; }
+  finally{ updateSaveBar(); }
+});
+
+loadState();
+</script>
+</body>
+</html>

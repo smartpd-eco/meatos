@@ -90,7 +90,7 @@
         <div><label>단가(원)<input id="f-price" type="number" step="1" placeholder="0" /></label></div>
         <div><label>금액(원)<input id="f-amt" type="number" step="1" placeholder="자동 계산" /></label></div>
         <div><label>판매일<input id="f-date" type="date" /></label></div>
-        <div><label>채널<select id="f-channel"><option value="STORE">🏪 매장(POS)</option><option value="COUPANG">🛵 쿠팡이츠</option><option value="MEATBONGA">🥩 정육본가</option><option value="ETC">기타</option></select></label></div>
+        <div><label>채널<select id="f-channel"><option value="STORE">🏪 매장(POS)</option><option value="COUPANG">🛵 쿠팡이츠</option><option value="BAEMIN">🛵 배민</option><option value="YOGIYO">🛵 요기요</option><option value="MEATBONGA">🥩 정육본가</option><option value="ETC">기타</option></select></label></div>
         <div class="full"><label>메모<input id="f-memo" type="text" placeholder="선택" /></label></div>
       </div>
       <button class="primary" id="saveBtn">💾 매출 저장</button>
@@ -111,7 +111,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&l
 function pad(n){ return String(n).padStart(2,"0"); }
 function fmt(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
 const today = fmt(new Date());
-const CHAN = { STORE:{label:"🏪 매장",bg:"#dcfce7",fg:"#166534"}, COUPANG:{label:"🛵 쿠팡이츠",bg:"#e0f2fe",fg:"#075985"}, MEATBONGA:{label:"🥩 정육본가",bg:"#fce7f3",fg:"#9d174d"}, ETC:{label:"기타",bg:"#f3f4f6",fg:"#374151"} };
+const CHAN = { STORE:{label:"🏪 매장",bg:"#dcfce7",fg:"#166534"}, COUPANG:{label:"🛵 쿠팡이츠",bg:"#e0f2fe",fg:"#075985"}, BAEMIN:{label:"🛵 배민",bg:"#ccfbf1",fg:"#115e59"}, YOGIYO:{label:"🛵 요기요",bg:"#ffe4e6",fg:"#9f1239"}, MEATBONGA:{label:"🥩 정육본가",bg:"#fce7f3",fg:"#9d174d"}, ETC:{label:"기타",bg:"#f3f4f6",fg:"#374151"} };
 function chanBadge(c){ const i=CHAN[c]||CHAN.ETC; return "<span style='background:"+i.bg+";color:"+i.fg+";padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap'>"+i.label+"</span>"; }
 
 document.getElementById("f-date").value = today;
@@ -227,7 +227,7 @@ function renderList(rows){
   const tb=document.getElementById("tb");
   if(!rows.length){ tb.innerHTML="<tr><td colspan='9' class='muted'>매출 내역이 없습니다.</td></tr>"; return; }
   tb.innerHTML = rows.map(x=>"<tr><td>"+esc(x.sold_at?new Date(x.sold_at).toLocaleString("ko-KR"):x.sale_date)+"</td>"+
-    "<td>"+esc(STORE_NAMES[x.store_id]||chanBadge(x.channel).replace(/<[^>]+>/g,""))+"</td><td class='name'>"+esc(x.item_name)+(x.needs_mapping&&!x.is_cancelled&&x.product_code?" <a href='sell.html?code="+encodeURIComponent(x.product_code)+"' style='font-size:12px;font-weight:800;color:#2563eb;text-decoration:none'>품목 지정</a>":"")+"</td>"+
+    "<td>"+esc(STORE_NAMES[x.store_id]||chanBadge(x.channel).replace(/<[^>]+>/g,""))+(x.channel&&x.channel!=="STORE"&&STORE_NAMES[x.store_id]?" "+chanBadge(x.channel):"")+"</td><td class='name'>"+esc(x.item_name)+(x.needs_mapping&&!x.is_cancelled&&x.product_code?" <a href='sell.html?code="+encodeURIComponent(x.product_code)+"' style='font-size:12px;font-weight:800;color:#2563eb;text-decoration:none'>품목 지정</a>":"")+"</td>"+
     "<td>"+esc(x.barcode||"-")+"</td><td class='num'>"+(x.quantity!=null?won(x.quantity):"-")+"</td>"+
     "<td class='num'>"+(x.unit_price!=null?won(x.unit_price):"-")+"</td><td class='num'>"+won(x.amount)+"</td>"+
     "<td>"+esc(x.external_transaction_id||"-")+"</td><td>"+(x.is_cancelled

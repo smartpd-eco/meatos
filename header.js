@@ -291,6 +291,7 @@
   var MENU = [
     ["📊 오늘의 돈", "brief.html"],
     ["🧾 판매 스캔", "sell.html"],
+    ["🏷️ 품목 한 번에 등록", "plu-import.html"],
     ["💰 매출현황", "sales.html"],
     ["💳 카드 입금예정", "settlement.html"],
     ["📥 매입현황", "purchases.html"],
@@ -309,7 +310,7 @@
   ];
 
   // 기존 역할별 메뉴 노출 규칙을 유지한다. 실제 데이터 통제는 RLS가 담당한다.
-  var HREF_PERM = { "brief.html":"sales.view","sell.html":"sell.scan","delivery-sales.html":"delivery.fulfill","delivery-connect.html":"sales.view","connect.html":"connect.manage","purchases.html":"purchase.view","sales.html":"sales.view","settlement.html":"sales.view","stock.html":"stock.view","safety-stock.html":"stock.view","auto-order.html":"purchase.view","alerts.html":"alerts.view","account-link.html":"settings.view","settings.html":"settings.view","business-verify.html":"verify.submit" };
+  var HREF_PERM = { "brief.html":"sales.view","sell.html":"sell.scan","plu-import.html":"sell.scan","delivery-sales.html":"delivery.fulfill","delivery-connect.html":"sales.view","connect.html":"connect.manage","purchases.html":"purchase.view","sales.html":"sales.view","settlement.html":"sales.view","stock.html":"stock.view","safety-stock.html":"stock.view","auto-order.html":"purchase.view","alerts.html":"alerts.view","account-link.html":"settings.view","settings.html":"settings.view","business-verify.html":"verify.submit" };
   var ROLE_PERMS = {
     COMPANY_OWNER:"*", OWNER:"*", COMPANY_ADMIN:"*",
     STORE_MANAGER:["sell.scan","delivery.fulfill","purchase.view","sales.view","stock.view","alerts.view","settings.view","verify.submit"],

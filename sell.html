@@ -32,16 +32,31 @@
   .muted { color:#6b7280; padding:10px; text-align:center; }
   .unmapped-tag { display:inline-block; margin-left:6px; padding:1px 8px; border-radius:999px; background:#fef3c7; color:#92400e; font-size:11px; font-weight:800; }
   .map-link { margin-left:6px; border:0; background:none; color:#2563eb; font-weight:800; font-size:12px; cursor:pointer; padding:0; }
+  .chans { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:10px; }
+  @media (max-width:520px){ .chans { grid-template-columns:repeat(3,1fr); } }
+  .chan { white-space:nowrap; min-width:0; padding:10px 4px; border-radius:10px; border:2px solid #374151; background:#1f2937; color:#e5e7eb; font-size:14px; font-weight:800; cursor:pointer; }
+  .chan.on { border-color:#16a34a; background:#16a34a; color:#fff; }
+  .scan.delivery { background:#7c2d12; } .scan.delivery input { border-color:#f97316; } .scan.delivery .chan.on { border-color:#f97316; background:#f97316; }
+  .chan-tag { display:inline-block; margin-left:6px; padding:1px 8px; border-radius:999px; background:#ffedd5; color:#9a3412; font-size:11px; font-weight:800; }
+  .bulk-link { display:block; text-align:center; margin:-4px 0 12px; font-size:13px; font-weight:800; color:#2563eb; text-decoration:none; }
 </style>
 </head>
 <body>
   <h1>판매 스캔</h1>
   <div class="sub" id="product-status">저울 라벨을 찍으면 금액이 바로 매출로 기록됩니다.</div>
 
-  <div class="scan">
+  <div class="scan" id="scan-box">
+    <div class="chans" role="group" aria-label="판매 채널">
+      <button type="button" class="chan on" data-ch="STORE">🏪 매장</button>
+      <button type="button" class="chan" data-ch="COUPANG">🛵 쿠팡이츠</button>
+      <button type="button" class="chan" data-ch="BAEMIN">🛵 배민</button>
+      <button type="button" class="chan" data-ch="MEATBONGA">🥩 정육본가</button>
+      <button type="button" class="chan" data-ch="ETC">기타 온라인</button>
+    </div>
     <input id="scan" type="text" inputmode="numeric" aria-label="상품 바코드 스캔" placeholder="여기를 누르고 바코드를 스캔하세요" autocomplete="off" />
-    <div class="hint">품목 등록이 없어도 저울 라벨 금액은 바로 매출로 잡힙니다. 품목은 나중에 한 번만 지정하면 됩니다.</div>
+    <div class="hint" id="scan-hint">품목 등록이 없어도 저울 라벨 금액은 바로 매출로 잡힙니다. 품목은 나중에 한 번만 지정하면 됩니다.</div>
   </div>
+  <a class="bulk-link" href="plu-import.html">🏷️ 저울 품목을 한 번에 등록하기 (라벨 사진 · 품목표)</a>
 
   <div class="kpis">
     <div class="kpi"><b id="k-cnt">0</b><span>이 화면에서 기록한 판매</span></div>
@@ -155,6 +170,23 @@ function autoWeighType(p){ return p.instore ? "PRICE_EMBED" : "FIXED"; }
 
 let PENDING = null;
 
+// 판매 채널: 매장(POS를 거치지 않을 때) · 배달앱 · 자사몰. 배달 주문 라벨은 여기서 채널을 고르고 찍는다.
+const CHANNEL_NAMES = { STORE:"매장", COUPANG:"쿠팡이츠", BAEMIN:"배민", MEATBONGA:"정육본가", ETC:"기타 온라인" };
+let CHANNEL = "STORE";
+try{ const saved = localStorage.getItem("meatos_sell_channel"); if(saved && CHANNEL_NAMES[saved]) CHANNEL = saved; }catch(e){}
+function setChannel(ch){
+  CHANNEL = CHANNEL_NAMES[ch] ? ch : "STORE";
+  try{ localStorage.setItem("meatos_sell_channel", CHANNEL); }catch(e){}
+  document.querySelectorAll(".chan").forEach(b => b.classList.toggle("on", b.dataset.ch === CHANNEL));
+  document.getElementById("scan-box").classList.toggle("delivery", CHANNEL !== "STORE");
+  document.getElementById("scan-hint").textContent = CHANNEL === "STORE"
+    ? "품목 등록이 없어도 저울 라벨 금액은 바로 매출로 잡힙니다. 품목은 나중에 한 번만 지정하면 됩니다."
+    : CHANNEL_NAMES[CHANNEL] + " 주문 라벨을 찍으세요. 매출과 재고가 " + CHANNEL_NAMES[CHANNEL] + " 매출로 기록됩니다. (POS에서 이미 찍은 라벨은 다시 찍지 마세요)";
+  focusScan();
+}
+document.querySelectorAll(".chan").forEach(b => b.addEventListener("click", () => setChannel(b.dataset.ch)));
+setChannel(CHANNEL);
+
 scanEl.addEventListener("keydown", (e)=>{
   if(e.key!=="Enter") return;
   e.preventDefault();
@@ -177,28 +209,40 @@ function friendlyError(code){
   if(/AUTH_REQUIRED|JWT/.test(text)) return "로그인이 필요합니다.";
   if(/SALE_VALUE_REQUIRED/.test(text)) return "판매 금액을 확인할 수 없습니다. 품목 단가를 확인하세요.";
   if(/INVALID_BARCODE/.test(text)) return "바코드 형식이 아닙니다.";
+  if(/record_channel_scan_sale|PGRST202|Could not find the function/.test(text)) return "배달 채널 기록은 DB 업데이트 후 사용할 수 있습니다. (관리자: 202610200001 SQL 실행)";
   return text||"저장 실패";
 }
 
 // 서버 함수 1회 호출 = 매출 + 재고(품목 지정된 경우) 함께 저장
-async function recordSale(barcode, quantity, amount){
+async function recordSale(barcode, quantity, amount, allowPosDuplicate){
+  const channel = CHANNEL;
   const body = { p_barcode:String(barcode), p_external_transaction_id:"WEB-"+Date.now()+"-"+String(barcode).slice(-12) };
   if(quantity!=null) body.p_quantity=quantity;
   if(amount!=null) body.p_sale_amount=amount;
+  // 매장 판매는 기존 함수 그대로, 배달·온라인은 채널 함수(POS 이중 기록 확인 포함)
+  const fn = channel==="STORE" ? "record_web_scan_sale" : "record_channel_scan_sale";
+  if(channel!=="STORE"){ body.p_channel=channel; if(allowPosDuplicate) body.p_allow_pos_duplicate=true; }
   try{
-    const r=await fetch(REST+"/rpc/record_web_scan_sale",{method:"POST",headers:{...H,"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const r=await fetch(REST+"/rpc/"+fn,{method:"POST",headers:{...H,"Content-Type":"application/json"},body:JSON.stringify(body)});
     const result=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(result.message||result.code||("HTTP "+r.status));
     if(!result.ok){
       if(result.error==="BARCODE_NOT_MAPPED"){ openLearn(parseScanCode(barcode), false); return; }
+      if(result.error==="POS_ALREADY_RECORDED"){
+        const t=result.soldAt?new Date(result.soldAt).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"}):"";
+        if(confirm("이 라벨("+won(result.amount)+"원)은 "+t+"에 POS에서 이미 매출로 잡혔습니다.\n\n같은 상품이면 '취소'를 누르세요 (두 번 잡히지 않게).\n다른 상품(같은 금액)이면 '확인'을 누르면 "+CHANNEL_NAMES[channel]+" 매출로 추가합니다.")) return recordSale(barcode, quantity, amount, true);
+        toast("기록하지 않았습니다 · POS 매출로 이미 잡혀 있어요"); focusScan(); return;
+      }
       throw new Error(result.error||"저장 실패");
     }
     if(result.duplicate){ toast("이미 기록된 판매입니다."); return; }
     session.cnt++; session.amt+=Number(result.amount)||0;
     document.getElementById("k-cnt").textContent=session.cnt;
     document.getElementById("k-amt").textContent=won(session.amt);
-    addRow(result.product, result.quantity, result.amount, result.unmapped ? result.productCode : null);
-    if(result.unmapped) toast("✓ "+won(result.amount)+"원 매출 기록 · 품목은 나중에 지정해도 됩니다");
+    addRow(result.product, result.quantity, result.amount, result.unmapped ? result.productCode : null, channel);
+    const chanText = channel==="STORE" ? "" : CHANNEL_NAMES[channel]+" ";
+    if(result.unmapped) toast("✓ "+chanText+won(result.amount)+"원 매출 기록 · 품목은 나중에 지정해도 됩니다");
+    else if(channel!=="STORE") toast("✓ "+chanText+result.product+" · "+won(result.amount)+"원"+(result.stockWarning?" · 재고 수량 확인 필요":""), !!result.stockWarning);
     else if(result.stockWarning) toast("✓ "+result.product+" "+won(result.amount)+"원 · 재고 수량 확인 필요", true);
     else if(!parseScanCode(barcode).instore) toast("✓ "+result.product+" · "+won(result.amount)+"원");
     else toast("✓ "+result.product+(result.quantity!=null?" "+kg(result.quantity)+"kg":"")+" · "+won(result.amount)+"원");
@@ -254,7 +298,7 @@ document.getElementById("l-save").addEventListener("click", async ()=>{
     if(!PRODUCTS.includes(name)){ PRODUCTS.push(name); document.getElementById("prodlist").insertAdjacentHTML("beforeend","<option value=\""+esc(name)+"\">"); }
   }catch(e){ alert("지정 실패: "+e.message); return; }
   document.getElementById("learn").style.display="none";
-  document.querySelectorAll("[data-pending-code='"+PENDING.key+"']").forEach(td=>{ td.innerHTML=esc(name); });
+  document.querySelectorAll("[data-pending-code='"+PENDING.key+"']").forEach(td=>{ const tag=td.querySelector(".chan-tag"); td.innerHTML=esc(name)+(tag?tag.outerHTML:""); });
   if(PENDING.mapOnly){ toast("✓ '"+name+"' 지정 완료 · 지난 미분류 판매에도 반영됐습니다"); focusScan(); return; }
   recordSale(PENDING.raw);
 });
@@ -279,13 +323,14 @@ document.getElementById("c-save").addEventListener("click", ()=>{
 });
 document.getElementById("c-qty").addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); document.getElementById("c-save").click(); } });
 
-function addRow(name, qty, amt, pendingCode){
+function addRow(name, qty, amt, pendingCode, channel){
+  const chanTag = channel && channel!=="STORE" ? "<span class='chan-tag'>"+esc(CHANNEL_NAMES[channel]||channel)+"</span>" : "";
   const tb=document.getElementById("tb");
   if(tb.querySelector(".muted")) tb.innerHTML="";
   const tr=document.createElement("tr");
   const nameCell = pendingCode
-    ? "<td class='name' data-pending-code='"+esc(pendingCode)+"'>"+esc(name)+"<span class='unmapped-tag'>품목 미지정</span><button class='map-link' type='button' data-code='"+esc(pendingCode)+"'>지정</button></td>"
-    : "<td class='name'>"+esc(name)+"</td>";
+    ? "<td class='name' data-pending-code='"+esc(pendingCode)+"'>"+esc(name)+chanTag+"<span class='unmapped-tag'>품목 미지정</span><button class='map-link' type='button' data-code='"+esc(pendingCode)+"'>지정</button></td>"
+    : "<td class='name'>"+esc(name)+chanTag+"</td>";
   tr.innerHTML="<td>"+nowHm()+"</td>"+nameCell+"<td class='num'>"+kg(qty)+"</td><td class='num'>"+won(amt)+"</td>";
   tb.insertBefore(tr, tb.firstChild);
 }
