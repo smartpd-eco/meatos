@@ -296,11 +296,33 @@
     ["고기 · 재고", [["📋 매장 한눈에 (재고·위생)", "overview.html"], ["📥 매입현황", "purchases.html"], ["📦 재고현황", "stock.html"]]],
     ["처음 설정", [["🏷️ 품목 한 번에 등록", "plu-import.html"], ["🖥️ POS 연결 (계산대 PC)", "connect.html"], ["🏢 사업장 연동", "business-verify.html"], ["⚙️ 환경설정", "settings.html"]]]
   ];
+  // 선 아이콘(토스·네이버 스타일). 다른 화면에서도 window.MEATOS_ICON(이름)으로 씀
+  var ICONS = {
+    home: "<path d='M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z'/>",
+    scan: "<path d='M4 7.5V5.5A1.5 1.5 0 0 1 5.5 4h2M16.5 4h2A1.5 1.5 0 0 1 20 5.5v2M20 16.5v2a1.5 1.5 0 0 1-1.5 1.5h-2M7.5 20h-2A1.5 1.5 0 0 1 4 18.5v-2'/><path d='M8 8.5v7M11 8.5v7M14 8.5v7M16.5 8.5v7'/>",
+    camera: "<path d='M4 8.6A2.6 2.6 0 0 1 6.6 6h1.3l1.3-1.7A1.5 1.5 0 0 1 10.4 3.7h3.2a1.5 1.5 0 0 1 1.2.6L16.1 6h1.3A2.6 2.6 0 0 1 20 8.6v7.8A2.6 2.6 0 0 1 17.4 19H6.6A2.6 2.6 0 0 1 4 16.4z'/><circle cx='12' cy='12.3' r='3.4'/>",
+    bell: "<path d='M18 16.2V11a6 6 0 1 0-12 0v5.2L4.6 18h14.8z'/><path d='M10 20.2a2 2 0 0 0 4 0'/>",
+    grid: "<rect x='4' y='4' width='6.5' height='6.5' rx='2'/><rect x='13.5' y='4' width='6.5' height='6.5' rx='2'/><rect x='4' y='13.5' width='6.5' height='6.5' rx='2'/><rect x='13.5' y='13.5' width='6.5' height='6.5' rx='2'/>",
+    menu: "<path d='M4 7h16M4 12h16M4 17h16'/>",
+    card: "<rect x='3' y='5.5' width='18' height='13' rx='2.6'/><path d='M3 9.8h18M7 14.6h3.5'/>",
+    chart: "<path d='M5 19.5v-7M10 19.5V5.5M15 19.5v-5M20 19.5v-10'/>",
+    clip: "<rect x='5.5' y='4.5' width='13' height='16' rx='2.2'/><path d='M9.5 4.5v-1h5v1'/><path d='m9 13 2.1 2.1L15.2 11'/>",
+    box: "<path d='M4 8 12 4l8 4v8.2L12 20l-8-3.8z'/><path d='M4 8l8 4 8-4M12 12v8'/>",
+    tag: "<path d='M4 11.5V5a1 1 0 0 1 1-1h6.5L20 12.5 12.5 20z'/><circle cx='8.3' cy='8.3' r='1.3'/>",
+    pos: "<rect x='3.5' y='4' width='17' height='11.5' rx='2'/><path d='M8.5 20h7M12 15.5V20'/>",
+    store: "<path d='M4 9.5 5.5 5h13L20 9.5M4 9.5h16M4 9.5v9.5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9.5M9 20v-5.5h6V20'/>",
+    clock: "<circle cx='12' cy='12' r='8'/><path d='M12 7.5V12l3 2'/>",
+    spark: "<path d='M12 3.5l1.8 4.7 4.7 1.8-4.7 1.8L12 16.5l-1.8-4.7L5.5 10l4.7-1.8z'/><path d='M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z'/>"
+  };
+  function icon(name, size) {
+    return "<svg class='mt-ic' width='" + (size || 24) + "' height='" + (size || 24) + "' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'>" + (ICONS[name] || "") + "</svg>";
+  }
+  window.MEATOS_ICON = icon;
   // 휴대폰 하단 탭: 홈 · 판매 · 입고 · 더보기
   var TABS = [
-    ["🏠", "홈", "brief.html"],
-    ["🧾", "판매", "sell.html"],
-    ["📷", "입고", "scan.html?pick=1"]
+    ["home", "홈", "brief.html"],
+    ["scan", "판매", "sell.html"],
+    ["camera", "입고", "scan.html?pick=1"]
   ];
   // 약관·정책·계정 삭제: 로그인 여부·역할과 관계없이 항상 노출 (Google Play·개인정보보호법 요건)
   var LEGAL_MENU = [
@@ -455,14 +477,50 @@
       "body.mt-guest-mode:not(.mt-dashboard-page){padding-top:128px!important;}" +
     "}" +
     ".mt-drawer__group--first{margin-top:0;padding-top:0;border-top:0;}" +
+    ":root{--pk:#E5536B;--pk-dark:#C23A52;--pk-soft:#FFF1F3;}" +
+    ".mt-header__right{gap:2px!important;}" +
+    ".mt-ibtn{position:relative;width:44px;height:44px;min-height:44px!important;display:flex;align-items:center;justify-content:center;border:0;border-radius:12px;background:transparent;color:#2B2F36;cursor:pointer;padding:0!important;}" +
+    ".mt-ibtn:hover{background:var(--bg-page,#f6f7f9);}" +
+    ".mt-ibtn .mt-header__badge{top:4px;right:3px;background:var(--pk);border:2px solid #fff;}" +
+    ".mt-drawer__login{display:flex;align-items:center;justify-content:center;text-decoration:none;margin-bottom:8px;background:var(--pk)!important;color:#fff!important;border-color:var(--pk)!important;}" +
+    ".mt-noti{position:fixed;top:0;right:-380px;width:min(380px,100vw);height:100vh;background:#fff;z-index:9003;box-shadow:var(--shadow-modal,0 18px 48px rgba(16,24,40,.16));transition:right .28s ease;display:flex;flex-direction:column;}" +
+    ".mt-noti.open{right:0;}" +
+    ".mt-noti__head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--divider,#eceef1);}" +
+    ".mt-noti__head b{font-size:20px;font-weight:800;}" +
+    ".mt-noti button{font:inherit;cursor:pointer;border:0!important;background:transparent;}" +
+    ".mt-noti__list{flex:1;overflow-y:auto;padding:8px 12px 24px;}" +
+    ".mt-noti__item{display:flex;gap:12px;align-items:flex-start;padding:14px 10px;border-radius:14px;text-decoration:none;color:var(--text-primary,#17191d);}" +
+    ".mt-noti__item:hover{background:var(--bg-page,#f6f7f9);}" +
+    ".mt-noti__item.is-new{background:#FFF7F8;}" +
+    ".mt-noti__ic{flex:none;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#F2F4F6;color:#4E5968;}" +
+    ".mt-noti__ic--money{background:var(--pk-soft);color:var(--pk-dark);}" +
+    ".mt-noti__ic--todo{background:#EEF4FF;color:#2F6FEB;}" +
+    ".mt-noti__ic--warn{background:#FFF4E5;color:#D97706;}" +
+    ".mt-noti__tx{flex:1;min-width:0;}" +
+    ".mt-noti__tx b{display:block;font-size:15.5px;font-weight:700;line-height:1.4;}" +
+    ".mt-noti__tx b em{font-style:normal;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--pk);color:#fff;font-size:11px;font-weight:800;vertical-align:2px;}" +
+    ".mt-noti__tx small{display:block;margin-top:2px;font-size:13.5px;color:var(--text-muted,#6b7280);line-height:1.45;}" +
+    ".mt-noti__empty{padding:48px 0;text-align:center;color:var(--text-muted,#6b7280);font-size:15px;}" +
+    ".mt-cap{position:fixed;inset:0;z-index:100000;background:rgba(17,24,39,.45);display:none;align-items:flex-end;justify-content:center;padding:16px;}" +
+    ".mt-cap.open{display:flex;}" +
+    ".mt-cap__box{width:100%;max-width:420px;background:#fff;border-radius:22px;padding:22px 18px 14px;margin-bottom:env(safe-area-inset-bottom);}" +
+    ".mt-cap__t{display:block;font-size:19px;font-weight:800;margin:0 4px 4px;}" +
+    ".mt-cap__d{margin:0 4px 16px;color:var(--text-muted,#6b7280);font-size:14px;line-height:1.5;}" +
+    ".mt-cap__btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:56px!important;margin-bottom:10px;border-radius:14px!important;font-size:17px;font-weight:800;cursor:pointer;border:0;}" +
+    ".mt-cap__btn--cam{background:var(--pk)!important;color:#fff!important;}" +
+    ".mt-cap__btn--file{background:#F2F4F6!important;color:#333D4B!important;}" +
+    ".mt-cap__btn--x{background:transparent!important;color:#6B7684!important;min-height:44px!important;font-size:15px;margin-bottom:0;}" +
+    ".mt-tab__ico .mt-ic{display:block;}" +
     ".mt-drawer__item.is-current{background:var(--brand-red-soft,#fff2f3);color:var(--brand-red,#c51624);}" +
     ".mt-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:8998;display:none;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid var(--border-default,#e4e7eb);padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 16px rgba(16,24,40,.06);}" +
     ".mt-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:62px;padding:6px 0;background:transparent;border:0;color:var(--text-muted,#6b7280);font:inherit;font-size:13px;font-weight:800;text-decoration:none;cursor:pointer;}" +
-    ".mt-tab__ico{font-size:23px;line-height:1.1;filter:grayscale(1);opacity:.75;}" +
-    ".mt-tab.on{color:var(--brand-red,#c51624);}" +
-    ".mt-tab.on .mt-tab__ico{filter:none;opacity:1;}" +
+    ".mt-tab__ico{line-height:0;color:#B0B8C1;}" +
+    ".mt-tab{color:#8B95A1!important;}" +
+    ".mt-tab.on{color:#191F28!important;}" +
+    ".mt-tab.on .mt-tab__ico{color:var(--pk);}" +
     "@media(max-width:900px){" +
       ".mt-tabbar{display:grid;}" +
+      ".mt-ibtn--menu{display:none!important;}" +
       "body.mt-app-shell.mt-has-tabbar{padding-bottom:96px!important;}" +
       ".mt-drawer__group--tabs{display:none;}" +
       ".mt-drawer__group--tabs+.mt-drawer__group{margin-top:0;padding-top:0;border-top:0;}" +
@@ -495,13 +553,10 @@
       "<span class='mt-header__company' id='mtCompanyName' title=''></span>" +
     "</div>" +
     "<div class='mt-header__right'>" +
-      "<div class='mt-header__user' id='mtUserChip'>" +
-        "<span class='mt-header__user-icon' aria-hidden='true'><svg viewBox='0 0 24 24'><circle cx='12' cy='7' r='4'></circle><path d='M4.5 21a7.5 7.5 0 0 1 15 0'></path></svg></span>" +
-        "<span id='mtUserName'>로그인</span>" +
-      "</div>" +
-      "<button class='mt-header__menu-btn' id='mtMenuBtn' aria-label='메뉴 열기' aria-expanded='false' aria-controls='mtDrawer'>" +
-        "<span class='mt-header__badge' id='mtBadge' style='display:none'></span>☰" +
-      "</button>" +
+      "<button class='mt-ibtn' id='mtCamBtn' type='button' aria-label='거래명세서 찍어서 입고'>" + icon("camera", 26) + "</button>" +
+      "<button class='mt-ibtn' id='mtBellBtn' type='button' aria-label='알림' aria-expanded='false' aria-controls='mtNoti'>" + icon("bell", 26) +
+        "<span class='mt-header__badge' id='mtBadge' style='display:none'></span></button>" +
+      "<button class='mt-ibtn mt-ibtn--menu' id='mtMenuBtn' type='button' aria-label='메뉴 열기' aria-expanded='false' aria-controls='mtDrawer'>" + icon("menu", 26) + "</button>" +
     "</div>";
   document.body.insertBefore(header, document.body.firstChild);
   if (isDemoWorkspace) {
@@ -551,6 +606,7 @@
       "</div>" +
     "</nav>" +
     "<div class='mt-drawer__footer'>" +
+      "<a class='mt-drawer__logout mt-drawer__login' id='mtLoginBtn' href='login.html'>로그인 / 회원가입</a>" +
       "<button class='mt-drawer__logout' id='mtLogoutBtn' type='button'>로그아웃</button>" +
     "</div>";
   document.body.appendChild(drawer);
@@ -559,14 +615,13 @@
   tabbar.className = "mt-tabbar";
   tabbar.setAttribute("aria-label", "주요 메뉴");
   tabbar.innerHTML = TABS.map(function (t) {
-    return "<a class='mt-tab" + (isCurrent(t[2]) ? " on" : "") + "' href='" + t[2] + "'" + (isCurrent(t[2]) ? " aria-current='page'" : "") + "><span class='mt-tab__ico' aria-hidden='true'>" + t[0] + "</span><span>" + t[1] + "</span></a>";
+    return "<a class='mt-tab" + (isCurrent(t[2]) ? " on" : "") + "' href='" + t[2] + "'" + (isCurrent(t[2]) ? " aria-current='page'" : "") + "><span class='mt-tab__ico'>" + icon(t[0], 25) + "</span><span>" + t[1] + "</span></a>";
   }).join("") +
-    "<button class='mt-tab' type='button' id='mtTabMore' aria-controls='mtDrawer'><span class='mt-tab__ico' aria-hidden='true'>☰</span><span>더보기</span></button>";
+    "<button class='mt-tab' type='button' id='mtTabMore' aria-controls='mtDrawer'><span class='mt-tab__ico'>" + icon("grid", 25) + "</span><span>더보기</span></button>";
   document.body.appendChild(tabbar);
   document.body.classList.add("mt-has-tabbar");
 
-  var userChip = document.getElementById("mtUserChip");
-  var userName = document.getElementById("mtUserName");
+  var loginBtn = document.getElementById("mtLoginBtn");
   var menuBtn = document.getElementById("mtMenuBtn");
   var drawerClose = document.getElementById("mtDrawerClose");
   var logoutBtn = document.getElementById("mtLogoutBtn");
@@ -575,19 +630,8 @@
 
   function updateAuthUI() {
     var u = readUser();
-    if (u) {
-      userName.textContent = "내 계정";
-      logoutBtn.style.display = "block";
-      userChip.removeAttribute("role");
-      userChip.removeAttribute("tabindex");
-      userChip.removeAttribute("aria-label");
-    } else {
-      userName.textContent = "로그인";
-      logoutBtn.style.display = "none";
-      userChip.setAttribute("role", "button");
-      userChip.setAttribute("tabindex", "0");
-      userChip.setAttribute("aria-label", "로그인 페이지로 이동");
-    }
+    logoutBtn.style.display = u ? "block" : "none";
+    loginBtn.style.display = u ? "none" : "flex";
   }
   updateAuthUI();
 
@@ -598,20 +642,12 @@
     drawer.setAttribute("aria-hidden", open ? "false" : "true");
     drawer.inert = !open;
     if (open) drawerClose.focus();
-    else menuBtn.focus();
   }
 
   menuBtn.addEventListener("click", function () { toggleDrawer(true); });
   document.getElementById("mtTabMore").addEventListener("click", function () { toggleDrawer(true); });
   drawerClose.addEventListener("click", function () { toggleDrawer(false); });
   overlay.addEventListener("click", function () { toggleDrawer(false); });
-  userChip.addEventListener("click", function () { if (!readUser()) location.assign("login.html"); });
-  userChip.addEventListener("keydown", function (event) {
-    if (!readUser() && (event.key === "Enter" || event.key === " ")) {
-      event.preventDefault();
-      location.assign("login.html");
-    }
-  });
   logoutBtn.addEventListener("click", function () { if (confirm("로그아웃 하시겠어요?")) doLogout(); });
   if (saleInputBtn) {
     saleInputBtn.addEventListener("click", function () {
@@ -636,21 +672,114 @@
     }
   });
 
-  // 알림 배지 로직
-  (async function () {
-    if (!isBusinessWorkspace) return;
-    try {
-      var lr = await fetch(REST + "/daily_sanitation_logs?tenant_id=eq." + TENANT + "&work_date=eq." + localToday() + "&select=id&limit=1", { headers: H });
-      var missingLog = lr.ok && (await lr.json()).length === 0;
+  // ── 알림(종): 토스처럼 확인할 일·새 기능을 모아서 보여 준다 ──────────────────
+  var noti = document.createElement("div");
+  noti.id = "mtNoti"; noti.className = "mt-noti";
+  noti.setAttribute("role", "dialog"); noti.setAttribute("aria-modal", "true"); noti.setAttribute("aria-label", "알림");
+  noti.inert = true;
+  noti.innerHTML = "<div class='mt-noti__head'><b>알림</b><button type='button' class='mt-drawer__close' id='mtNotiClose' aria-label='알림 닫기'>✕</button></div><div class='mt-noti__list' id='mtNotiList'><div class='mt-noti__empty'>불러오는 중…</div></div>";
+  document.body.appendChild(noti);
+  var bellBtn = document.getElementById("mtBellBtn");
+  var NOTI = [];
+  var NEW_FEATURES = [
+    { id: "nf-2611-card", icon: "card", tag: "새 기능", title: "카드 입금을 달력으로 보세요", desc: "날짜를 누르면 그날 들어올 카드 대금이 카드사별로 나와요", href: "settlement.html" },
+    { id: "nf-2611-plu", icon: "tag", tag: "새 기능", title: "라벨 사진으로 품목을 한 번에 등록", desc: "저울 라벨을 찍으면 품목·단가가 자동으로 채워져요", href: "plu-import.html" }
+  ];
+  function seenIds() { try { return JSON.parse(localStorage.getItem("meatos_noti_seen") || "[]"); } catch (e) { return []; } }
+  function markSeen() { try { localStorage.setItem("meatos_noti_seen", JSON.stringify(NOTI.map(function (n) { return n.id; }).concat(seenIds()).slice(0, 200))); } catch (e) {} }
+  function renderNoti() {
+    var seen = seenIds();
+    var unseen = NOTI.filter(function (n) { return seen.indexOf(n.id) < 0; }).length;
+    badge.textContent = unseen > 9 ? "9+" : String(unseen);
+    badge.style.display = unseen ? "flex" : "none";
+    document.getElementById("mtNotiList").innerHTML = NOTI.length ? NOTI.map(function (n) {
+      return "<a class='mt-noti__item" + (seen.indexOf(n.id) < 0 ? " is-new" : "") + "' href='" + n.href + "'>" +
+        "<span class='mt-noti__ic mt-noti__ic--" + (n.kind || "info") + "'>" + icon(n.icon, 22) + "</span>" +
+        "<span class='mt-noti__tx'><b>" + n.title + (n.tag ? "<em>" + n.tag + "</em>" : "") + "</b><small>" + n.desc + "</small></span></a>";
+    }).join("") : "<div class='mt-noti__empty'>새 알림이 없어요</div>";
+    window.MEATOS_NOTIFICATIONS = NOTI.slice();
+    document.dispatchEvent(new Event("meatos:notifications"));
+  }
+  function toggleNoti(open) {
+    noti.classList.toggle("open", open);
+    overlay.classList.toggle("open", open);
+    noti.inert = !open;
+    bellBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) { renderNoti(); markSeen(); setTimeout(function () { badge.style.display = "none"; }, 300); }
+  }
+  bellBtn.addEventListener("click", function () { toggleNoti(!noti.classList.contains("open")); });
+  document.getElementById("mtNotiClose").addEventListener("click", function () { toggleNoti(false); });
+  overlay.addEventListener("click", function () { toggleNoti(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && noti.classList.contains("open")) toggleNoti(false); });
 
-      var lim = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
-      var er = await fetch(REST + "/inventory_movement?tenant_id=eq." + TENANT + "&expiry_date=not.is.null&expiry_date=lte." + lim + "&select=id", { headers: H });
-      var expiryCount = er.ok ? (await er.json()).length : 0;
-
-      if (missingLog || expiryCount > 0) {
-        badge.textContent = missingLog ? "!" : expiryCount;
-        badge.style.display = "flex";
-      }
-    } catch (e) {}
+  (async function buildNotifications() {
+    var items = [];
+    var today = localToday();
+    function won(v) { return Math.round(Number(v) || 0).toLocaleString("ko-KR"); }
+    async function get(path) { try { var r = await fetch(REST + path, { headers: H }); return r.ok ? await r.json() : []; } catch (e) { return []; } }
+    var storeFilter = (window.MEATOS_CONTEXT && window.MEATOS_CONTEXT.storeId) ? "&store_id=eq." + encodeURIComponent(window.MEATOS_CONTEXT.storeId) : "";
+    var res = await Promise.all([
+      get("/card_settlement?company_id=eq." + TENANT + storeFilter + "&deposit_date=eq." + today + "&status=eq.SCHEDULED&select=deposit_amt,deposit_date,status&limit=200"),
+      get("/daily_sanitation_logs?tenant_id=eq." + TENANT + "&work_date=eq." + today + "&select=id&limit=1"),
+      get("/inventory_movement?tenant_id=eq." + TENANT + "&expiry_date=not.is.null&expiry_date=lte." + new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10) + "&expiry_date=gte." + today + "&select=id,expiry_date&limit=200"),
+      get("/sales_record?tenant_id=eq." + TENANT + "&needs_mapping=eq.true&is_cancelled=eq.false&select=id,needs_mapping&limit=200")
+    ]);
+    var cardToday = (res[0] || []).filter(function (r) { return r.deposit_date === today && r.status === "SCHEDULED"; });
+    if (cardToday.length) {
+      var amt = cardToday.reduce(function (a, r) { return a + (Number(r.deposit_amt) || 0); }, 0);
+      items.push({ id: "card-" + today, icon: "card", kind: "money", title: "오늘 카드 대금 " + won(amt) + "원이 들어와요", desc: cardToday.length + "건 · 눌러서 카드사별로 보기", href: "settlement.html" });
+    }
+    if (!(res[1] || []).length) items.push({ id: "san-" + today, icon: "clip", kind: "todo", title: "오늘 위생 점검표를 아직 안 썼어요", desc: "체크만 하면 1분이면 끝나요", href: "sanitation.html" });
+    var exp = (res[2] || []).filter(function (r) { return r.expiry_date && r.expiry_date >= today; }).length;
+    if (exp) items.push({ id: "exp-" + today + "-" + exp, icon: "clock", kind: "warn", title: "유통기한 임박 " + exp + "건", desc: "3일 안에 끝나는 고기가 있어요", href: "alerts.html" });
+    var unmapped = (res[3] || []).filter(function (r) { return r.needs_mapping === true; }).length;
+    if (unmapped) items.push({ id: "map-" + today + "-" + unmapped, icon: "tag", kind: "todo", title: "품목이 정해지지 않은 매출 " + unmapped + "건", desc: "한 번만 정하면 부위별 매출·재고로 정리돼요", href: "plu-import.html" });
+    NOTI = items.concat(NEW_FEATURES);
+    renderNoti();
   })();
+
+  // ── 카메라: 어느 화면에서든 거래명세서를 찍어 바로 입고 ──────────────────────
+  var cap = document.createElement("div");
+  cap.className = "mt-cap"; cap.id = "mtCap";
+  cap.setAttribute("role", "dialog"); cap.setAttribute("aria-modal", "true"); cap.setAttribute("aria-label", "거래명세서 입력");
+  cap.innerHTML = "<div class='mt-cap__box'><b class='mt-cap__t'>거래명세서 입력</b><p class='mt-cap__d'>찍으면 품목·중량·단가·이력번호를 읽어 입고와 재고에 반영해요</p>" +
+    "<button type='button' class='mt-cap__btn mt-cap__btn--cam' id='mtCapCam'>" + icon("camera", 22) + "사진 찍기</button>" +
+    "<button type='button' class='mt-cap__btn mt-cap__btn--file' id='mtCapFile'>앨범에서 불러오기</button>" +
+    "<button type='button' class='mt-cap__btn mt-cap__btn--x' id='mtCapX'>닫기</button></div>";
+  document.body.appendChild(cap);
+  async function downscale(file) {
+    var MAX = 1800; var bmp = await createImageBitmap(file);
+    var k = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+    var c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.84);
+  }
+  function makeInput(cam) {
+    var i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.style.display = "none";
+    if (cam) i.setAttribute("capture", "environment");
+    i.addEventListener("change", async function () {
+      var f = i.files && i.files[0]; if (!f) return;
+      try {
+        var t0 = performance.now();
+        sessionStorage.setItem("meatos_pending_image", await downscale(f));
+        sessionStorage.setItem("meatos_pending_home_prepare_ms", String(Math.round(performance.now() - t0)));
+        sessionStorage.setItem("meatos_pending_name", f.name || "scan.jpg");
+        sessionStorage.setItem("meatos_pending_source", cam ? "camera" : "file");
+        location.assign("scan.html");
+      } catch (e) { alert("사진을 준비하지 못했습니다. 다시 촬영해 주세요."); }
+    });
+    document.body.appendChild(i); return i;
+  }
+  var camIn = makeInput(true), fileIn = makeInput(false);
+  function closeCap() { cap.classList.remove("open"); }
+  window.MEATOS_OPEN_CAPTURE = function () {
+    // 명세서 화면에서는 그 화면의 선택창(여러 장 묶음 유지)을 쓴다
+    if (currentPage === "scan" && typeof window.showAddPagePicker === "function") { window.showAddPagePicker("거래명세서 입력"); return; }
+    cap.classList.add("open");
+  };
+  document.getElementById("mtCamBtn").addEventListener("click", function () { window.MEATOS_OPEN_CAPTURE(); });
+  cap.addEventListener("click", function (e) { if (e.target === cap) closeCap(); });
+  document.getElementById("mtCapCam").addEventListener("click", function () { closeCap(); camIn.value = ""; camIn.click(); });
+  document.getElementById("mtCapFile").addEventListener("click", function () { closeCap(); fileIn.value = ""; fileIn.click(); });
+  document.getElementById("mtCapX").addEventListener("click", closeCap);
 })();

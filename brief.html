@@ -2,300 +2,229 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="robots" content="noindex,nofollow" />
 <meta http-equiv="Cache-Control" content="no-store" />
-<title>오늘의 돈 · 정육비서</title>
+<title>정육비서</title>
 <style>
+  /* 첫 화면 (2026-11 개편): 토스·캐시노트 톤 — 흰 카드, 큰 숫자, 분홍 포인트 */
+  :root { --pk:#E5536B; --pk-dark:#C23A52; --pk-soft:#FFF1F3; --ink:#191F28; --ink2:#4E5968; --mute:#8B95A1; --line:#F2F4F6; --bg:#F2F4F6; }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,sans-serif; background:#f3f4f6; color:#111827; padding:14px; }
-  .brief { max-width:960px; margin:0 auto; }
-  .brief h1 { margin:0 0 6px; }
-  .brief .sub { margin:0 0 18px; color:#50555d; font-size:15px; }
-  .money-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:16px; }
-  .money { background:#fff; border:1px solid #e4e7eb; border-radius:14px; padding:18px 16px; box-shadow:0 4px 18px rgba(16,24,40,.06); }
-  .money span { display:block; color:#50555d; font-size:14px; font-weight:700; }
-  .money b { display:block; font-size:26px; line-height:1.25; margin:6px 0 4px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
-  .money small { display:block; color:#6b7280; font-size:13px; line-height:1.5; }
-  .money.hl { border-color:#f2b8be; background:#fff8f8; }
-  .up { color:#0f7a3b; font-weight:800; } .down { color:#d71f2b; font-weight:800; }
-  .panel { background:#fff; border:1px solid #e4e7eb; border-radius:14px; padding:18px; margin-bottom:14px; box-shadow:0 4px 18px rgba(16,24,40,.06); }
-  .panel h2 { font-size:18px; margin:0 0 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .panel h2 a { font-size:14px; font-weight:700; color:#2463d4; text-decoration:none; }
-  .rows { display:flex; flex-direction:column; }
-  .row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 2px; border-bottom:1px solid #eceef1; font-size:16px; }
-  .row:last-child { border-bottom:0; }
-  .row .l { font-weight:700; } .row .r { font-weight:800; font-variant-numeric:tabular-nums; }
-  .row .m { color:#6b7280; font-size:13px; font-weight:400; display:block; }
-  .empty { color:#6b7280; font-size:15px; line-height:1.6; }
-  .mbtn { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:6px 14px; border-radius:10px; border:1px solid #c51624; background:#c51624; color:#fff; font-weight:800; font-size:14px; text-decoration:none; white-space:nowrap; }
-  .mbtn.ghost { background:#fff; color:#c51624; }
-  .notice { background:#fff7ed; border:1px solid #fdba74; color:#9a3412; border-radius:10px; padding:12px 14px; font-size:14px; margin-bottom:14px; }
-  .alert-form { display:grid; grid-template-columns:2fr 1fr auto; gap:10px; align-items:end; }
-  .alert-form label { font-size:13px; font-weight:700; color:#50555d; }
-  .alert-form input, .alert-form select { width:100%; margin-top:6px; padding:10px 12px; font-size:16px; box-sizing:border-box; }
-  .msg { margin-top:10px; font-size:14px; font-weight:700; min-height:20px; }
-  /* 고기 입고(거래명세서 촬영): 정육비서의 핵심이라 첫 화면 맨 위 */
-  .intake { display:flex; align-items:center; gap:14px; width:100%; margin:0 0 16px; padding:18px; border:0; border-radius:18px; cursor:pointer; text-align:left; font:inherit; color:#fff;
-            background:linear-gradient(135deg,#F2687F 0%,#E0475F 55%,#C93A55 100%); box-shadow:0 10px 26px rgba(201,58,85,.25); }
-  body.mt-app-shell .intake { min-height:96px; }
-  .intake .ic { flex:none; width:56px; height:56px; border-radius:16px; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:30px; }
-  .intake .tx { flex:1; min-width:0; }
-  .intake .tx b { display:block; font-size:20px; font-weight:800; letter-spacing:-.02em; }
-  .intake .tx span { display:block; font-size:14px; opacity:.92; margin-top:2px; line-height:1.45; }
-  .intake .go { flex:none; background:#fff; color:#C23A52; font-weight:800; font-size:15px; padding:10px 14px; border-radius:999px; white-space:nowrap; }
-  .pk-ov { position:fixed; inset:0; z-index:100000; background:rgba(0,0,0,.5); display:none; align-items:flex-end; justify-content:center; padding:16px; }
-  .pk-ov.open { display:flex; }
-  .pk-box { width:100%; max-width:420px; background:#fff; border-radius:20px; padding:20px; margin-bottom:env(safe-area-inset-bottom); }
-  .pk-box h3 { margin:0 0 4px; font-size:19px; } .pk-box p { margin:0 0 14px; color:#6b7280; font-size:14px; }
-  body.mt-app-shell .pk-box button { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:56px; margin-bottom:10px; border-radius:14px; font-size:17px; font-weight:800; cursor:pointer; }
-  .pk-box .cam { background:#E5536B; border:0; color:#fff; }
-  .pk-box .file { background:#FFF1F3; border:1px solid #F5B5C0; color:#B42342; }
-  .pk-box .cancel { background:#fff; border:1px solid #e5e7eb; color:#374151; min-height:46px !important; font-size:15px !important; }
-  @media (max-width:420px){ .intake .go { display:none; } .intake .tx b { font-size:19px; } }
-  @media (max-width:900px){ .money-grid { grid-template-columns:repeat(2,1fr); } }
-  @media (max-width:520px){ .money b { font-size:22px; } .alert-form { grid-template-columns:1fr; } }
+  html, body { background:var(--bg) !important; }
+  body { margin:0; font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif; color:var(--ink); }
+  .home { max-width:560px; margin:0 auto; display:flex; flex-direction:column; gap:12px; }
+  .hc { display:block; background:#fff; border-radius:22px; padding:20px; text-decoration:none; color:inherit; }
+  a.hc:active { transform:scale(.99); }
+  .hc-top { display:flex; align-items:center; justify-content:space-between; color:var(--ink2); font-size:15px; font-weight:700; }
+  .hc-top .chev { color:#B0B8C1; font-size:20px; line-height:1; }
+  .big { display:block; font-size:30px; font-weight:800; letter-spacing:-.03em; margin:6px 0 0; font-variant-numeric:tabular-nums; }
+  .num { font-variant-numeric:tabular-nums; }
+  .row { display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid var(--line); font-size:15px; color:var(--ink2); }
+  .row b { font-size:17px; color:var(--ink); }
+  .mini { margin-top:6px; font-size:13.5px; color:var(--mute); min-height:18px; }
+
+  .quick { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; background:#fff; border-radius:22px; padding:16px 8px 14px; }
+  .q { display:flex; flex-direction:column; align-items:center; gap:7px; border:0; background:transparent; font:inherit; color:var(--ink); text-decoration:none; cursor:pointer; padding:4px 0; }
+  body.mt-app-shell .q { min-height:0; }
+  .q .qi { width:52px; height:52px; border-radius:17px; display:flex; align-items:center; justify-content:center; background:var(--line); color:var(--ink2); }
+  .q.main .qi { background:var(--pk); color:#fff; box-shadow:0 6px 14px rgba(229,83,107,.28); }
+  .q span.ql { font-size:13.5px; font-weight:700; line-height:1.25; text-align:center; }
+
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+  .two div { background:var(--line); border-radius:16px; padding:14px; }
+  .two div.hl { background:var(--pk-soft); }
+  .two span { display:block; font-size:13px; color:var(--ink2); font-weight:600; }
+  .two b { display:block; font-size:21px; font-weight:800; margin-top:4px; letter-spacing:-.02em; }
+  .two div.hl b { color:var(--pk-dark); }
+  .nexts { margin-top:12px; }
+  .nx { display:flex; justify-content:space-between; padding:8px 2px; font-size:14.5px; color:var(--ink2); }
+  .nx b { color:var(--ink); }
+  .connect { display:flex; align-items:center; gap:12px; margin-top:12px; padding:14px; border-radius:16px; background:var(--pk-soft); color:var(--pk-dark); font-weight:700; font-size:14.5px; line-height:1.45; }
+
+  .san { display:flex; align-items:center; gap:14px; }
+  .san .si { flex:none; width:48px; height:48px; border-radius:15px; display:flex; align-items:center; justify-content:center; background:#EEF4FF; color:#2F6FEB; }
+  .san .st { flex:1; min-width:0; }
+  .san .st b { display:block; font-size:16.5px; font-weight:800; }
+  .san .st small { display:block; font-size:13.5px; color:var(--mute); margin-top:2px; }
+  .pill { flex:none; padding:8px 14px; border-radius:999px; font-size:14px; font-weight:800; background:var(--pk); color:#fff; white-space:nowrap; }
+  .pill.done { background:#E8F7EE; color:#178B4C; }
+  .san-sub { display:flex; gap:16px; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); flex-wrap:wrap; }
+  .san-sub a { font-size:14px; font-weight:700; color:var(--ink2); text-decoration:none; }
+
+  .setup h2 { margin:0; font-size:18px; font-weight:800; }
+  .setup .sub2 { font-size:14px; color:var(--mute); margin:4px 0 12px; }
+  .bar { height:6px; border-radius:999px; background:var(--line); overflow:hidden; margin-bottom:6px; }
+  .bar i { display:block; height:100%; background:var(--pk); border-radius:999px; }
+  .step { display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--line); text-decoration:none; color:inherit; }
+  .step:first-of-type { border-top:0; }
+  .step .sc { flex:none; width:40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center; background:var(--line); color:var(--ink2); }
+  .step.done .sc { background:#E8F7EE; color:#178B4C; }
+  .step .sx { flex:1; min-width:0; }
+  .step .sx b { display:block; font-size:15.5px; font-weight:700; }
+  .step .sx small { display:block; font-size:13px; color:var(--mute); margin-top:1px; line-height:1.4; }
+  .step .sa { flex:none; font-size:13.5px; font-weight:800; color:var(--pk-dark); }
+  .step.done .sa { color:#178B4C; }
+  .step.done .sx b { color:var(--mute); }
+  .warnline { font-size:13.5px; color:#B45309; background:#FFF7E6; border-radius:12px; padding:10px 12px; margin-top:10px; display:none; }
+  @media (max-width:360px){ .big { font-size:26px; } .two b { font-size:18px; } .q .qi { width:46px; height:46px; } }
 </style>
 </head>
 <body>
 <script src="header.js"></script>
-<main class="brief">
-  <h1>📊 오늘의 돈</h1>
-  <p class="sub" id="b-sub">매출, 카드 입금 예정, 이번 달 남은 돈을 한 화면에서 봅니다.</p>
-  <button type="button" class="intake" id="intakeBtn" aria-haspopup="dialog">
-    <span class="ic" aria-hidden="true">📷</span>
-    <span class="tx"><b>고기가 들어왔어요!</b><span>거래명세서를 찍으면 입고·재고·이력번호까지 한 번에</span></span>
-    <span class="go" aria-hidden="true">찍기 ›</span>
-  </button>
-  <div class="pk-ov" id="pickerOv" role="dialog" aria-modal="true" aria-labelledby="pk-title">
-    <div class="pk-box">
-      <h3 id="pk-title">거래명세서 입력</h3>
-      <p>사진을 찍거나 찍어 둔 사진을 불러오세요.</p>
-      <button type="button" class="cam" id="pk-cam">📷 사진 찍기</button>
-      <button type="button" class="file" id="pk-file">📁 사진 불러오기</button>
-      <button type="button" class="cancel" id="pk-cancel">닫기</button>
+<main class="home">
+
+  <!-- 자주 쓰는 기능: 정육비서의 강점(명세서 촬영 입고)을 맨 앞에 -->
+  <nav class="quick" aria-label="자주 쓰는 기능">
+    <button type="button" class="q main" id="q-cam"><span class="qi" data-ic="camera"></span><span class="ql">명세서<br>찍기</span></button>
+    <a class="q" href="sell.html"><span class="qi" data-ic="scan"></span><span class="ql">판매<br>스캔</span></a>
+    <a class="q" href="sanitation.html"><span class="qi" data-ic="clip"></span><span class="ql">위생<br>일지</span></a>
+    <a class="q" href="stock.html"><span class="qi" data-ic="box"></span><span class="ql">재고</span></a>
+  </nav>
+
+  <!-- 매출 -->
+  <a class="hc" href="sales.html" aria-label="매출 자세히 보기">
+    <div class="hc-top"><span>오늘 매출</span><span class="chev">›</span></div>
+    <b class="big" id="s-today">-</b>
+    <div class="mini" id="s-chan">&nbsp;</div>
+    <div class="row"><span>이번 달 누적</span><b class="num" id="s-month">-</b></div>
+    <div class="warnline" id="dup-note"></div>
+  </a>
+
+  <!-- 카드 입금 -->
+  <a class="hc" href="settlement.html" aria-label="카드 입금 자세히 보기">
+    <div class="hc-top"><span>카드 입금 예정</span><span class="chev">›</span></div>
+    <div class="two">
+      <div class="hl"><span>오늘 들어올 돈</span><b class="num" id="c-today">-</b></div>
+      <div><span>남은 입금 (오늘 포함)</span><b class="num" id="c-left">-</b></div>
     </div>
+    <div class="nexts" id="c-next"></div>
+    <div class="connect" id="c-connect" style="display:none"><span data-ic="card"></span><span>카드매출 조회를 한 번 연결하면 언제·얼마 들어오는지 자동으로 보여 드려요</span></div>
+  </a>
+
+  <!-- 위생일지 -->
+  <div class="hc">
+    <a class="san" href="sanitation.html" style="text-decoration:none;color:inherit">
+      <span class="si" data-ic="clip"></span>
+      <span class="st"><b>오늘 위생 점검표</b><small id="san-desc">축산물 일일 위생 점검</small></span>
+      <span class="pill" id="san-pill">작성하기</span>
+    </a>
+    <div class="san-sub"><a href="sanitation-list.html">월별 점검표 보기 ›</a><a href="overview.html">유통기한·재고 한눈에 ›</a></div>
   </div>
-  <div class="notice" id="demo-note" style="display:none">지금은 체험 모드라 예시 숫자입니다. <a href="business-verify.html">사업장 연동</a> 후 실제 매출로 바뀝니다.</div>
 
-  <section class="money-grid" aria-label="핵심 숫자">
-    <div class="money hl"><span>오늘 매출</span><b id="m-today">-</b><small id="m-today-sub">&nbsp;</small><small id="m-today-chan"></small></div>
-    <div class="money"><span>어제 매출</span><b id="m-yday">-</b><small id="m-yday-sub">&nbsp;</small></div>
-    <div class="money"><span>카드 입금 예정 (7일)</span><b id="m-card">-</b><small id="m-card-sub">&nbsp;</small></div>
-    <div class="money"><span>이번 달 남은 돈 (추정)</span><b id="m-left">-</b><small id="m-left-sub">&nbsp;</small></div>
+  <!-- 시작하기: 무엇을 하면 어떤 숫자가 자동으로 채워지는지 -->
+  <section class="hc setup" id="setup" style="display:none" aria-labelledby="setup-title">
+    <h2 id="setup-title">정육비서 시작하기</h2>
+    <div class="sub2" id="setup-sub"></div>
+    <div class="bar"><i id="setup-bar" style="width:0"></i></div>
+    <div id="setup-steps"></div>
   </section>
 
-  <div class="notice" id="dup-note" style="display:none"></div>
-
-  <section class="panel">
-    <h2>💳 카드 입금 예정 <a href="settlement.html">자세히 ›</a></h2>
-    <div id="deposits" class="rows"><div class="empty">불러오는 중…</div></div>
-  </section>
-
-  <section class="panel" id="unmapped-panel" style="display:none">
-    <h2>🏷️ 품목 미지정 매출 <a href="plu-import.html">한 번에 등록 ›</a></h2>
-    <p class="empty" style="margin:0 0 6px">금액은 이미 매출에 들어가 있습니다. 품목을 한 번만 지정하면 지난 판매까지 품목별로 정리됩니다.</p>
-    <div id="unmapped" class="rows"></div>
-    <a class="mbtn" style="margin-top:12px" href="plu-import.html">📷 라벨 사진 · 품목표로 한 번에 등록</a>
-  </section>
-
-  <section class="panel" id="expiry-panel" style="display:none">
-    <h2>⏰ 유통기한 임박 <a href="stock.html">재고 보기 ›</a></h2>
-    <div class="empty" id="expiry-text"></div>
-  </section>
-
-  <section class="panel" id="alert-panel" style="display:none">
-    <h2>📱 매일 아침 문자로 받기</h2>
-    <p class="empty" style="margin:0 0 12px">앱을 열지 않아도 매일 아침 어제 매출·카드 입금 예정·이번 달 매출을 문자로 보내드립니다.</p>
-    <div class="alert-form">
-      <label>휴대전화번호<input id="a-phone" type="tel" inputmode="tel" placeholder="01012345678" autocomplete="tel" /></label>
-      <label>받는 시간<select id="a-hour"></select></label>
-      <button class="mbtn" id="a-save" type="button">저장</button>
-    </div>
-    <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px;font-weight:700"><input type="checkbox" id="a-enabled" checked style="width:20px;height:20px" /> 알림 받기</label>
-    <div class="msg" id="a-msg"></div>
-  </section>
 </main>
 <script>
-// 문자 발송사(솔라피·알리고 등) 연결과 daily-brief 함수 배포가 끝나면 true 로 바꾼다.
-const BRIEF_ALERTS_ENABLED = false;
-
 const REST = "https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const H = window.MEATOS_API_HEADERS || {};
 const HJ = { ...H, "Content-Type": "application/json" };
 const CTX = window.MEATOS_CONTEXT || {};
+const TENANT = window.MEATOS_TENANT;
+const STORE = CTX.storeId || null;
+const BIZ = Boolean(window.MEATOS_CAN_PERSIST);
+const IC = window.MEATOS_ICON || (() => "");
 const won = (v) => Math.round(Number(v)||0).toLocaleString("ko-KR") + "원";
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 const WD = ["일","월","화","수","목","금","토"];
-function md(iso){ const d=new Date(iso+"T00:00:00"); return (d.getMonth()+1)+"/"+d.getDate()+"("+WD[d.getDay()]+")"; }
 function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-function plus(days){ const d=new Date(); d.setDate(d.getDate()+days); return ymd(d); }
-
-function sampleBrief(){
-  return {
-    day: plus(0),
-    today:{ amount:412300, count:17 }, yesterday:{ amount:1286400, count:46 }, lastWeekSameDay:{ amount:1190000 },
-    month:{ sales:18452000, purchases:12930000 },
-    unmapped:{ count:3, amount:58200, codes:[{ code:"012345", count:2, amount:41700 },{ code:"067890", count:1, amount:16500 }] },
-    cardDeposits:{ hasData:true, next7Days:2894500, today:812300, days:[
-      { date:plus(0), amount:812300, count:3 },{ date:plus(1), amount:1043200, count:4 },{ date:plus(3), amount:1039000, count:4 } ] },
-    expirySoon:2
-  };
-}
-
-function render(b){
-  document.getElementById("b-sub").textContent = (CTX.companyName && CTX.isBusiness ? CTX.companyName+" · " : "") + md(b.day) + " 기준";
-  document.getElementById("m-today").textContent = won(b.today.amount);
-  document.getElementById("m-today-sub").textContent = b.today.count + "건 (지금까지)";
-  document.getElementById("m-yday").textContent = won(b.yesterday.amount);
-  const lw = Number(b.lastWeekSameDay && b.lastWeekSameDay.amount) || 0;
-  const yd = Number(b.yesterday.amount) || 0;
-  const ysub = document.getElementById("m-yday-sub");
-  if(lw > 0){
-    const rate = Math.round((yd - lw) / lw * 100);
-    ysub.innerHTML = b.yesterday.count + "건 · 지난주 같은 요일보다 <span class='"+(rate>=0?"up":"down")+"'>"+(rate>=0?"▲":"▼")+Math.abs(rate)+"%</span>";
-  } else ysub.textContent = b.yesterday.count + "건";
-
-  const card = b.cardDeposits || {};
-  document.getElementById("m-card").textContent = card.hasData ? won(card.next7Days) : "-";
-  document.getElementById("m-card-sub").textContent = card.hasData ? ("오늘 " + won(card.today)) : "카드 조회 연결 필요";
-
-  const left = (Number(b.month.sales)||0) - (Number(b.month.purchases)||0);
-  document.getElementById("m-left").textContent = won(left);
-  document.getElementById("m-left-sub").textContent = "매출 " + won(b.month.sales) + " − 매입 " + won(b.month.purchases);
-
-  const dep = document.getElementById("deposits");
-  if(!card.hasData){
-    dep.innerHTML = "<div class='empty'>카드 입금예정 화면에서 여신금융협회 카드매출 조회를 한 번 연결하면, 카드사별 입금일과 금액이 여기에 자동으로 나옵니다.<br><a class='mbtn ghost' style='margin-top:10px' href='settlement.html'>카드 조회 연결하기</a></div>";
-  } else if(!(card.days||[]).length){
-    dep.innerHTML = "<div class='empty'>앞으로 7일 동안 입금 예정된 카드 대금이 없습니다.</div>";
-  } else {
-    dep.innerHTML = card.days.map(d => "<div class='row'><span class='l'>"+md(d.date)+(d.date===b.day?" · 오늘":"")+"<span class='m'>"+(d.count||0)+"건</span></span><span class='r'>"+won(d.amount)+"</span></div>").join("");
-  }
-
-  const un = b.unmapped || {};
-  const unPanel = document.getElementById("unmapped-panel");
-  if((un.count||0) > 0){
-    unPanel.style.display = "";
-    document.getElementById("unmapped").innerHTML = (un.codes||[]).map(c =>
-      "<div class='row'><span class='l'>품목코드 "+esc(c.code)+"<span class='m'>"+c.count+"건 · "+won(c.amount)+"</span></span>"+
-      "<a class='mbtn ghost' href='sell.html?code="+encodeURIComponent(c.code)+"'>품목 지정</a></div>").join("");
-  } else unPanel.style.display = "none";
-
-  const ex = document.getElementById("expiry-panel");
-  if((b.expirySoon||0) > 0){ ex.style.display=""; document.getElementById("expiry-text").textContent = "3일 안에 유통기한이 끝나는 입고분이 " + b.expirySoon + "건 있습니다."; }
-  else ex.style.display = "none";
-}
-
+function plus(n){ const d=new Date(); d.setDate(d.getDate()+n); return ymd(d); }
+const TODAY = ymd(new Date());
+function md(iso){ const d=new Date(iso+"T00:00:00"); return (d.getMonth()+1)+"월 "+d.getDate()+"일 ("+WD[d.getDay()]+")"; }
 const CHANNEL_NAMES = { STORE:"매장", COUPANG:"쿠팡이츠", BAEMIN:"배민", YOGIYO:"요기요", MEATBONGA:"정육본가", ETC:"기타" };
-function renderChannels(c){
-  const today = (c && c.today) || [];
-  const el = document.getElementById("m-today-chan");
-  el.textContent = today.length > 1 || (today.length === 1 && today[0].channel !== "STORE")
-    ? today.map(x => (CHANNEL_NAMES[x.channel] || x.channel) + " " + won(x.amount)).join(" · ") : "";
-  const dups = (c && c.possibleDuplicates) || [];
-  const note = document.getElementById("dup-note");
-  if(dups.length){
-    note.style.display = "";
-    note.innerHTML = "⚠ 배달로 찍은 라벨 <b>" + dups.length + "건</b>이 POS에서도 같은 시간대에 찍혔습니다 (" +
-      dups.slice(0,3).map(d => (CHANNEL_NAMES[d.channel]||d.channel) + " " + won(d.amount)).join(", ") + "). 같은 상품이면 <a href='sales.html'>매출현황</a>에서 한 건을 판매취소해 주세요.";
-  } else note.style.display = "none";
+
+document.querySelectorAll("[data-ic]").forEach(el => { el.innerHTML = IC(el.dataset.ic, el.closest(".q") ? 26 : 24); });
+document.getElementById("q-cam").addEventListener("click", () => { if (window.MEATOS_OPEN_CAPTURE) window.MEATOS_OPEN_CAPTURE(); else location.assign("scan.html?pick=1"); });
+
+async function rpc(name){ const r = await fetch(REST+"/rpc/"+name, { method:"POST", headers:HJ, body:"{}" }); const b = await r.json().catch(()=>null); if(!r.ok) throw new Error((b&&(b.message||b.code))||("HTTP "+r.status)); return b; }
+async function rows(path){ try{ const r = await fetch(REST+path, { headers:H }); return r.ok ? await r.json() : []; }catch(e){ return []; } }
+
+// ── 매출: 오늘 / 이번 달 누적 ──
+function renderSales(today, month, channels){
+  document.getElementById("s-today").textContent = won(today);
+  document.getElementById("s-month").textContent = won(month);
+  const t = channels || [];
+  document.getElementById("s-chan").textContent = t.length > 1 || (t.length === 1 && t[0].channel !== "STORE")
+    ? t.map(x => (CHANNEL_NAMES[x.channel]||x.channel)+" "+won(x.amount)).join(" · ") : "";
 }
-async function loadChannels(){
-  try{
-    const r = await fetch(REST + "/rpc/get_channel_sales", { method:"POST", headers:HJ, body:"{}" });
-    if(r.ok) renderChannels(await r.json());
-  }catch(e){}
+// ── 카드 입금: 오늘 / 남은(오늘 포함) / 다가오는 3일 ──
+function renderCard(list, connected){
+  const sched = list.filter(r => r.status === "SCHEDULED" && r.deposit_date >= TODAY);
+  const sum = a => a.reduce((s,r)=>s+(Number(r.deposit_amt)||0),0);
+  document.getElementById("c-today").textContent = won(sum(sched.filter(r=>r.deposit_date===TODAY)));
+  document.getElementById("c-left").textContent = won(sum(sched));
+  const byDay = {};
+  sched.forEach(r => { byDay[r.deposit_date] = (byDay[r.deposit_date]||0) + (Number(r.deposit_amt)||0); });
+  const days = Object.keys(byDay).sort().slice(0,3);
+  document.getElementById("c-next").innerHTML = days.map(d => "<div class='nx'><span>"+md(d)+(d===TODAY?" · 오늘":"")+"</span><b class='num'>"+won(byDay[d])+"</b></div>").join("");
+  document.getElementById("c-connect").style.display = connected ? "none" : "flex";
+}
+// ── 위생일지 ──
+function renderSanitation(done){
+  const pill = document.getElementById("san-pill");
+  pill.textContent = done ? "작성 완료" : "작성하기";
+  pill.classList.toggle("done", done);
+  document.getElementById("san-desc").textContent = done ? "오늘 점검을 마쳤어요" : "아직 안 썼어요 · 체크만 하면 1분";
+}
+// ── 시작하기 ──
+function renderSetup(st){
+  const steps = [
+    { done:st.biz, icon:"store", title:"사업장 연동", desc:"사업자번호만 넣으면 내 가게 데이터로 바뀌어요", href: st.loggedIn ? "business-verify.html" : "login.html", action: st.loggedIn ? "연동하기" : "로그인" },
+    { done:st.pos, icon:"pos", title:"POS 연결", desc:"계산대에서 찍은 라벨이 오늘 매출로 자동 기록돼요", href:"connect.html", action:"연결하기" },
+    { done:st.card, icon:"card", title:"카드매출 조회 연결", desc:"카드 대금이 언제·얼마 들어오는지 자동으로 보여요", href:"settlement.html", action:"연결하기" },
+    { done:st.intake, icon:"camera", title:"첫 거래명세서 찍기", desc:"품목·중량·이력번호가 입고와 재고로 들어가요", href:"#cam", action:"찍어보기" }
+  ];
+  const n = steps.filter(s=>s.done).length;
+  const box = document.getElementById("setup");
+  if (n === steps.length) { box.style.display = "none"; return; }
+  box.style.display = "";
+  document.getElementById("setup-sub").textContent = steps.length+"단계 중 "+n+"단계 완료 · 다 하면 매출·카드·재고가 저절로 채워져요";
+  document.getElementById("setup-bar").style.width = Math.round(n/steps.length*100)+"%";
+  document.getElementById("setup-steps").innerHTML = steps.map(s =>
+    "<a class='step"+(s.done?" done":"")+"' href='"+s.href+"'><span class='sc'>"+IC(s.done?"clip":s.icon,22)+"</span>"+
+    "<span class='sx'><b>"+s.title+"</b><small>"+s.desc+"</small></span><span class='sa'>"+(s.done?"완료":s.action+" ›")+"</span></a>").join("");
+  document.querySelectorAll(".step[href='#cam']").forEach(a => a.addEventListener("click", e => { e.preventDefault(); document.getElementById("q-cam").click(); }));
 }
 
 async function load(){
-  if(!window.MEATOS_CAN_PERSIST){
-    document.getElementById("demo-note").style.display = "";
-    render(sampleBrief());
-    renderChannels({ today:[{ channel:"STORE", amount:356100 },{ channel:"COUPANG", amount:56200 }], possibleDuplicates:[] });
+  if (!BIZ) {
+    // 체험(샘플) 화면
+    renderSales(412300, 18452000, [{channel:"STORE",amount:356100},{channel:"COUPANG",amount:56200}]);
+    renderCard([
+      { deposit_date:plus(0), deposit_amt:812300, status:"SCHEDULED" },
+      { deposit_date:plus(1), deposit_amt:1043200, status:"SCHEDULED" },
+      { deposit_date:plus(3), deposit_amt:1039000, status:"SCHEDULED" }
+    ], true);
+    renderSanitation(false);
+    renderSetup({ loggedIn: CTX.mode === "MEMBER_DEMO", biz:false, pos:false, card:false, intake:false });
     return;
   }
-  loadChannels();
-  try{
-    const r = await fetch(REST + "/rpc/get_money_brief", { method:"POST", headers:HJ, body:"{}" });
-    const body = await r.json().catch(()=>null);
-    if(!r.ok || !body) throw new Error((body && (body.message||body.code)) || ("HTTP "+r.status));
-    render(body);
-  }catch(e){
-    document.getElementById("deposits").innerHTML = "<div class='empty'>불러오지 못했습니다: "+esc(e.message)+"</div>";
+  const storeFilter = STORE ? "&store_id=eq."+encodeURIComponent(STORE) : "";
+  const [brief, chans, cards, san, pos, intake] = await Promise.all([
+    rpc("get_money_brief").catch(() => null),
+    rpc("get_channel_sales").catch(() => null),
+    rows("/card_settlement?company_id=eq."+TENANT+storeFilter+"&status=eq.SCHEDULED&deposit_date=gte."+TODAY+"&select=deposit_date,deposit_amt,status&order=deposit_date.asc&limit=3000"),
+    rows("/daily_sanitation_logs?tenant_id=eq."+TENANT+"&work_date=eq."+TODAY+"&select=id&limit=1"),
+    rows("/sales_record?tenant_id=eq."+TENANT+"&source=eq.local-agent&select=id&limit=1"),
+    rows("/inventory_movement?tenant_id=eq."+TENANT+"&movement_type=eq.IN&select=id&limit=1")
+  ]);
+  renderSales(brief?.today?.amount, brief?.month?.sales, chans?.today);
+  const cardConnected = Boolean(brief?.cardDeposits?.hasData) || cards.length > 0;
+  renderCard(cards, cardConnected);
+  renderSanitation(san.length > 0);
+  renderSetup({ loggedIn:true, biz:true, pos:pos.length > 0, card:cardConnected, intake:intake.length > 0 });
+  const dups = chans?.possibleDuplicates || [];
+  const note = document.getElementById("dup-note");
+  if (dups.length) {
+    note.style.display = "block";
+    note.textContent = "배달로 찍은 라벨 "+dups.length+"건이 POS에서도 같은 시간대에 찍혔어요. 같은 상품이면 매출현황에서 한 건을 판매취소해 주세요.";
   }
 }
-
-async function initAlerts(){
-  if(!BRIEF_ALERTS_ENABLED || !window.MEATOS_CAN_PERSIST) return;
-  document.getElementById("alert-panel").style.display = "";
-  const sel = document.getElementById("a-hour");
-  for(let h=5; h<=22; h++) sel.insertAdjacentHTML("beforeend", "<option value='"+h+"'"+(h===8?" selected":"")+">"+(h<12?"오전 ":"오후 ")+(h>12?h-12:h)+"시</option>");
-  try{
-    const r = await fetch(REST + "/rpc/get_my_brief_subscription", { method:"POST", headers:HJ, body:"{}" });
-    const s = await r.json();
-    if(r.ok && s.subscribed){
-      document.getElementById("a-phone").value = s.phone;
-      sel.value = String(s.sendHour);
-      document.getElementById("a-enabled").checked = !!s.enabled;
-    }
-  }catch(e){}
-  document.getElementById("a-save").addEventListener("click", async ()=>{
-    const msg = document.getElementById("a-msg");
-    msg.style.color = "#6b7280"; msg.textContent = "저장 중…";
-    try{
-      const r = await fetch(REST + "/rpc/set_my_brief_subscription", { method:"POST", headers:HJ, body:JSON.stringify({
-        p_phone: document.getElementById("a-phone").value, p_send_hour: Number(sel.value), p_enabled: document.getElementById("a-enabled").checked }) });
-      const s = await r.json().catch(()=>({}));
-      if(!r.ok) throw new Error(/INVALID_PHONE/.test(s.message||"") ? "휴대전화번호를 확인해 주세요." : (s.message||("HTTP "+r.status)));
-      msg.style.color = "#166534"; msg.textContent = s.enabled ? "✓ 저장했습니다. 매일 " + sel.options[sel.selectedIndex].text + "에 보내드립니다." : "✓ 알림을 껐습니다.";
-    }catch(e){ msg.style.color = "#b91c1c"; msg.textContent = "저장 실패: " + e.message; }
-  });
-}
-
-// ── 고기 입고: 예전 홈과 같은 방식(카메라 전용 입력 + 앨범 입력 → 줄인 사진을 넘겨 명세서 화면에서 바로 인식) ──
-(function initIntake(){
-  async function downscale(file){
-    const MAX = 1800; const bmp = await createImageBitmap(file);
-    const k = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
-    const w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
-    const c = document.createElement("canvas"); c.width = w; c.height = h;
-    c.getContext("2d").drawImage(bmp, 0, 0, w, h);
-    return c.toDataURL("image/jpeg", 0.84);
-  }
-  function makeInput(cam){
-    const i = document.createElement("input"); i.type = "file"; i.accept = "image/*";
-    if (cam) i.setAttribute("capture", "environment");
-    i.style.display = "none";
-    i.addEventListener("change", async () => {
-      const f = i.files && i.files[0]; if (!f) return;
-      try {
-        const t0 = performance.now();
-        sessionStorage.setItem("meatos_pending_image", await downscale(f));
-        sessionStorage.setItem("meatos_pending_home_prepare_ms", String(Math.round(performance.now() - t0)));
-        sessionStorage.setItem("meatos_pending_name", f.name || "scan.jpg");
-        sessionStorage.setItem("meatos_pending_source", cam ? "camera" : "file");
-        location.assign("scan.html");
-      } catch (e) {
-        alert("사진을 준비하지 못했습니다. 다시 촬영해 주세요.");
-      }
-    });
-    document.body.appendChild(i); return i;
-  }
-  const camIn = makeInput(true), fileIn = makeInput(false);
-  const ov = document.getElementById("pickerOv");
-  const open = () => { ov.classList.add("open"); document.getElementById("pk-cam").focus(); };
-  const close = () => { ov.classList.remove("open"); };
-  document.getElementById("intakeBtn").addEventListener("click", open);
-  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
-  document.getElementById("pk-cam").addEventListener("click", () => { close(); camIn.value = ""; camIn.click(); });
-  document.getElementById("pk-file").addEventListener("click", () => { close(); fileIn.value = ""; fileIn.click(); });
-  document.getElementById("pk-cancel").addEventListener("click", close);
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && ov.classList.contains("open")) close(); });
-})();
-
 load();
-initAlerts();
 </script>
 </body>
 </html>
