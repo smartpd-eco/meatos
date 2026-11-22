@@ -102,36 +102,132 @@
   .step-nav { display:flex; gap:8px; margin-top:4px; }
   .step-nav .ghost { flex:1; } .step-nav .primary { flex:2; }
 
+  /* 휴대폰: 입금예정 내역은 날짜·카드사·입금액·상태만 */
+  @media (max-width:640px){ html body .m-hide { display:none !important; } }
   .imp-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+
+  /* ===== 카드 입금 화면 (2026-11 리디자인: 분홍 고기톤, 월별·일별 보기) ===== */
+  :root{ --pk:#E5536B; --pk-dark:#C23A52; --pk-soft:#FFF1F3; --pk-soft2:#FFE3E8; --pk-text:#B42342; }
+  .pg-sub { color:var(--text-secondary); font-size:14px; margin:0 0 14px; line-height:1.6; }
+  .hero { position:relative; overflow:hidden; border-radius:20px; padding:20px 20px 16px; margin-bottom:14px; color:#fff;
+          background:linear-gradient(135deg,#F2687F 0%,#E0475F 55%,#C93A55 100%); box-shadow:0 10px 28px rgba(201,58,85,.25); }
+  .hero::after { content:""; position:absolute; right:-40px; top:-40px; width:160px; height:160px; border-radius:50%; background:rgba(255,255,255,.10); }
+  .hero-top { display:flex; justify-content:space-between; align-items:center; font-size:14px; font-weight:700; opacity:.95; }
+  .hero-date { font-size:13px; font-weight:600; background:rgba(255,255,255,.18); padding:3px 10px; border-radius:999px; }
+  .hero-amt { display:block; font-size:34px; font-weight:800; letter-spacing:-.03em; margin:6px 0 2px; font-variant-numeric:tabular-nums; }
+  .hero-sub { font-size:13.5px; opacity:.92; min-height:20px; }
+  .hero-row { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,.28); }
+  .hero-row div { min-width:0; }
+  .hero-row span { display:block; font-size:12px; opacity:.85; }
+  .hero-row b { display:block; font-size:15.5px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  .vtabs { display:flex; background:var(--pk-soft); border-radius:12px; padding:4px; gap:4px; margin:0 0 12px; }
+  body.mt-app-shell .vtabs button { flex:1; min-height:40px; border:0; border-radius:9px; background:transparent; color:var(--pk-text); font-weight:800; font-size:14.5px; cursor:pointer; }
+  body.mt-app-shell .vtabs button.on { background:#fff; color:var(--pk-dark); box-shadow:0 1px 4px rgba(194,58,82,.18); }
+  .mnav { display:flex; align-items:center; justify-content:center; gap:14px; margin:2px 0 10px; }
+  .mnav b { font-size:17px; font-weight:800; min-width:120px; text-align:center; }
+  body.mt-app-shell .mnav button { width:38px; min-height:38px; height:38px; border:0; border-radius:50%; background:var(--bg-page); color:var(--text-secondary); font-size:20px; font-weight:800; cursor:pointer; line-height:1; }
+  .msum { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; background:var(--bg-page); border-radius:12px; padding:10px 8px; margin-bottom:12px; text-align:center; }
+  .msum span { display:block; font-size:11.5px; color:var(--text-muted); font-weight:700; }
+  .msum b { display:block; font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .msum b.pk { color:var(--pk-dark); }
+
+  .cgrid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .cgrid .wd { text-align:center; font-size:12px; font-weight:700; color:var(--text-muted); padding:4px 0 6px; }
+  .cgrid .wd.sun { color:#E5484D; } .cgrid .wd.sat { color:#3B82F6; }
+  body.mt-app-shell .cday { min-height:58px; height:58px; padding:4px 0 0; border:0; border-radius:12px; background:transparent; display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; font:inherit; color:var(--text-primary); }
+  .cday .n { width:28px; height:28px; line-height:28px; border-radius:50%; font-size:14px; font-weight:700; }
+  .cday.sun .n, .cday.hol .n { color:#E5484D; } .cday.sat .n { color:#3B82F6; }
+  .cday .a { font-size:11.5px; font-weight:800; color:var(--pk-dark); letter-spacing:-.03em; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .cday .a.paid { color:#9CA3AF; font-weight:700; }
+  .cday.today .n { box-shadow:inset 0 0 0 2px var(--pk); color:var(--pk-dark); }
+  .cday.sel .n { background:var(--pk); color:#fff; box-shadow:none; }
+  .cday.sel { background:var(--pk-soft); }
+  .cday.blank { visibility:hidden; pointer-events:none; }
+
+  .dhead { display:flex; justify-content:space-between; align-items:baseline; gap:8px; padding:14px 2px 6px; border-top:1px solid var(--divider); margin-top:10px; }
+  .dhead b { font-size:16px; font-weight:800; } .dhead .tot { font-size:18px; font-weight:800; color:var(--pk-dark); font-variant-numeric:tabular-nums; }
+  .dhead .tag { display:inline-block; margin-left:6px; padding:1px 8px; border-radius:999px; background:var(--pk); color:#fff; font-size:11.5px; font-weight:800; vertical-align:2px; }
+  .drow { display:flex; align-items:center; gap:12px; padding:12px 2px; border-bottom:1px solid var(--divider); }
+  .drow:last-child { border-bottom:0; }
+  .drow.paid { opacity:.6; }
+  .cic { flex:none; width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; }
+  .dmid { flex:1; min-width:0; }
+  .dmid b { display:block; font-size:15px; font-weight:800; }
+  .dmid small { display:block; font-size:12.5px; color:var(--text-muted); }
+  .dright { text-align:right; }
+  .dright b { display:block; font-size:16px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .dright .st, .dright .paybtn { margin-top:4px; }
+  body.mt-app-shell .paybtn { min-height:30px; padding:3px 10px; border:1px solid var(--pk); border-radius:999px; background:#fff; color:var(--pk-dark); font-size:12px; font-weight:800; cursor:pointer; }
+  body.mt-app-shell .paybtn:disabled { border-color:#d1d5db; color:#9ca3af; cursor:not-allowed; }
+  .st.SCHEDULED { background:var(--pk-soft); color:var(--pk-text); }
+  .dempty { color:var(--text-muted); text-align:center; padding:18px 8px; font-size:14px; }
+  .dgroup + .dgroup { margin-top:4px; }
+  .dgroup .dhead { border-top:0; margin-top:0; padding-top:10px; }
+  .dgroup.past .dhead b, .dgroup.past .dhead .tot { color:var(--text-muted); }
+
+  .cbar { padding:10px 0; border-bottom:1px solid var(--divider); }
+  .cbar:last-child { border-bottom:0; }
+  .cbar .top { display:flex; align-items:center; gap:10px; }
+  .cbar .top b { flex:1; font-size:15px; font-weight:800; }
+  .cbar .top em { font-style:normal; font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .cbar .top small { color:var(--text-muted); font-size:12px; margin-left:4px; }
+  .cbar .track { height:8px; border-radius:999px; background:var(--pk-soft); margin:8px 0 0 48px; overflow:hidden; }
+  .cbar .fill { height:100%; border-radius:999px; background:linear-gradient(90deg,#F2879A,var(--pk)); }
+  .cbar .meta { margin:4px 0 0 48px; font-size:12px; color:var(--text-muted); }
+  body.mt-app-shell button.primary { background:var(--pk)!important; border-color:var(--pk)!important; }
+  body.mt-app-shell button.primary:hover { background:var(--pk-dark)!important; }
+  body.mt-app-shell button.primary:disabled { background:#c7c9cd!important; border-color:#c7c9cd!important; }
+  @media (max-width:420px){ .hero-amt { font-size:30px; } .hero-row b { font-size:14px; } }
 </style>
 </head>
 <body>
-  <h1>💳 카드 입금예정</h1>
-  <div class="sub">여신금융협회 <b>통합조회(cardsales.or.kr·무료)</b>에서 확인한 카드사별 매출을 입력하면, 정산주기·수수료·공휴일을 반영해 <b>입금예정일과 실입금액</b>을 자동 계산합니다.</div>
+  <h1>💳 카드 입금</h1>
+  <div class="pg-sub">여신금융협회 <b>카드매출 통합조회(무료)</b> 계정을 <b>한 번만</b> 연결하면, 카드사별로 <b>언제 · 얼마가</b> 들어오는지 자동으로 보여 드립니다.</div>
 
   <div class="notice" id="demoNotice" style="display:none">
     지금은 <b>체험(샘플) 모드</b>라 저장은 되지 않고 예시만 보입니다. 실제 입력·저장은 <a href="business-verify.html">사업장 연동</a> 후 이용하세요.
   </div>
 
-  <div class="kpis">
-    <div class="kpi hl"><b id="k-today">-</b><span>오늘 입금예정</span></div>
-    <div class="kpi"><b id="k-week">-</b><span>이번 주 입금예정</span></div>
-    <div class="kpi"><b id="k-unpaid">-</b><span>미입금 잔액</span></div>
-  </div>
+  <section class="hero" id="kpiBox" aria-label="오늘 들어올 카드 대금">
+    <div class="hero-top"><span>오늘 들어올 카드 대금</span><span class="hero-date" id="h-date"></span></div>
+    <b class="hero-amt" id="k-today">-</b>
+    <div class="hero-sub" id="k-today-sub">&nbsp;</div>
+    <div class="hero-row">
+      <div><span>이번 주</span><b id="k-week">-</b></div>
+      <div><span>이번 달 남은 입금</span><b id="k-month-left">-</b></div>
+      <div><span>미입금 전체</span><b id="k-unpaid">-</b></div>
+    </div>
+  </section>
 
-  <div class="card">
-    <h2>📅 입금예정 캘린더 <span class="r" style="display:flex;gap:6px;align-items:center"><button class="calnav" id="cal-prev" aria-label="이전 달">◀</button><b id="cal-ym" style="min-width:78px;text-align:center;color:var(--text-primary);font-size:14px"></b><button class="calnav" id="cal-next" aria-label="다음 달">▶</button></span></h2>
-    <div class="calwrap"><div id="cal" class="muted">불러오는 중…</div></div>
-  </div>
+  <section class="card" id="calCard">
+    <div class="vtabs" role="tablist" aria-label="보기 방식">
+      <button type="button" class="on" data-view="month" role="tab" aria-selected="true">월별 달력</button>
+      <button type="button" data-view="day" role="tab" aria-selected="false">일별 목록</button>
+    </div>
+    <div class="mnav">
+      <button type="button" id="cal-prev" aria-label="이전 달">‹</button>
+      <b id="cal-ym"></b>
+      <button type="button" id="cal-next" aria-label="다음 달">›</button>
+    </div>
+    <div class="msum">
+      <div><span>입금 예정</span><b class="pk" id="m-sched">-</b></div>
+      <div><span>입금 완료</span><b id="m-paid">-</b></div>
+      <div><span>카드 수수료</span><b id="m-fee">-</b></div>
+    </div>
+    <div id="view-month">
+      <div class="cgrid" id="cal"><div class="dempty" style="grid-column:1/-1">불러오는 중…</div></div>
+      <div id="dayDetail"></div>
+    </div>
+    <div id="view-day" hidden>
+      <div id="dayList"></div>
+    </div>
+  </section>
 
-  <div class="card" id="listCard">
-    <h2>🧾 입금예정 내역 <span class="r" id="list-scope">(예정일순)</span></h2>
-    <div id="list-reset" style="margin-bottom:6px;display:none"><span class="link" id="reset-btn">← 전체 보기</span></div>
-    <div style="overflow-x:auto"><table class="lst">
-      <thead><tr><th>입금예정일</th><th>카드사</th><th>매출일</th><th class="num">승인금액</th><th class="num">수수료</th><th class="num">입금예정액</th><th>상태</th></tr></thead>
-      <tbody id="tb"><tr><td colspan="7" class="muted">불러오는 중…</td></tr></tbody>
-    </table></div>
-  </div>
+  <section class="card" id="listCard">
+    <h2>카드사별 입금 <span class="r" id="cs-scope"></span></h2>
+    <div id="byCard"><div class="dempty">불러오는 중…</div></div>
+  </section>
 
   <div class="card" id="octoverCard">
     <h2>🔄 카드매출 자동조회 <span class="r">Octover 연동</span></h2>
@@ -144,6 +240,7 @@
         <button class="on" id="ov-tab-existing" type="button" role="tab">이미 계정이 있어요</button>
         <button id="ov-tab-signup" type="button" role="tab">계정이 없어요 (신규가입)</button>
       </div>
+      <div class="sub" id="ov-signup-guide" style="display:none;margin:0 0 10px">아직 계정이 없으면 <a href="https://www.cardsales.or.kr" target="_blank" rel="noopener">여신금융협회 카드매출 통합조회</a>에서 무료로 가입한 뒤, 그 아이디로 아래에서 연결해 주세요.</div>
 
       <!-- 기존 계정 연결 -->
       <div id="ov-pane-existing">
@@ -252,6 +349,8 @@ const H = window.MEATOS_API_HEADERS;
 const HW = { ...H, "Content-Type": "application/json", "Prefer": "return=representation" };
 const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
+// 휴대폰 달력용 짧은 금액: 1,043,200 → 104만
+function shortWon(v){ v=Number(v)||0; return v>=10000 ? Math.round(v/10000).toLocaleString("ko-KR")+"만" : won(v); }
 function pad(n){ return String(n).padStart(2,"0"); }
 function fmt(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
 const today = fmt(new Date());
@@ -278,88 +377,155 @@ async function loadRows(){
   const storeFilter = STORE_ID ? "&store_id=eq."+encodeURIComponent(STORE_ID) : "";
   const rows = await jget("/card_settlement?company_id=eq."+TENANT+storeFilter+"&select=*&order=deposit_date.asc,card_company.asc&limit=3000");
   ROWS = Array.isArray(rows)?rows:[];
-  renderKpis(); renderCalendar(); renderList();
+  renderAll();
 }
 
 function weekStart(){ const d=new Date(); const dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow); return fmt(d); }
 function weekEnd(){ const d=new Date(weekStart()+"T00:00:00"); d.setDate(d.getDate()+6); return fmt(d); }
+const WD = ["일","월","화","수","목","금","토"];
+function kday(dsv){ const d=new Date(dsv+"T00:00:00"); return (d.getMonth()+1)+"월 "+d.getDate()+"일 ("+WD[d.getDay()]+")"; }
+function wonU(v){ return won(Math.round(Number(v)||0))+"원"; }
+function sumBy(arr, key){ return arr.reduce((s,r)=>s+(Number(r[key])||0),0); }
+function cardIcon(c){
+  const i=CARD_COLORS[c]||{bg:"#f3f4f6",fg:"#374151"};
+  const t=String(c||"?").replace(/^KB/,"").replace(/^NH/,"").slice(0,1);
+  return "<span class='cic' style='background:"+i.bg+";color:"+i.fg+"' aria-hidden='true'>"+esc(t)+"</span>";
+}
+
+let calDate = new Date(); calDate.setDate(1);
+let VIEW = "month";
+let SEL = today;
+try{ const v=localStorage.getItem("meatos_settle_view"); if(v==="day"||v==="month") VIEW=v; }catch(e){}
+
+function curYm(){ return calDate.getFullYear()+"-"+pad(calDate.getMonth()+1); }
+function monthRows(){ const ym=curYm(); return ROWS.filter(r=>r.deposit_date && r.deposit_date.slice(0,7)===ym); }
 
 function renderKpis(){
   const sched = ROWS.filter(r=>r.status==="SCHEDULED");
-  const sum = (arr)=>arr.reduce((s,r)=>s+(Number(r.deposit_amt)||0),0);
-  document.getElementById("k-today").textContent  = won(sum(sched.filter(r=>r.deposit_date===today)))+"원";
-  const ws=weekStart(), we=weekEnd();
-  document.getElementById("k-week").textContent   = won(sum(sched.filter(r=>r.deposit_date>=ws && r.deposit_date<=we)))+"원";
-  document.getElementById("k-unpaid").textContent = won(sum(sched))+"원";
+  const todayRows = sched.filter(r=>r.deposit_date===today);
+  document.getElementById("h-date").textContent = kday(today);
+  document.getElementById("k-today").textContent = wonU(sumBy(todayRows,"deposit_amt"));
+  const cards=[...new Set(todayRows.map(r=>r.card_company))];
+  document.getElementById("k-today-sub").textContent = todayRows.length
+    ? todayRows.length+"건 · "+cards.slice(0,2).join(", ")+(cards.length>2?" 외 "+(cards.length-2):"")
+    : "오늘 들어올 카드 대금이 없습니다";
+  const ws=weekStart(), we=weekEnd(), ym=today.slice(0,7);
+  document.getElementById("k-week").textContent = wonU(sumBy(sched.filter(r=>r.deposit_date>=ws && r.deposit_date<=we),"deposit_amt"));
+  document.getElementById("k-month-left").textContent = wonU(sumBy(sched.filter(r=>r.deposit_date.slice(0,7)===ym && r.deposit_date>=today),"deposit_amt"));
+  document.getElementById("k-unpaid").textContent = wonU(sumBy(sched,"deposit_amt"));
 }
 
-// 입금예정 캘린더 (입금예정일 기준)
-let calDate = new Date(); calDate.setDate(1);
+function renderAll(){ renderKpis(); renderCalendar(); renderByCard(); }
+function renderList(){ renderAll(); }   // 예전 이름 호환
+
+function rowHtml(r){
+  const paid = r.status==="PAID";
+  const sd = r.sale_date ? (Number(r.sale_date.slice(5,7))+"/"+Number(r.sale_date.slice(8,10))+" 매출") : "";
+  const fee = Number(r.fee_amt)||0;
+  return "<div class='drow"+(paid?" paid":"")+"'>"+cardIcon(r.card_company)+
+    "<div class='dmid'><b>"+esc(r.card_company)+"카드</b><small>"+esc(sd)+(fee?" · 수수료 "+wonU(fee):"")+"</small></div>"+
+    "<div class='dright'><b>"+wonU(r.deposit_amt)+"</b>"+
+    (r.status==="SCHEDULED"
+      ? "<button type='button' class='paybtn' data-id='"+esc(r.id)+"'"+(CAN_PERSIST?"":" disabled")+">입금 확인</button>"
+      : "<span class='st "+esc(r.status)+"'>"+(paid?"입금완료":"보류")+"</span>")+
+    "</div></div>";
+}
+
 function renderCalendar(){
-  const y=calDate.getFullYear(), m=calDate.getMonth();
-  const ym = y+"-"+pad(m+1);
-  document.getElementById("cal-ym").textContent = ym;
-  const startDow=new Date(y,m,1).getDay();
-  const dim=new Date(y,m+1,0).getDate();
-  const byDay={};
-  ROWS.forEach(r=>{ if(r.status!=="PAID" && r.deposit_date && r.deposit_date.slice(0,7)===ym){ byDay[r.deposit_date]=(byDay[r.deposit_date]||0)+(Number(r.deposit_amt)||0); } });
-  let html="<table class='cal'><thead><tr><th class='sun'>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class='sat'>토</th><th class='sumcol'>계</th></tr></thead><tbody>";
-  let day=1, monthTotal=0;
-  for(let w=0; w<6 && day<=dim; w++){
-    html+="<tr>"; let weekTotal=0;
-    for(let dow=0; dow<7; dow++){
-      if((w===0 && dow<startDow) || day>dim){ html+="<td class='empty'></td>"; }
-      else{
-        const dsv=ym+"-"+pad(day), amt=byDay[dsv]||0;
-        const isHol=HOLIDAYS.has(dsv);
-        weekTotal+=amt; monthTotal+=amt;
-        html+="<td class='daycell"+(dsv===today?" today":"")+(dow===0?" sun":"")+(isHol?" hol":"")+"' data-d='"+dsv+"'><div class='dn'>"+day+"</div>"+(amt?"<div class='da'>"+won(amt)+"</div>":"")+"</td>";
-        day++;
-      }
-    }
-    html+="<td class='sumcol'>"+(weekTotal?won(weekTotal):"")+"</td></tr>";
-  }
-  html+="</tbody><tfoot><tr><td colspan='7' class='mtot-l'>월 입금예정 합계</td><td class='sumcol'>"+won(monthTotal)+"</td></tr></tfoot></table>";
-  const host=document.getElementById("cal"); host.className=""; host.innerHTML=html;
-  host.querySelectorAll("td.daycell").forEach(td=>td.addEventListener("click",()=>filterDay(td.dataset.d)));
-}
-function filterDay(dsv){
-  document.getElementById("list-scope").textContent="(입금예정 "+dsv+")";
-  document.getElementById("list-reset").style.display="block";
-  renderList(ROWS.filter(r=>r.deposit_date===dsv));
-  document.getElementById("listCard").scrollIntoView({behavior:"smooth", block:"start"});
-}
-document.getElementById("reset-btn").addEventListener("click", ()=>{
-  document.getElementById("list-scope").textContent="(예정일순)";
-  document.getElementById("list-reset").style.display="none";
-  renderList();
-});
+  const y=calDate.getFullYear(), m=calDate.getMonth(), ym=curYm();
+  document.getElementById("cal-ym").textContent = y+"년 "+(m+1)+"월";
+  const rows = monthRows();
+  document.getElementById("m-sched").textContent = wonU(sumBy(rows.filter(r=>r.status==="SCHEDULED"),"deposit_amt"));
+  document.getElementById("m-paid").textContent  = wonU(sumBy(rows.filter(r=>r.status==="PAID"),"deposit_amt"));
+  document.getElementById("m-fee").textContent   = wonU(sumBy(rows,"fee_amt"));
+  document.getElementById("cs-scope").textContent = y+"년 "+(m+1)+"월";
 
-function renderList(rows){
-  rows = rows || ROWS;
-  const tb=document.getElementById("tb");
-  if(!rows.length){ tb.innerHTML="<tr><td colspan='7' class='muted'>입금예정 내역이 없습니다. 위 ‘카드매출 자동조회’로 가져오세요.</td></tr>"; return; }
-  tb.innerHTML = rows.map(r=>"<tr><td><b>"+esc(r.deposit_date)+"</b></td><td>"+cardBadge(r.card_company)+"</td>"+
-    "<td>"+esc(r.sale_date)+"</td><td class='num'>"+won(r.approve_amt)+"</td>"+
-    "<td class='num'>"+won(r.fee_amt)+"</td><td class='num'><b>"+won(r.deposit_amt)+"</b></td>"+
-    "<td>"+(r.status==="SCHEDULED"
-      ? "<button class='paybtn' data-id='"+esc(r.id)+"'"+(CAN_PERSIST?"":" disabled")+">입금완료</button>"
-      : "<span class='st "+esc(r.status)+"'>"+(r.status==="PAID"?"입금완료":"보류")+"</span>")+"</td></tr>").join("");
+  // 선택한 날이 이 달이 아니면: 오늘(이 달이면) → 이 달 첫 입금일 → 1일
+  if(SEL.slice(0,7)!==ym){
+    const first = rows.map(r=>r.deposit_date).sort()[0];
+    SEL = today.slice(0,7)===ym ? today : (first || ym+"-01");
+  }
+  const byDay={}, paidOnly={};
+  rows.forEach(r=>{ byDay[r.deposit_date]=(byDay[r.deposit_date]||0)+(Number(r.deposit_amt)||0); });
+  Object.keys(byDay).forEach(d=>{ paidOnly[d]=rows.filter(r=>r.deposit_date===d).every(r=>r.status==="PAID"); });
+
+  const startDow=new Date(y,m,1).getDay(), dim=new Date(y,m+1,0).getDate();
+  let html = WD.map((w,i)=>"<div class='wd"+(i===0?" sun":i===6?" sat":"")+"'>"+w+"</div>").join("");
+  for(let i=0;i<startDow;i++) html+="<div class='cday blank'></div>";
+  for(let d=1; d<=dim; d++){
+    const dsv=ym+"-"+pad(d), dow=(startDow+d-1)%7, amt=byDay[dsv]||0;
+    const cls="cday"+(dow===0?" sun":dow===6?" sat":"")+(HOLIDAYS.has(dsv)?" hol":"")+(dsv===today?" today":"")+(dsv===SEL?" sel":"");
+    html+="<button type='button' class='"+cls+"' data-d='"+dsv+"' aria-label='"+kday(dsv)+(amt?" "+wonU(amt):"")+"'><span class='n'>"+d+"</span>"+
+      (amt?"<span class='a"+(paidOnly[dsv]?" paid":"")+"'>"+shortWon(amt)+"</span>":"")+"</button>";
+  }
+  const host=document.getElementById("cal"); host.innerHTML=html;
+  host.querySelectorAll(".cday[data-d]").forEach(b=>b.addEventListener("click",()=>{ SEL=b.dataset.d; renderCalendar(); }));
+  renderDayDetail();
+  renderDayList();
 }
-document.getElementById("tb").addEventListener("click", async (e)=>{
+
+function renderDayDetail(){
+  const rows = ROWS.filter(r=>r.deposit_date===SEL);
+  const total = sumBy(rows,"deposit_amt");
+  document.getElementById("dayDetail").innerHTML =
+    "<div class='dhead'><b>"+kday(SEL)+(SEL===today?"<span class='tag'>오늘</span>":"")+"</b><span class='tot'>"+(rows.length?wonU(total):"")+"</span></div>"+
+    (rows.length ? rows.map(rowHtml).join("") : "<div class='dempty'>이 날은 들어올 카드 대금이 없습니다.</div>");
+}
+
+function renderDayList(){
+  const rows = monthRows();
+  const days = [...new Set(rows.map(r=>r.deposit_date))].sort();
+  // 오늘 이후(다가오는 입금)를 먼저, 지난 날은 뒤에 흐리게
+  const upcoming = days.filter(d=>d>=today), past = days.filter(d=>d<today).reverse();
+  const group = (d, isPast)=>{
+    const dr = rows.filter(r=>r.deposit_date===d);
+    return "<div class='dgroup"+(isPast?" past":"")+"'><div class='dhead'><b>"+kday(d)+(d===today?"<span class='tag'>오늘</span>":"")+"</b><span class='tot'>"+wonU(sumBy(dr,"deposit_amt"))+"</span></div>"+dr.map(rowHtml).join("")+"</div>";
+  };
+  document.getElementById("dayList").innerHTML = days.length
+    ? upcoming.map(d=>group(d,false)).join("") + (past.length ? "<div class='dempty' style='padding:14px 0 4px;text-align:left;font-weight:700'>지난 입금</div>"+past.map(d=>group(d,true)).join("") : "")
+    : "<div class='dempty'>이 달에는 카드 입금 내역이 없습니다.</div>";
+}
+
+function renderByCard(){
+  const rows = monthRows();
+  const by = {};
+  rows.forEach(r=>{ const k=r.card_company||"기타"; (by[k]=by[k]||{amt:0,cnt:0,fee:0,appr:0}); by[k].amt+=Number(r.deposit_amt)||0; by[k].cnt++; by[k].fee+=Number(r.fee_amt)||0; by[k].appr+=Number(r.approve_amt)||0; });
+  const list = Object.entries(by).sort((a,b)=>b[1].amt-a[1].amt);
+  const total = list.reduce((s,[,v])=>s+v.amt,0) || 1;
+  document.getElementById("byCard").innerHTML = list.length ? list.map(([c,v])=>{
+    const pct = Math.round(v.amt/total*100);
+    const rate = v.appr ? (v.fee/v.appr*100).toFixed(2) : null;
+    return "<div class='cbar'><div class='top'>"+cardIcon(c)+"<b>"+esc(c)+"카드<small>"+v.cnt+"건</small></b><em>"+wonU(v.amt)+"</em></div>"+
+      "<div class='track'><div class='fill' style='width:"+Math.max(pct,3)+"%'></div></div>"+
+      "<div class='meta'>"+pct+"%"+(rate?" · 평균 수수료 "+rate+"%":"")+"</div></div>";
+  }).join("") : "<div class='dempty'>이 달에는 카드 입금 내역이 없습니다.</div>";
+}
+
+function setView(v){
+  VIEW = v==="day" ? "day" : "month";
+  try{ localStorage.setItem("meatos_settle_view", VIEW); }catch(e){}
+  document.querySelectorAll(".vtabs button").forEach(b=>{ const on=b.dataset.view===VIEW; b.classList.toggle("on",on); b.setAttribute("aria-selected", on?"true":"false"); });
+  document.getElementById("view-month").hidden = VIEW!=="month";
+  document.getElementById("view-day").hidden = VIEW!=="day";
+}
+document.querySelectorAll(".vtabs button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
+setView(VIEW);
+
+// 입금 확인(입금완료 처리): 달력 아래·일별 목록 어디서든
+document.getElementById("calCard").addEventListener("click", async (e)=>{
   const b=e.target.closest(".paybtn"); if(!b||b.disabled) return;
   const row=ROWS.find(r=>String(r.id)===b.dataset.id); if(!row) return;
-  if(!confirm(row.deposit_date+" "+row.card_company+" "+won(row.deposit_amt)+"원 입금완료 처리할까요?")) return;
+  if(!confirm(kday(row.deposit_date)+" "+row.card_company+"카드 "+wonU(row.deposit_amt)+"\n통장에 들어온 것을 확인했나요? 입금완료로 바꿉니다.")) return;
   b.disabled=true; b.textContent="처리 중…";
   try{
     const r=await fetch(REST+"/card_settlement?id=eq."+encodeURIComponent(row.id),{method:"PATCH",headers:HW,body:JSON.stringify({status:"PAID"})});
     if(!r.ok){ const j=await r.json().catch(()=>({})); throw new Error(j.message||"HTTP "+r.status); }
     await loadRows();
-  }catch(err){ alert("처리 실패: "+err.message); b.disabled=false; b.textContent="입금완료"; }
+  }catch(err){ alert("처리 실패: "+err.message); b.disabled=false; b.textContent="입금 확인"; }
 });
 
-document.getElementById("cal-prev").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); });
-document.getElementById("cal-next").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); });
+document.getElementById("cal-prev").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); renderByCard(); });
+document.getElementById("cal-next").addEventListener("click", ()=>{ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); renderByCard(); });
 
 // ===================== 비밀번호 표시/숨기기 토글 =====================
 document.querySelectorAll(".pwtoggle").forEach(btn=>{
@@ -439,11 +605,13 @@ async function octoverCall(action, extra){
 }
 
 function ovShowSetup(){
+  ovFocusSetup();
   document.getElementById("ov-loading").style.display="none";
   document.getElementById("ov-linked").style.display="none";
   document.getElementById("ov-setup").style.display="";
 }
 function ovShowLinked(octoverId){
+  ovRestoreLayout();
   document.getElementById("ov-loading").style.display="none";
   document.getElementById("ov-setup").style.display="none";
   document.getElementById("ov-linked").style.display="";
@@ -457,6 +625,23 @@ function ovShowLinked(octoverId){
   s.value=fmt(start); e.value=today;
 })();
 
+// 신규가입(주민번호 앞자리 전달) 화면은 법률 검토 전까지 숨긴다. 기존 계정 연결만 제공.
+const OV_SIGNUP_ENABLED = false;
+if(!OV_SIGNUP_ENABLED){
+  const tab=document.getElementById("ov-tab-signup"); if(tab) tab.style.display="none";
+  const seg=tab && tab.parentElement; if(seg) seg.style.display="none";
+  const guide=document.getElementById("ov-signup-guide"); if(guide) guide.style.display="";
+}
+// 연결 전이고 입금 데이터도 없으면: 빈 달력 대신 '연결하기'를 맨 위에 보여 준다
+function ovFocusSetup(){
+  if(ROWS.length) return;
+  const card=document.getElementById("octoverCard"), anchor=document.getElementById("kpiBox");
+  if(card && anchor) anchor.parentNode.insertBefore(card, anchor);
+  ["kpiBox","calCard","listCard"].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display="none"; });
+}
+function ovRestoreLayout(){
+  ["kpiBox","calCard","listCard"].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=""; });
+}
 // 탭 전환 (계정 있음 / 신규 가입)
 const ovTabExisting=document.getElementById("ov-tab-existing");
 const ovTabSignup=document.getElementById("ov-tab-signup");
@@ -564,10 +749,8 @@ if(ovRunBtn) ovRunBtn.addEventListener("click", async ()=>{
   }
 });
 
-ovCheckStatus();
-
-// 초기 로드
-(async ()=>{ await loadHolidays(); await loadRows(); })();
+// 초기 로드: 입금 데이터를 먼저 읽고 나서 연결 상태를 본다(데이터가 있으면 달력을 그대로 보여 줌)
+(async ()=>{ await loadHolidays(); await loadRows(); await ovCheckStatus(); })();
 </script>
 </body>
 </html>
