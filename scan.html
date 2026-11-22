@@ -11,7 +11,7 @@
   body { margin: 0; font-family: system-ui, sans-serif; background: #f3f4f6; color: #111827; padding: 14px; }
   h1 { font-size: 19px; margin: 2px 0 12px; }
   .card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-  label.filebtn { display: block; width: 100%; padding: 18px; font-size: 18px; font-weight: 700;
+  label.filebtn, button.filebtn { display: block; width: 100%; padding: 18px; font-size: 18px; font-weight: 700;
     border: none; border-radius: 12px; background: #16a34a; color: #fff; text-align: center; cursor: pointer; }
   .upload-actions { display:grid; grid-template-columns:1fr; gap:8px; }
   .secondary-btn { width:100%; padding:14px; border:1px solid #dc2626; border-radius:12px; background:#fff1f2; color:#b91c1c; font-size:16px; font-weight:800; cursor:pointer; }
@@ -89,7 +89,7 @@
 
   <div class="card">
     <div class="upload-actions">
-      <label class="filebtn" for="file" id="firstCaptureLabel">📷 첫 명세서 촬영 / 파일 선택</label>
+      <button type="button" class="filebtn" id="firstCaptureLabel">📷 첫 명세서 촬영 / 파일 선택</button>
       <button type="button" class="secondary-btn" id="addPageBtn" style="display:none">＋ 다음 명세서 추가</button>
       <button type="button" class="bundle-reset" id="resetBundleBtn" style="display:none">새 명세서 묶음 시작</button>
     </div>
@@ -642,13 +642,13 @@ document.getElementById("file").addEventListener("change", handleInvoiceFileChan
 document.getElementById("fileCam").addEventListener("change", handleInvoiceFileChange);
 
 // 다음 명세서 추가: 사진 찍기 / 파일 불러오기 선택 (모바일에서 카메라가 안 뜨던 문제 해결)
-function showAddPagePicker() {
+function showAddPagePicker(title) {
   if (document.getElementById("addPagePicker")) return;
   const ov = document.createElement("div");
   ov.id = "addPagePicker";
   ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px";
   ov.innerHTML = "<div style='background:#fff;border-radius:16px;padding:18px;width:100%;max-width:360px'>"
-    + "<div style='font-size:17px;font-weight:800;margin-bottom:6px'>다음 명세서 추가</div>"
+    + "<div style='font-size:17px;font-weight:800;margin-bottom:6px'>"+(title||"다음 명세서 추가")+"</div>"
     + "<div style='color:#6b7280;font-size:13px;margin-bottom:14px'>사진을 찍거나 파일을 불러오세요</div>"
     + "<button type='button' id='app-cam' style='width:100%;margin-bottom:10px;height:52px;border:0;border-radius:12px;background:#16a34a;color:#fff;font-size:16px;font-weight:800;cursor:pointer'>📷 사진 찍기</button>"
     + "<button type='button' id='app-file' style='width:100%;margin-bottom:10px;height:52px;border:1px solid #2563eb;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-size:16px;font-weight:800;cursor:pointer'>📁 파일 불러오기</button>"
@@ -661,6 +661,16 @@ function showAddPagePicker() {
   ov.querySelector("#app-file").addEventListener("click", () => { close(); const f = document.getElementById("file"); f.value = ""; f.click(); });
   ov.querySelector("#app-cancel").addEventListener("click", close);
 }
+
+// 첫 명세서도 같은 선택창: '사진 찍기'는 카메라를 바로 열고(capture), '파일 불러오기'는 앨범에서 고른다
+document.getElementById("firstCaptureLabel").addEventListener("click", () => showAddPagePicker("거래명세서 입력"));
+// 하단 탭 '입고'(scan.html?pick=1)로 들어오면 선택창을 바로 띄운다
+try {
+  if (new URLSearchParams(location.search).get("pick") === "1" && !sessionStorage.getItem("meatos_pending_image")) {
+    history.replaceState(null, "", location.pathname);
+    setTimeout(() => showAddPagePicker("거래명세서 입력"), 300);
+  }
+} catch (e) {}
 
 document.getElementById("addPageBtn").addEventListener("click", () => {
   if (PAGES.length >= MAX_PAGES) {

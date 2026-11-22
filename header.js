@@ -300,7 +300,7 @@
   var TABS = [
     ["🏠", "홈", "brief.html"],
     ["🧾", "판매", "sell.html"],
-    ["📷", "입고", "scan.html"]
+    ["📷", "입고", "scan.html?pick=1"]
   ];
   // 약관·정책·계정 삭제: 로그인 여부·역할과 관계없이 항상 노출 (Google Play·개인정보보호법 요건)
   var LEGAL_MENU = [
@@ -337,7 +337,7 @@
   }).filter(function (g) { return g[1].length > 0; });
   TABS = TABS.filter(function (t) { return menuAllowed(t[2]); });
   var currentPage = (location.pathname.split("/").pop() || "index").replace(/\.html$/, "") || "index";
-  function isCurrent(href) { return href.replace(/\.html$/, "") === currentPage; }
+  function isCurrent(href) { return href.split("?")[0].replace(/\.html$/, "") === currentPage; }
   // 휴대폰(또는 정육비서 안드로이드 앱) 여부: PC 전용 안내 화면 등에서 사용
   var isPhone = /Android|iPhone|iPad|iPod|Mobile|MEATOSApp/i.test(navigator.userAgent || "")
     || (window.matchMedia && window.matchMedia("(max-width: 768px)").matches);

@@ -35,6 +35,24 @@
   .alert-form label { font-size:13px; font-weight:700; color:#50555d; }
   .alert-form input, .alert-form select { width:100%; margin-top:6px; padding:10px 12px; font-size:16px; box-sizing:border-box; }
   .msg { margin-top:10px; font-size:14px; font-weight:700; min-height:20px; }
+  /* 고기 입고(거래명세서 촬영): 정육비서의 핵심이라 첫 화면 맨 위 */
+  .intake { display:flex; align-items:center; gap:14px; width:100%; margin:0 0 16px; padding:18px; border:0; border-radius:18px; cursor:pointer; text-align:left; font:inherit; color:#fff;
+            background:linear-gradient(135deg,#F2687F 0%,#E0475F 55%,#C93A55 100%); box-shadow:0 10px 26px rgba(201,58,85,.25); }
+  body.mt-app-shell .intake { min-height:96px; }
+  .intake .ic { flex:none; width:56px; height:56px; border-radius:16px; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:30px; }
+  .intake .tx { flex:1; min-width:0; }
+  .intake .tx b { display:block; font-size:20px; font-weight:800; letter-spacing:-.02em; }
+  .intake .tx span { display:block; font-size:14px; opacity:.92; margin-top:2px; line-height:1.45; }
+  .intake .go { flex:none; background:#fff; color:#C23A52; font-weight:800; font-size:15px; padding:10px 14px; border-radius:999px; white-space:nowrap; }
+  .pk-ov { position:fixed; inset:0; z-index:100000; background:rgba(0,0,0,.5); display:none; align-items:flex-end; justify-content:center; padding:16px; }
+  .pk-ov.open { display:flex; }
+  .pk-box { width:100%; max-width:420px; background:#fff; border-radius:20px; padding:20px; margin-bottom:env(safe-area-inset-bottom); }
+  .pk-box h3 { margin:0 0 4px; font-size:19px; } .pk-box p { margin:0 0 14px; color:#6b7280; font-size:14px; }
+  body.mt-app-shell .pk-box button { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:56px; margin-bottom:10px; border-radius:14px; font-size:17px; font-weight:800; cursor:pointer; }
+  .pk-box .cam { background:#E5536B; border:0; color:#fff; }
+  .pk-box .file { background:#FFF1F3; border:1px solid #F5B5C0; color:#B42342; }
+  .pk-box .cancel { background:#fff; border:1px solid #e5e7eb; color:#374151; min-height:46px !important; font-size:15px !important; }
+  @media (max-width:420px){ .intake .go { display:none; } .intake .tx b { font-size:19px; } }
   @media (max-width:900px){ .money-grid { grid-template-columns:repeat(2,1fr); } }
   @media (max-width:520px){ .money b { font-size:22px; } .alert-form { grid-template-columns:1fr; } }
 </style>
@@ -44,6 +62,20 @@
 <main class="brief">
   <h1>📊 오늘의 돈</h1>
   <p class="sub" id="b-sub">매출, 카드 입금 예정, 이번 달 남은 돈을 한 화면에서 봅니다.</p>
+  <button type="button" class="intake" id="intakeBtn" aria-haspopup="dialog">
+    <span class="ic" aria-hidden="true">📷</span>
+    <span class="tx"><b>고기가 들어왔어요!</b><span>거래명세서를 찍으면 입고·재고·이력번호까지 한 번에</span></span>
+    <span class="go" aria-hidden="true">찍기 ›</span>
+  </button>
+  <div class="pk-ov" id="pickerOv" role="dialog" aria-modal="true" aria-labelledby="pk-title">
+    <div class="pk-box">
+      <h3 id="pk-title">거래명세서 입력</h3>
+      <p>사진을 찍거나 찍어 둔 사진을 불러오세요.</p>
+      <button type="button" class="cam" id="pk-cam">📷 사진 찍기</button>
+      <button type="button" class="file" id="pk-file">📁 사진 불러오기</button>
+      <button type="button" class="cancel" id="pk-cancel">닫기</button>
+    </div>
+  </div>
   <div class="notice" id="demo-note" style="display:none">지금은 체험 모드라 예시 숫자입니다. <a href="business-verify.html">사업장 연동</a> 후 실제 매출로 바뀝니다.</div>
 
   <section class="money-grid" aria-label="핵심 숫자">
@@ -220,6 +252,47 @@ async function initAlerts(){
     }catch(e){ msg.style.color = "#b91c1c"; msg.textContent = "저장 실패: " + e.message; }
   });
 }
+
+// ── 고기 입고: 예전 홈과 같은 방식(카메라 전용 입력 + 앨범 입력 → 줄인 사진을 넘겨 명세서 화면에서 바로 인식) ──
+(function initIntake(){
+  async function downscale(file){
+    const MAX = 1800; const bmp = await createImageBitmap(file);
+    const k = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    c.getContext("2d").drawImage(bmp, 0, 0, w, h);
+    return c.toDataURL("image/jpeg", 0.84);
+  }
+  function makeInput(cam){
+    const i = document.createElement("input"); i.type = "file"; i.accept = "image/*";
+    if (cam) i.setAttribute("capture", "environment");
+    i.style.display = "none";
+    i.addEventListener("change", async () => {
+      const f = i.files && i.files[0]; if (!f) return;
+      try {
+        const t0 = performance.now();
+        sessionStorage.setItem("meatos_pending_image", await downscale(f));
+        sessionStorage.setItem("meatos_pending_home_prepare_ms", String(Math.round(performance.now() - t0)));
+        sessionStorage.setItem("meatos_pending_name", f.name || "scan.jpg");
+        sessionStorage.setItem("meatos_pending_source", cam ? "camera" : "file");
+        location.assign("scan.html");
+      } catch (e) {
+        alert("사진을 준비하지 못했습니다. 다시 촬영해 주세요.");
+      }
+    });
+    document.body.appendChild(i); return i;
+  }
+  const camIn = makeInput(true), fileIn = makeInput(false);
+  const ov = document.getElementById("pickerOv");
+  const open = () => { ov.classList.add("open"); document.getElementById("pk-cam").focus(); };
+  const close = () => { ov.classList.remove("open"); };
+  document.getElementById("intakeBtn").addEventListener("click", open);
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  document.getElementById("pk-cam").addEventListener("click", () => { close(); camIn.value = ""; camIn.click(); });
+  document.getElementById("pk-file").addEventListener("click", () => { close(); fileIn.value = ""; fileIn.click(); });
+  document.getElementById("pk-cancel").addEventListener("click", close);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && ov.classList.contains("open")) close(); });
+})();
 
 load();
 initAlerts();
