@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">정육비서</string>
+    <string name="offline_title">인터넷에 연결되어 있지 않아요</string>
+    <string name="offline_body">와이파이나 데이터 연결을 확인한 뒤 다시 시도해 주세요.</string>
+    <string name="retry">다시 시도</string>
+    <string name="choose_photo">사진 찍기 또는 고르기</string>
+    <string name="choose_file">파일 고르기</string>
+    <string name="no_app">열 수 있는 앱이 없습니다.</string>
+</resources>

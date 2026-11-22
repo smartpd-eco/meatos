@@ -259,7 +259,7 @@ async function getJson(url) {
     throw error;
   } finally { clearTimeout(timer); }
 }
-const won = (v) => Number(v||0).toLocaleString("ko-KR");
+const won = (v) => Math.round(Number(v)||0).toLocaleString("ko-KR");  // 원 단위는 소수점 없이
 const kg = (v) => (Math.round((Number(v)||0)*100)/100).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 function dLeft(exp){ const d=new Date(exp+"T00:00:00"); if(isNaN(d)) return null; const t=new Date(); t.setHours(0,0,0,0); return Math.round((d-t)/86400000); }

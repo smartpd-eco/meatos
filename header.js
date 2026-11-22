@@ -288,19 +288,19 @@
 
   // Rev 1.2 "돈 먼저": 매출·입금 메뉴를 위로. 재고 심화 기능(안전재고·자동발주)은 Rev 1.1로 보관하고 메뉴에서 숨긴다.
   // 쿠팡이츠 매출연동(delivery-connect.html)은 집계사 연동 전이라 메뉴에서 숨긴다(스토어 심사: 미완성 기능 노출 금지).
-  var MENU = [
-    ["📊 오늘의 돈", "brief.html"],
-    ["🧾 판매 스캔", "sell.html"],
-    ["🏷️ 품목 한 번에 등록", "plu-import.html"],
-    ["💰 매출현황", "sales.html"],
-    ["💳 카드 입금예정", "settlement.html"],
-    ["📥 매입현황", "purchases.html"],
-    ["🔗 POS 자동 연동", "connect.html"],
-    ["📦 재고현황", "stock.html"],
-    ["🔔 알림현황", "alerts.html"],
-    ["🏢 사업장 연동", "business-verify.html"],
-    ["🔐 계정 연결 관리", "account-link.html"],
-    ["⚙️ 환경설정", "settings.html"]
+  // 앱 출시용 정리(2026-11): 자주 쓰는 3개는 휴대폰 하단 탭으로, 나머지는 "더보기"(이 메뉴)에 묶음별로.
+  // 알림현황·계정 연결 관리는 메뉴에서 빼고 각각 "매장 한눈에"·"환경설정" 안에서 들어간다.
+  var MENU_GROUPS = [
+    ["자주 쓰는 것", [["🏠 오늘의 돈", "brief.html"], ["🧾 판매 스캔", "sell.html"], ["📷 거래명세서로 입고", "scan.html"]], "mt-drawer__group--tabs"],
+    ["돈", [["💰 매출현황", "sales.html"], ["💳 카드 입금예정", "settlement.html"]]],
+    ["고기 · 재고", [["📋 매장 한눈에 (재고·위생)", "overview.html"], ["📥 매입현황", "purchases.html"], ["📦 재고현황", "stock.html"]]],
+    ["처음 설정", [["🏷️ 품목 한 번에 등록", "plu-import.html"], ["🖥️ POS 연결 (계산대 PC)", "connect.html"], ["🏢 사업장 연동", "business-verify.html"], ["⚙️ 환경설정", "settings.html"]]]
+  ];
+  // 휴대폰 하단 탭: 홈 · 판매 · 입고 · 더보기
+  var TABS = [
+    ["🏠", "홈", "brief.html"],
+    ["🧾", "판매", "sell.html"],
+    ["📷", "입고", "scan.html"]
   ];
   // 약관·정책·계정 삭제: 로그인 여부·역할과 관계없이 항상 노출 (Google Play·개인정보보호법 요건)
   var LEGAL_MENU = [
@@ -332,7 +332,18 @@
     var required = HREF_PERM[href];
     return !required || permissions.indexOf(required) >= 0;
   }
-  MENU = MENU.filter(function (menu) { return menuAllowed(menu[1]); });
+  MENU_GROUPS = MENU_GROUPS.map(function (g) {
+    return [g[0], g[1].filter(function (m) { return menuAllowed(m[1]); }), g[2] || ""];
+  }).filter(function (g) { return g[1].length > 0; });
+  TABS = TABS.filter(function (t) { return menuAllowed(t[2]); });
+  var currentPage = (location.pathname.split("/").pop() || "index").replace(/\.html$/, "") || "index";
+  function isCurrent(href) { return href.replace(/\.html$/, "") === currentPage; }
+  // 휴대폰(또는 정육비서 안드로이드 앱) 여부: PC 전용 안내 화면 등에서 사용
+  var isPhone = /Android|iPhone|iPad|iPod|Mobile|MEATOSApp/i.test(navigator.userAgent || "")
+    || (window.matchMedia && window.matchMedia("(max-width: 768px)").matches);
+  window.MEATOS_IS_PHONE = isPhone;
+  window.MEATOS_IN_APP = /MEATOSApp\//.test(navigator.userAgent || "");
+  if (isPhone) document.documentElement.classList.add("mt-phone");
 
   document.body.classList.add("mt-app-shell");
   if (document.querySelector(".dashboard")) document.body.classList.add("mt-dashboard-page");
@@ -443,14 +454,42 @@
       "body.mt-app-shell:not(.mt-dashboard-page){padding-top:76px!important;}" +
       "body.mt-guest-mode:not(.mt-dashboard-page){padding-top:128px!important;}" +
     "}" +
-    "@media print{body.mt-app-shell:not(.mt-dashboard-page){padding:0!important;background:#fff!important}.mt-header,.mt-drawer,.mt-overlay{display:none!important;}}";
+    ".mt-drawer__group--first{margin-top:0;padding-top:0;border-top:0;}" +
+    ".mt-drawer__item.is-current{background:var(--brand-red-soft,#fff2f3);color:var(--brand-red,#c51624);}" +
+    ".mt-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:8998;display:none;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid var(--border-default,#e4e7eb);padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 16px rgba(16,24,40,.06);}" +
+    ".mt-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:62px;padding:6px 0;background:transparent;border:0;color:var(--text-muted,#6b7280);font:inherit;font-size:13px;font-weight:800;text-decoration:none;cursor:pointer;}" +
+    ".mt-tab__ico{font-size:23px;line-height:1.1;filter:grayscale(1);opacity:.75;}" +
+    ".mt-tab.on{color:var(--brand-red,#c51624);}" +
+    ".mt-tab.on .mt-tab__ico{filter:none;opacity:1;}" +
+    "@media(max-width:900px){" +
+      ".mt-tabbar{display:grid;}" +
+      "body.mt-app-shell.mt-has-tabbar{padding-bottom:96px!important;}" +
+      ".mt-drawer__group--tabs{display:none;}" +
+      ".mt-drawer__group--tabs+.mt-drawer__group{margin-top:0;padding-top:0;border-top:0;}" +
+      "body.mt-has-tabbar .toast{bottom:86px!important;}" +
+      "body.mt-has-tabbar .savebar{bottom:62px!important;}" +
+      "body.mt-has-tabbar .dashboard-toast{bottom:86px!important;}" +
+    "}" +
+    // 휴대폰에서 달력(매출현황·카드 입금예정)이 옆으로 잘리지 않게: 금액은 '104만'처럼 줄여 표시
+    ".da-short{display:none;}" +
+    "@media(max-width:560px){" +
+      "body.mt-app-shell table.cal{min-width:0!important;table-layout:fixed;font-size:11px!important;}" +
+      "body.mt-app-shell table.cal th,body.mt-app-shell table.cal td{padding:3px 2px!important;height:46px!important;}" +
+      "body.mt-app-shell table.cal thead th{height:auto!important;padding:5px 0!important;}" +
+      "body.mt-app-shell table.cal td .da{font-size:11px!important;margin-top:4px!important;letter-spacing:-.03em;white-space:nowrap;}" +
+      "body.mt-app-shell table.cal .da-full{display:none;}" +
+      "body.mt-app-shell table.cal .da-short{display:inline;}" +
+      "body.mt-app-shell table.cal .sumcol{font-size:11px!important;}" +
+      "body.mt-app-shell table.cal tfoot td{height:auto!important;padding:8px 4px!important;}" +
+    "}" +
+    "@media print{body.mt-app-shell:not(.mt-dashboard-page){padding:0!important;background:#fff!important}.mt-header,.mt-drawer,.mt-overlay,.mt-tabbar{display:none!important;}}";
   document.head.appendChild(style);
 
   var header = document.createElement("header");
   header.className = "mt-header";
   header.innerHTML =
     "<div class='mt-header__left'>" +
-      "<a class='mt-header__brand' href='index.html'>" +
+      "<a class='mt-header__brand' href='brief.html'>" +
         "<img class='mt-header__logo' src='icons/jeongyuk-biseo-logo.png' width='1289' height='507' alt='정육비서'>" +
       "</a>" +
       "<span class='mt-header__company' id='mtCompanyName' title=''></span>" +
@@ -499,7 +538,12 @@
       "<button class='mt-drawer__close' id='mtDrawerClose' type='button' aria-label='전체 메뉴 닫기'>✕</button>" +
     "</div>" +
     "<nav class='mt-drawer__nav'>" +
-      MENU.map(function (m) { return "<a class='mt-drawer__item' href='" + m[1] + "'>" + m[0] + "</a>"; }).join("") +
+      MENU_GROUPS.map(function (g, i) {
+        return "<div class='mt-drawer__group" + (i === 0 ? " mt-drawer__group--first" : "") + (g[2] ? " " + g[2] : "") + "' role='group' aria-label='" + g[0] + "'>" +
+          "<span class='mt-drawer__group-title'>" + g[0] + "</span>" +
+          g[1].map(function (m) { return "<a class='mt-drawer__item" + (isCurrent(m[1]) ? " is-current" : "") + "' href='" + m[1] + "'>" + m[0] + "</a>"; }).join("") +
+        "</div>";
+      }).join("") +
       (/sales(\.html)?$/.test(location.pathname) ? "<button class='mt-drawer__item' id='mtSaleInput' type='button'>➕ 판매입력</button>" : "") +
       "<div class='mt-drawer__group' role='group' aria-label='약관 및 정책'>" +
         "<span class='mt-drawer__group-title'>약관 · 정책</span>" +
@@ -510,6 +554,16 @@
       "<button class='mt-drawer__logout' id='mtLogoutBtn' type='button'>로그아웃</button>" +
     "</div>";
   document.body.appendChild(drawer);
+
+  var tabbar = document.createElement("nav");
+  tabbar.className = "mt-tabbar";
+  tabbar.setAttribute("aria-label", "주요 메뉴");
+  tabbar.innerHTML = TABS.map(function (t) {
+    return "<a class='mt-tab" + (isCurrent(t[2]) ? " on" : "") + "' href='" + t[2] + "'" + (isCurrent(t[2]) ? " aria-current='page'" : "") + "><span class='mt-tab__ico' aria-hidden='true'>" + t[0] + "</span><span>" + t[1] + "</span></a>";
+  }).join("") +
+    "<button class='mt-tab' type='button' id='mtTabMore' aria-controls='mtDrawer'><span class='mt-tab__ico' aria-hidden='true'>☰</span><span>더보기</span></button>";
+  document.body.appendChild(tabbar);
+  document.body.classList.add("mt-has-tabbar");
 
   var userChip = document.getElementById("mtUserChip");
   var userName = document.getElementById("mtUserName");
@@ -548,6 +602,7 @@
   }
 
   menuBtn.addEventListener("click", function () { toggleDrawer(true); });
+  document.getElementById("mtTabMore").addEventListener("click", function () { toggleDrawer(true); });
   drawerClose.addEventListener("click", function () { toggleDrawer(false); });
   overlay.addEventListener("click", function () { toggleDrawer(false); });
   userChip.addEventListener("click", function () { if (!readUser()) location.assign("login.html"); });

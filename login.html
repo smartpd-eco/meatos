@@ -57,7 +57,7 @@
 </style>
 </head>
 <body>
-  <a class="brand" href="index.html" aria-label="정육비서 메인 화면"><img src="icons/jeongyuk-biseo-logo.png" width="1289" height="507" alt="정육비서 · 매입부터 판매까지, 한눈에 관리" /></a>
+  <a class="brand" href="brief.html" aria-label="정육비서 메인 화면"><img src="icons/jeongyuk-biseo-logo.png" width="1289" height="507" alt="정육비서 · 매입부터 판매까지, 한눈에 관리" /></a>
 
   <div class="card">
     <div class="tabs">
@@ -95,7 +95,7 @@
     <div class="msg" id="msg"></div>
   </div>
 
-  <div class="foot"><a href="index.html">메인 화면으로 이동</a><span class="foot-sep">·</span><a href="terms.html">이용약관</a><span class="foot-sep">·</span><a href="privacy.html"><b>개인정보처리방침</b></a></div>
+  <div class="foot"><a href="brief.html">메인 화면으로 이동</a><span class="foot-sep">·</span><a href="terms.html">이용약관</a><span class="foot-sep">·</span><a href="privacy.html"><b>개인정보처리방침</b></a></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -238,8 +238,8 @@ async function finalize(session){
   localStorage.setItem("meatos_refresh_token", session.refresh_token||"");
   localStorage.setItem("meatos_last_active", String(Date.now()));
   clearSocialIntent();
-  const requested = new URLSearchParams(location.search).get("next") || "/index.html";
-  const next = requested.startsWith("/") && !requested.startsWith("//") ? requested : "/index.html";
+  const requested = new URLSearchParams(location.search).get("next") || "/brief.html";
+  const next = requested.startsWith("/") && !requested.startsWith("//") ? requested : "/brief.html";
   // 로그인 화면을 히스토리에 남기지 않아, 로그인 후 뒤로가기가 홈으로 튀거나
   // 로그인 화면으로 되돌아오는 현상을 방지한다.
   location.replace(next);
@@ -322,7 +322,13 @@ async function social(provider){
   if(requested && requested.startsWith("/") && !requested.startsWith("//")){
     callback.searchParams.set("next", requested);
   }
-  const opts = { redirectTo: callback.toString() };
+  // 정육비서 안드로이드 앱 안에서는 구글이 웹뷰 로그인을 막는다. 앱이 이 요청을 외부 브라우저로 넘기고,
+  // 로그인이 끝나면 kr.meatos.app://auth/login.html... 로 앱에 돌아와 같은 화면에서 마무리한다.
+  // (Supabase Authentication → URL Configuration → Redirect URLs 에 kr.meatos.app://** 등록 필요)
+  const IN_APP = /MEATOSApp\//.test(navigator.userAgent || "");
+  const opts = { redirectTo: (IN_APP && provider === "google")
+    ? "kr.meatos.app://auth" + callback.pathname + callback.search
+    : callback.toString() };
   const { error } = await sb.auth.signInWithOAuth({ provider, options: opts });
   if(error){ clearSocialIntent(); msg(label + " 로그인 연결에 실패했습니다. 잠시 후 다시 시도해 주세요."); }
 }

@@ -35,6 +35,7 @@ const pages = [
   // Rev 1.2 오늘의 돈
   "brief.html",
   "plu-import.html",
+  "overview.html",
 ];
 // 공통 자원 (app.js 제외)
 const assets = [

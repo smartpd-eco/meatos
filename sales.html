@@ -33,6 +33,23 @@
   table.cal .sumcol { background:#f8fafc; font-weight:800; text-align:right; color:#111827; }
   table.cal tfoot td { background:#111827; color:#fff; font-weight:800; }
   table.cal tfoot .mtot-l { text-align:center; }
+  .m-chan { display:none; }
+  /* 휴대폰: 매출 내역을 표 대신 카드로 (바코드·단가·POS번호는 숨김) */
+  @media (max-width:640px){
+    html body table.lst, table.lst tbody { display:block; width:100%; }
+    html body table.lst thead { display:none; }
+    html body table.lst tr { display:grid; grid-template-columns:1fr auto; gap:2px 10px; padding:12px 4px; border-bottom:1px solid #eef2f7; }
+    html body table.lst tr.is-cancelled { opacity:.55; }
+    html body table.lst td { display:block; border:0 !important; padding:0 !important; min-height:0 !important; height:auto !important; text-align:left !important; white-space:normal; }
+    html body table.lst td.m-hide { display:none; }
+    html body table.lst td[data-l='판매일시'] { grid-column:1; color:#6b7280; font-size:13px; }
+    html body table.lst td.name { grid-column:1; font-size:16px; font-weight:800; }
+    html body table.lst td[data-l='수량'] { grid-column:1; color:#6b7280; font-size:13px; }
+    html body table.lst td.m-amt { grid-column:2; grid-row:1 / span 2; align-self:center; text-align:right !important; font-size:18px; font-weight:800; }
+    html body table.lst td[data-l=''] { grid-column:2; text-align:right !important; }
+    html body table.lst td[colspan] { grid-column:1 / -1; text-align:center !important; }
+    .m-chan { display:inline; }
+  }
   /* 매출 내역 */
   table.lst { width:100%; border-collapse:collapse; font-size:14px; }
   table.lst th, table.lst td { border-bottom:1px solid #eef2f7; padding:9px 6px; text-align:left; white-space:nowrap; }
@@ -106,6 +123,8 @@ const ANON = "sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
 const TENANT = window.MEATOS_TENANT || "881f6cc1-b552-468c-b9b4-152edb464e61";
 const H = window.MEATOS_API_HEADERS;
 const HW = { ...H, "Content-Type": "application/json" };
+// 휴대폰 달력용 짧은 금액: 1,043,200 → 104만
+function shortWon(v){ v=Number(v)||0; return v>=10000 ? Math.round(v/10000).toLocaleString("ko-KR")+"만" : won(v); }
 const won = (v) => Number(v||0).toLocaleString("ko-KR");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 function pad(n){ return String(n).padStart(2,"0"); }
@@ -200,13 +219,13 @@ async function renderCalendar(){
       else{
         const dsv=ym+"-"+pad(day), amt=byDay[dsv]||0;
         weekTotal+=amt; monthTotal+=amt;
-        html+="<td class='daycell"+(dsv===today?" today":"")+(dow===0?" sun":"")+"' data-d='"+dsv+"'><div class='dn'>"+day+"</div>"+(amt?"<div class='da'>"+won(amt)+"</div>":"")+"</td>";
+        html+="<td class='daycell"+(dsv===today?" today":"")+(dow===0?" sun":"")+"' data-d='"+dsv+"'><div class='dn'>"+day+"</div>"+(amt?"<div class='da'><span class='da-full'>"+won(amt)+"</span><span class='da-short'>"+shortWon(amt)+"</span></div>":"")+"</td>";
         day++;
       }
     }
-    html+="<td class='sumcol'>"+(weekTotal?won(weekTotal):"")+"</td></tr>";
+    html+="<td class='sumcol'>"+(weekTotal?"<span class='da-full'>"+won(weekTotal)+"</span><span class='da-short'>"+shortWon(weekTotal)+"</span>":"")+"</td></tr>";
   }
-  html+="</tbody><tfoot><tr><td colspan='7' class='mtot-l'>월매출 총합계</td><td class='sumcol'>"+won(monthTotal)+"</td></tr></tfoot></table>";
+  html+="</tbody><tfoot><tr><td colspan='7' class='mtot-l'>월매출 총합계</td><td class='sumcol'><span class='da-full'>"+won(monthTotal)+"</span><span class='da-short'>"+shortWon(monthTotal)+"</span></td></tr></tfoot></table>";
   const host=document.getElementById("cal"); host.className=""; host.innerHTML=html;
   host.querySelectorAll("td.daycell").forEach(td=>td.addEventListener("click",()=>filterDay(td.dataset.d)));
 }
@@ -226,11 +245,11 @@ function renderList(rows){
   rows = rows || ALL;
   const tb=document.getElementById("tb");
   if(!rows.length){ tb.innerHTML="<tr><td colspan='9' class='muted'>매출 내역이 없습니다.</td></tr>"; return; }
-  tb.innerHTML = rows.map(x=>"<tr><td>"+esc(x.sold_at?new Date(x.sold_at).toLocaleString("ko-KR"):x.sale_date)+"</td>"+
-    "<td>"+esc(STORE_NAMES[x.store_id]||chanBadge(x.channel).replace(/<[^>]+>/g,""))+(x.channel&&x.channel!=="STORE"&&STORE_NAMES[x.store_id]?" "+chanBadge(x.channel):"")+"</td><td class='name'>"+esc(x.item_name)+(x.needs_mapping&&!x.is_cancelled&&x.product_code?" <a href='sell.html?code="+encodeURIComponent(x.product_code)+"' style='font-size:12px;font-weight:800;color:#2563eb;text-decoration:none'>품목 지정</a>":"")+"</td>"+
-    "<td>"+esc(x.barcode||"-")+"</td><td class='num'>"+(x.quantity!=null?won(x.quantity):"-")+"</td>"+
-    "<td class='num'>"+(x.unit_price!=null?won(x.unit_price):"-")+"</td><td class='num'>"+won(x.amount)+"</td>"+
-    "<td>"+esc(x.external_transaction_id||"-")+"</td><td>"+(x.is_cancelled
+  tb.innerHTML = rows.map(x=>"<tr"+(x.is_cancelled?" class='is-cancelled'":"")+"><td data-l='판매일시'>"+esc(x.sold_at?new Date(x.sold_at).toLocaleString("ko-KR"):x.sale_date)+"</td>"+
+    "<td data-l='매장' class='m-hide'>"+esc(STORE_NAMES[x.store_id]||chanBadge(x.channel).replace(/<[^>]+>/g,""))+(x.channel&&x.channel!=="STORE"&&STORE_NAMES[x.store_id]?" "+chanBadge(x.channel):"")+"</td><td class='name' data-l='상품'>"+esc(x.item_name)+(x.channel&&x.channel!=="STORE"?" <span class='m-chan'>"+chanBadge(x.channel)+"</span>":"")+(x.needs_mapping&&!x.is_cancelled&&x.product_code?" <a href='sell.html?code="+encodeURIComponent(x.product_code)+"' style='font-size:12px;font-weight:800;color:#2563eb;text-decoration:none'>품목 지정</a>":"")+"</td>"+
+    "<td class='m-hide' data-l='바코드'>"+esc(x.barcode||"-")+"</td><td class='num' data-l='수량'>"+(x.quantity!=null?won(x.quantity):"-")+"</td>"+
+    "<td class='num m-hide' data-l='판매단가'>"+(x.unit_price!=null?won(x.unit_price):"-")+"</td><td class='num m-amt' data-l='판매금액'>"+won(x.amount)+"</td>"+
+    "<td class='m-hide' data-l='POS 거래번호'>"+esc(x.external_transaction_id||"-")+"</td><td data-l=''>"+(x.is_cancelled
       ?"<span class='cancelled'>취소됨</span>"
       :"<button class='cancel-btn' type='button' data-sale-id='"+esc(x.id)+"'"+(window.MEATOS_CONTEXT?.isBusiness?"":" disabled title='기업 로그인 후 이용'")+">판매취소</button>")+"</td></tr>").join("");
 }

@@ -41,14 +41,38 @@
   .badge.ok{background:#dcfce7;color:#166534}.badge.warn{background:#fef3c7;color:#92400e}.badge.bad{background:#fee2e2;color:#b91c1c}
   .logtime{margin-left:auto;color:#9ca3af;font-size:11px;font-variant-numeric:tabular-nums}
   .log-empty{color:#9ca3af;font-size:13px;text-align:center;padding:20px 0}
+  /* 휴대폰: 설치는 계산대 PC에서 하므로 설치 화면 대신 'PC로 주소 보내기'와 연결 상태만 보여 준다 */
+  .phone-only{display:none}
+  html.mt-phone .phone-only{display:block}
+  html.mt-phone body:not(.show-pc) .pc-only{display:none!important}
+  .phone-card ol{margin:6px 0 14px;padding-left:20px;line-height:1.8;font-size:15px}
+  .phone-card .row{display:flex;gap:8px;flex-wrap:wrap}
+  .phone-card .row>*{flex:1 1 140px;min-height:48px;font-size:15px;font-weight:800;border-radius:10px;text-align:center;display:flex;align-items:center;justify-content:center;text-decoration:none}
+  .phone-card .ghost-btn{background:#fff;border:1px solid #cbd5e1;color:#111827;cursor:pointer}
+  .phone-card .addr{margin:10px 0;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px dashed #cbd5e1;font-size:16px;font-weight:800;text-align:center;word-break:break-all}
   @media(max-width:640px){.ready-grid,.test-flow,.tech-grid,.field-check{grid-template-columns:1fr}.stat{flex-wrap:wrap}.stat .b{min-width:28%}}
 </style>
 </head>
 <body>
   <h1>POS 원클릭 자동 연동</h1>
-  <div class="sub">기존 POS를 수정하지 않고 계산대에서 찍는 저울 라벨을 받아 <b>바로 매출로 기록</b>합니다. 품목 지정은 필요 없고, 지정된 품목은 재고도 자동으로 차감됩니다. 결제 전 취소·반품은 매출현황에서 판매취소로 정리합니다.</div>
+  <div class="card phone-only phone-card" id="phone-card">
+    <h2>🖥️ POS 연결은 계산대 PC에서 합니다</h2>
+    <ol>
+      <li>계산대 PC에서 아래 주소를 엽니다.</li>
+      <li>빨간 <b>설치 프로그램 받기</b> 버튼을 눌러 설치합니다. (약 5분)</li>
+      <li>라벨을 하나 찍어 보면 휴대폰 <b>오늘의 돈</b>에 금액이 바로 들어옵니다.</li>
+    </ol>
+    <div class="addr" id="pc-addr">meatos.vercel.app/connect</div>
+    <div class="row">
+      <button class="primary" type="button" id="send-pc">📤 PC로 주소 보내기</button>
+      <a class="ghost-btn" id="sms-pc" href="#">💬 문자로 보내기</a>
+    </div>
+    <div class="sub" id="send-msg" style="margin:10px 0 0"></div>
+    <div class="sub" style="margin:12px 0 0">설치가 끝나면 아래 <b>연동 상태</b>에서 휴대폰으로 확인할 수 있어요. <a class="link" href="#" id="show-pc">PC 설치 화면 그대로 보기</a></div>
+  </div>
+  <div class="sub pc-only">기존 POS를 수정하지 않고 계산대에서 찍는 저울 라벨을 받아 <b>바로 매출로 기록</b>합니다. 품목 지정은 필요 없고, 지정된 품목은 재고도 자동으로 차감됩니다. 결제 전 취소·반품은 매출현황에서 판매취소로 정리합니다.</div>
 
-  <div class="card">
+  <div class="card pc-only">
     <div class="acct out" id="acct">기업 연결 확인 중…</div>
     <div class="ready-grid" style="margin-top:12px">
       <div class="ready" id="r-company"><span>1. 기업 연동</span><b>확인 중</b></div>
@@ -73,7 +97,7 @@
     <div class="notice" id="install-msg">설치 전 기업·재고·상품 매핑을 자동 점검합니다.</div>
   </div>
 
-  <div class="card">
+  <div class="card pc-only">
     <h2>설치 방법</h2>
     <ol class="steps">
       <li>이 화면 위쪽의 빨간 <b>Windows POS 연동 설치 프로그램 받기</b> 버튼을 누릅니다. 품목 지정이나 재고 입력은 미리 하지 않아도 됩니다.</li>
@@ -83,7 +107,7 @@
     </ol>
   </div>
 
-  <div class="card">
+  <div class="card pc-only">
     <h2>테스트 절차와 판정 기준</h2>
     <div class="test-flow">
       <div><b>① 스캔 확인</b>메모장에서 13자리 코드+Enter가 입력되는지 확인합니다.</div>
@@ -95,7 +119,7 @@
     <div class="notice"><b>선행조건:</b> Windows 10/11, USB HID 키보드형 스캐너, 인터넷 HTTPS 접속, 승인된 기업 계정과 기본매장. POS 원본 프로그램·DB에는 쓰지 않습니다.</div>
   </div>
 
-  <div class="card">
+  <div class="card pc-only">
     <h2>현장에 가져갈 것</h2>
     <div class="field-check">
       <div><b>POS 자료</b>정상 판매·결제 전 취소·반품 화면, 일별 판매 상세 또는 CSV</div>
@@ -133,6 +157,35 @@
   </div>
 
 <script src="header.js?v=20260729-pos-installer-2"></script>
+<script>
+// 휴대폰 전용: 계산대 PC로 설치 주소 보내기
+(function(){
+  var url = location.origin + "/connect";
+  var text = "정육비서 POS 연결 — 계산대 PC에서 이 주소를 열고 설치 버튼을 누르세요: " + url;
+  document.getElementById("pc-addr").textContent = url.replace(/^https?:\/\//, "");
+  document.getElementById("sms-pc").href = "sms:?body=" + encodeURIComponent(text);
+  var msg = document.getElementById("send-msg");
+  async function copy(){
+    try{ await navigator.clipboard.writeText(url); return true; }
+    catch(e){
+      try{ var t=document.createElement("textarea"); t.value=url; document.body.appendChild(t); t.select(); var ok=document.execCommand("copy"); t.remove(); return ok; }catch(e2){ return false; }
+    }
+  }
+  document.getElementById("send-pc").addEventListener("click", async function(){
+    if(navigator.share){
+      try{ await navigator.share({ title:"정육비서 POS 연결", text:text, url:url }); return; }catch(e){ if(e && e.name==="AbortError") return; }
+    }
+    var ok = await copy();
+    msg.style.color = ok ? "#166534" : "#b91c1c";
+    msg.innerHTML = ok ? "✓ 주소를 복사했어요. 카카오톡 <b>나와의 채팅</b>에 붙여넣고, PC 카카오톡에서 눌러 여세요."
+                       : "복사하지 못했습니다. 위 주소를 PC 인터넷 주소창에 직접 입력해 주세요.";
+  });
+  document.getElementById("show-pc").addEventListener("click", function(e){
+    e.preventDefault(); document.body.classList.add("show-pc");
+    document.getElementById("phone-card").style.display = "none";
+  });
+})();
+</script>
 <script>
 const REST="https://pkrsiqjzllyiafwpskll.supabase.co/rest/v1";
 const ANON="sb_publishable_BuLdLube8Tfkf7hEhFESWg_6tSLGBLh";
